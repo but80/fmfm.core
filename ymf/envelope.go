@@ -24,7 +24,6 @@ type EnvelopeGenerator struct {
 
 	actualAR          int
 	xAttackIncrement  float64
-	xMinimumInAttack  float64
 	drDBPerSample     float64
 	srDBPerSample     float64
 	rrDBPerSample     float64
@@ -41,12 +40,11 @@ type EnvelopeGenerator struct {
 
 func newEnvelopeGenerator() *EnvelopeGenerator {
 	return &EnvelopeGenerator{
-		stage:             Stage_OFF,
-		currentLevel:      dbToX(-96),
-		resolutionMaximum: dbToX(-0.1875),
-		percentage10:      percentageToX(0.1),
-		percentage90:      percentageToX(0.9),
-		currentDB:         -96,
+		stage:        Stage_OFF,
+		currentLevel: 0,
+		percentage10: percentageToX(0.1),
+		percentage90: percentageToX(0.9),
+		currentDB:    -96,
 	}
 }
 
@@ -87,39 +85,20 @@ func (eg *EnvelopeGenerator) setAtennuation(f_number, block, ksl int) {
 }
 
 func (eg *EnvelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber int) {
-	// According to the YMF278B manual's OPL3 section, the attack curve is exponential,
-	// with a dynamic range from -96 dB to 0 dB and a resolution of 0.1875 dB
-	// per level.
-	//
-	// This method sets an attack increment and attack minimum value
-	// that creates a exponential dB curve with 'period0to100' seconds in length
-	// and 'period10to90' seconds between 10% and 90% of the curve total level.
 	eg.actualAR = calculateActualRate(attackRate, ksr, keyScaleNumber)
-	period0to100inSeconds := float64(attackTimeValuesTable[eg.actualAR][0]) / 1000
-	period0to100inSamples := int(period0to100inSeconds * ymfdata.SampleRate)
-	period10to90inSeconds := float64(attackTimeValuesTable[eg.actualAR][1]) / 1000
-	period10to90inSamples := int(period10to90inSeconds * ymfdata.SampleRate)
-	// The x increment is dictated by the period between 10% and 90%:
-	eg.xAttackIncrement = ymfdata.CalculateIncrement(eg.percentage10, eg.percentage90, period10to90inSeconds)
-	// Discover how many samples are still from the top.
-	// It cannot reach 0 dB, since x is a logarithmic parameter and would be
-	// negative infinity. So we will use -0.1875 dB as the resolution
-	// maximum.
-	//
-	// percentageToX(0.9) + samplesToTheTop*xAttackIncrement = dBToX(-0.1875); ->
-	// samplesToTheTop = (dBtoX(-0.1875) - percentageToX(0.9)) / xAttackIncrement); ->
-	// period10to100InSamples = period10to90InSamples + samplesToTheTop; ->
-	period10to100inSamples := period10to90inSamples + int((eg.resolutionMaximum-eg.percentage90)/eg.xAttackIncrement)
-	// Discover the minimum x that, through the attackIncrement value, keeps
-	// the 10%-90% period, and reaches 0 dB at the total period:
-	eg.xMinimumInAttack = eg.percentage10 - float64(period0to100inSamples-period10to100inSamples)*eg.xAttackIncrement
+	if eg.actualAR == 0 {
+		eg.xAttackIncrement = 0
+	} else {
+		sec := 1.75 * math.Pow(.5, float64(eg.actualAR)/4.0-1.0)
+		eg.xAttackIncrement = 1.0 / (sec * ymfdata.SampleRate)
+	}
 }
 
 func (eg *EnvelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
 	if dr == 0 {
 		eg.drDBPerSample = 0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(dr)) / 16.0
+		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(dr)) / 16
 		eg.drDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
 	}
 }
@@ -128,7 +107,7 @@ func (eg *EnvelopeGenerator) setActualSR(sr, ksr, keyScaleNumber int) {
 	if sr == 0 {
 		eg.srDBPerSample = 0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(sr)) / 16.0
+		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(sr)) / 16
 		eg.srDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
 	}
 }
@@ -137,7 +116,7 @@ func (eg *EnvelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
 	if rr == 0 {
 		eg.rrDBPerSample = 0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(rr)) / 16.0
+		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(rr)) / 16
 		eg.rrDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
 	}
 }
@@ -145,9 +124,6 @@ func (eg *EnvelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
 func calculateActualRate(rate, ksr, keyScaleNumber int) int {
 	rof := rateOffset[ksr][keyScaleNumber]
 	actualRate := rate*4 + rof
-	// If, as an example at the maximum, rate is 15 and the rate offset is 15,
-	// the value would
-	// be 75, but the maximum allowed is 63:
 	if 63 < actualRate {
 		actualRate = 63
 	}
@@ -157,10 +133,10 @@ func calculateActualRate(rate, ksr, keyScaleNumber int) int {
 func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
 	// The datasheets attenuation values
 	// must be halved to match the real OPL3 output.
-	envelopeSustainLevel := float64(eg.sl) / 2
-	envelopeTremolo := ymfdata.TremoloTable[dam][tremoloIndex] / 2
-	envelopeAttenuation := eg.kslAttenuation / 2
-	envelopeTotalLevel := float64(eg.tl) / 2
+	envelopeSustainLevel := float64(eg.sl) / 2.0
+	envelopeTremolo := ymfdata.TremoloTable[dam][tremoloIndex] / 2.0
+	envelopeAttenuation := eg.kslAttenuation / 2.0
+	envelopeTotalLevel := float64(eg.tl) / 2.0
 
 	//
 	// Envelope Generation
@@ -168,18 +144,13 @@ func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
 	switch eg.stage {
 
 	case Stage_ATTACK:
-		// Since the attack is exponential, it will never reach 0 dB, so
-		// we´ll work with the next to maximum in the envelope resolution.
-		if eg.currentDB < -envelopeResolution && 1e-30 < eg.xAttackIncrement {
-			// The attack is exponential.
-			eg.currentDB = -math.Pow(2, eg.currentLevel)
-			eg.currentLevel += eg.xAttackIncrement
+		eg.currentLevel += eg.xAttackIncrement
+		eg.currentDB = 10.0 * math.Log10(eg.currentLevel)
+		if eg.currentDB < .0 {
 			break
 		}
-		// It is needed here to explicitly set envelope = 0, since
-		// only the attack can have a period of
-		// 0 seconds and produce an infinity envelope increment.
-		eg.currentDB = 0
+		eg.currentLevel = 1.0
+		eg.currentDB = .0
 		eg.stage = Stage_DECAY
 		fallthrough
 
@@ -230,17 +201,7 @@ func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
 }
 
 func (eg *EnvelopeGenerator) keyOn() {
-	// If we are taking it in the middle of a previous envelope,
-	// start to rise from the current level:
-	// envelope = - (2 ^ x); ->
-	// 2 ^ x = -envelope ->
-	// x = log2(-envelope); ->
-	xCurrent := math.Log2(-eg.currentDB)
-	if xCurrent < eg.xMinimumInAttack {
-		eg.currentLevel = xCurrent
-	} else {
-		eg.currentLevel = eg.xMinimumInAttack
-	}
+	eg.currentLevel = math.Pow(10, eg.currentDB/10.0)
 	eg.stage = Stage_ATTACK
 }
 
