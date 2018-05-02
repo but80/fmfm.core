@@ -5,14 +5,12 @@ import "github.com/but80/fmfm/ymf/ymfdata"
 type Chip struct {
 	registers     Registers
 	Channels      []*Channel4op
-	nts           int
 	currentOutput []float64
 }
 
 func NewChip() *Chip {
 	chip := &Chip{
 		Channels:      make([]*Channel4op, ymfdata.CHANNEL_COUNT),
-		nts:           0,
 		currentOutput: make([]float64, 2),
 	}
 	chip.initChannels()

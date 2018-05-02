@@ -71,6 +71,7 @@ func (renderer *Renderer) Start(processor func() (float64, float64)) {
 	}
 
 	fmt.Printf("Sample rate: %f\n", renderer.stream.Info().SampleRate)
+	fmt.Printf("Output latency: %s\n", renderer.stream.Info().OutputLatency.String())
 
 	err = renderer.stream.Start()
 	if err != nil {

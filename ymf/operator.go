@@ -152,20 +152,22 @@ func (op *Operator) getOperatorOutput(modulator float64) float64 {
 	op.phase = op.phaseGenerator.getPhase(op.evb, op.dvb, int(op.vibratoIndex))
 
 	lfoFreq := ymfdata.LFOFrequency[op.chip.registers.readChannel(op.channelID, ChRegister_LFO)]
-	lfoCycleSamples := float64(ymfdata.SampleRate) / lfoFreq
+	lfoFreqPerSamples := lfoFreq / ymfdata.SampleRate
 
-	vibratoTableLength := float64(len(ymfdata.VibratoTable[op.dvb]))
-	op.vibratoIndex += vibratoTableLength / lfoCycleSamples
-	op.vibratoIndex = math.Mod(op.vibratoIndex, vibratoTableLength)
+	op.vibratoIndex += ymfdata.VibratoTableLen * lfoFreqPerSamples
+	if ymfdata.VibratoTableLen <= op.vibratoIndex {
+		op.vibratoIndex = 0
+	}
 
-	tremoloTableLength := float64(len(ymfdata.TremoloTable[op.dam]))
-	op.tremoloIndex += tremoloTableLength / lfoCycleSamples
-	op.tremoloIndex = math.Mod(op.tremoloIndex, tremoloTableLength)
+	op.tremoloIndex += ymfdata.TremoloTableLen * lfoFreqPerSamples
+	if ymfdata.TremoloTableLen <= op.tremoloIndex {
+		op.tremoloIndex = 0
+	}
 
 	return op.getOutput(modulator, op.phase, waveform)
 }
 
-func (op *Operator) getOutput(modulator, outputPhase float64, waveform [1024]float64) float64 {
+func (op *Operator) getOutput(modulator, outputPhase float64, waveform []float64) float64 {
 	_, outputPhase = math.Modf(outputPhase + modulator + 2)
 	sampleIndex := int(outputPhase * 1024)
 	return waveform[sampleIndex&1023] * op.envelope

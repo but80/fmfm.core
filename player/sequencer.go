@@ -18,7 +18,6 @@ const (
 	CH_VIBRATO   = 0x04
 	CH_FREE      = 0x80
 	HIGHEST_NOTE = 127
-	LATENCY      = 2
 	MOD_MIN      = 40
 )
 
@@ -38,8 +37,8 @@ const (
 	MIDIControl_chorus       MIDIControl = 93
 	MIDIControl_nRPNLo       MIDIControl = 98
 	MIDIControl_nRPNHi       MIDIControl = 99
-	MIDIControl_rPNLo        MIDIControl = 100
-	MIDIControl_rPNHi        MIDIControl = 101
+	MIDIControl_rpnLo        MIDIControl = 100
+	MIDIControl_rpnHi        MIDIControl = 101
 	MIDIControl_soundsOff    MIDIControl = 120
 	MIDIControl_notesOff     MIDIControl = 123
 	MIDIControl_mono         MIDIControl = 126
@@ -74,7 +73,7 @@ type Sequencer struct {
 	chip    *ymf.Chip
 	library *voice.VM5VoiceLib
 
-	channelStates [ymfdata.CHANNEL_COUNT]*ChannelState
+	channelStates [16]*ChannelState
 	slots         [ymfdata.CHANNEL_COUNT]*Slot
 }
 
@@ -102,9 +101,11 @@ func NewSequencer(chip *ymf.Chip, library *voice.VM5VoiceLib) *Sequencer {
 		chip:    chip,
 		library: library,
 	}
-	for i := 0; i < ymfdata.CHANNEL_COUNT; i++ {
-		seq.channelStates[i] = &ChannelState{}
+	for i := range seq.slots {
 		seq.slots[i] = &Slot{}
+	}
+	for i := range seq.channelStates {
+		seq.channelStates[i] = &ChannelState{}
 	}
 
 	in, err := portmidi.NewInputStream(selectedMIDIDeviceID, 512, 0)
@@ -159,7 +160,7 @@ func (seq *Sequencer) onNoteOn(ch, note, velocity int) {
 
 	slotID := seq.findFreeSlot(ch, note)
 	if 0 <= slotID {
-		seq.occupyChannel(slotID, ch, note, velocity, instr)
+		seq.occupySlot(slotID, ch, note, velocity, instr)
 	} else {
 		// TODO: warning
 	}
@@ -170,7 +171,7 @@ func (seq *Sequencer) onNoteOff(ch, note int) {
 	for slotID, slot := range seq.slots {
 		if slot.channel == ch && slot.note == note {
 			if sus < 0x40 {
-				seq.releaseChannel(slotID, false)
+				seq.releaseSlot(slotID, false)
 			} else {
 				slot.flags |= CH_SUSTAIN
 			}
@@ -238,7 +239,7 @@ func (seq *Sequencer) writeModulation(slot int, instr *voice.VM35VoicePC, state 
 	)
 }
 
-func (seq *Sequencer) occupyChannel(slotID, channel, note, velocity int, instr *voice.VM35VoicePC) {
+func (seq *Sequencer) occupySlot(slotID, channel, note, velocity int, instr *voice.VM35VoicePC) {
 	state := seq.channelStates[channel]
 	slot := seq.slots[slotID]
 	slot.channel = channel
@@ -270,8 +271,8 @@ func (seq *Sequencer) occupyChannel(slotID, channel, note, velocity int, instr *
 		// for HIGHEST_NOTE < note {
 		// 	note -= 12
 		// }
-		note += 2 - 12
 	}
+	note += 2 - 12
 	slot.realnote = note
 
 	seq.ymfWriteInstrument(slotID, instr)
@@ -286,10 +287,10 @@ func (seq *Sequencer) occupyChannel(slotID, channel, note, velocity int, instr *
 	seq.writeFrequency(slotID, note, slot.pitch, true)
 }
 
-func (seq *Sequencer) releaseChannel(slotID int, killed bool) {
+func (seq *Sequencer) releaseSlot(slotID int, killed bool) {
 	slot := seq.slots[slotID]
 	seq.writeFrequency(slotID, slot.realnote, slot.pitch, false)
-	slot.channel |= CH_FREE
+	slot.channel = -1
 	slot.time = time.Now()
 	slot.flags = CH_FREE
 	if killed {
@@ -303,7 +304,7 @@ func (seq *Sequencer) releaseChannel(slotID int, killed bool) {
 func (seq *Sequencer) releaseSustain(channel int) {
 	for i, slot := range seq.slots {
 		if slot.channel == channel && slot.flags&CH_SUSTAIN != 0 {
-			seq.releaseChannel(i, false)
+			seq.releaseSlot(i, false)
 		}
 	}
 }
@@ -328,7 +329,7 @@ func (seq *Sequencer) findFreeSlot(channel, note int) int {
 
 	// if possible, kill the oldest channel
 	if 0 <= oldest {
-		seq.releaseChannel(oldest, true)
+		seq.releaseSlot(oldest, true)
 		return oldest
 	}
 
@@ -422,7 +423,7 @@ func (seq *Sequencer) ymfChangeControl(channel int, controller MIDIControl, valu
 		for i, slot := range seq.slots {
 			if slot.channel == channel {
 				if seq.channelStates[channel].sustain < 0x40 {
-					seq.releaseChannel(i, false)
+					seq.releaseSlot(i, false)
 				} else {
 					slot.flags |= CH_SUSTAIN
 				}
@@ -432,14 +433,14 @@ func (seq *Sequencer) ymfChangeControl(channel int, controller MIDIControl, valu
 	case MIDIControl_soundsOff: // release all notes for this channel
 		for i, slot := range seq.slots {
 			if slot.channel == channel {
-				seq.releaseChannel(i, false)
+				seq.releaseSlot(i, false)
 			}
 		}
 
-	case MIDIControl_rPNHi:
+	case MIDIControl_rpnHi:
 		seq.channelStates[channel].rpn = (seq.channelStates[channel].rpn & 0x007f) | (uint16(value) << 7)
 
-	case MIDIControl_rPNLo:
+	case MIDIControl_rpnLo:
 		seq.channelStates[channel].rpn = (seq.channelStates[channel].rpn & 0x3f80) | uint16(value)
 
 	case MIDIControl_nRPNLo, MIDIControl_nRPNHi:
@@ -479,7 +480,7 @@ func (seq *Sequencer) ymfPlayMusic() {
 func (seq *Sequencer) ymfStopMusic() {
 	for i := range seq.slots {
 		if seq.slots[i].flags&CH_FREE == 0 {
-			seq.releaseChannel(i, true)
+			seq.releaseSlot(i, true)
 		}
 	}
 }

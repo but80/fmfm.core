@@ -5,7 +5,7 @@ import (
 )
 
 const CHANNEL_COUNT = 16
-const SampleRate = 49700
+const SampleRate = 44100 // 49700
 
 var VolumeTable = [...]float64{
 	1e30, 47.9, 42.6, 37.2, 33.1, 29.8, 27.0, 24.6,
@@ -29,7 +29,11 @@ var DTCoef = [8][16]float64{
 
 var LFOFrequency = [4]float64{1.8, 4.0, 5.9, 7.0}
 
+const VibratoTableLen = 8192
+
 var VibratoTable [4][8192]float64
+
+const TremoloTableLen = 8192
 
 var TremoloTable [4][8192]float64
 
@@ -59,7 +63,7 @@ var KSL3DBTable = [16][8]float64{
 	{0, -3, -6, -9, -12, -15, -18, -21},
 }
 
-var Waveforms [32][1024]float64
+var Waveforms [32][]float64
 
 func CalculateIncrement(begin, end, period float64) float64 {
 	return (end - begin) / SampleRate * (1 / period)
@@ -169,53 +173,62 @@ func init() {
 				SAWx2 | 28:▚- 29:"-
 		*/
 
+		for i := range Waveforms {
+			Waveforms[i] = make([]float64, 1024)
+		}
+
 		// ^v to ^-
-		copyHalf := func(src [1024]float64) (dst [1024]float64) {
+		copyHalf := func(src []float64) []float64 {
+			dst := make([]float64, 1024)
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i]
 				dst[512+i] = 0
 			}
-			return
+			return dst
 		}
 
 		// ^v to ^^
-		copyAbs := func(src [1024]float64) (dst [1024]float64) {
+		copyAbs := func(src []float64) []float64 {
+			dst := make([]float64, 1024)
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i]
 				dst[512+i] = src[i]
 			}
-			return
+			return dst
 		}
 
 		// ^v to ''
-		copyAbsQuarter := func(src [1024]float64) (dst [1024]float64) {
+		copyAbsQuarter := func(src []float64) []float64 {
+			dst := make([]float64, 1024)
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i]
 				dst[512+i] = src[i]
 				dst[256+i] = 0
 				dst[768+i] = 0
 			}
-			return
+			return dst
 		}
 
 		// ^v to ▚-
-		copyOct := func(src [1024]float64) (dst [1024]float64) {
+		copyOct := func(src []float64) []float64 {
+			dst := make([]float64, 1024)
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i*2]
 				dst[512+i] = 0
 			}
-			return
+			return dst
 		}
 
 		// ^v to "-
-		copyAbsOct := func(src [1024]float64) (dst [1024]float64) {
+		copyAbsOct := func(src []float64) []float64 {
+			dst := make([]float64, 1024)
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i*2]
 				dst[256+i] = src[i*2]
 				dst[512+i] = 0
 				dst[768+i] = 0
 			}
-			return
+			return dst
 		}
 
 		// ==================================================
