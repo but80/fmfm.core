@@ -1,8 +1,6 @@
 package ymf
 
 import (
-	"math"
-
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
 
@@ -31,10 +29,9 @@ type Operator struct {
 	block          int
 	bo             int
 
-	envelope     float64
-	phase        float64
-	vibratoIndex float64 // TODO: modulation reset timing
-	tremoloIndex float64 // TODO: modulation reset timing
+	envelope float64
+	phase    float64
+	modIndex float64 // TODO: modulation reset timing
 
 	envelopeGenerator *EnvelopeGenerator
 
@@ -94,7 +91,7 @@ func (op *Operator) updateMULT() {
 func (op *Operator) updateKSL() {
 	// TODO: BOの影響は受けるのか？
 	op.ksl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_KSL)
-	op.envelopeGenerator.setAtennuation(op.f_number, op.block, op.ksl)
+	op.envelopeGenerator.setKeyScalingLevel(op.f_number, op.block, op.ksl)
 }
 
 func (op *Operator) updateTL() {
@@ -144,39 +141,26 @@ func (op *Operator) getOperatorOutput(modulator float64) float64 {
 		return 0
 	}
 
-	op.envelope = op.envelopeGenerator.getEnvelope(op.eam, op.dam, int(op.tremoloIndex))
-
-	waveform := ymfdata.Waveforms[op.ws]
-
-	op.phase = op.phaseGenerator.getPhase(op.evb, op.dvb, int(op.vibratoIndex))
+	modIndex := int(op.modIndex)
+	op.envelope = op.envelopeGenerator.getEnvelope(op.eam, op.dam, modIndex)
+	op.phase = op.phaseGenerator.getPhase(op.evb, op.dvb, modIndex)
 
 	lfoFreq := ymfdata.LFOFrequency[op.chip.registers.readChannel(op.channelID, ChRegister_LFO)]
-	lfoFreqPerSamples := lfoFreq / ymfdata.SampleRate
 
-	op.vibratoIndex += ymfdata.VibratoTableLen * lfoFreqPerSamples
-	if ymfdata.VibratoTableLen <= op.vibratoIndex {
-		op.vibratoIndex = 0
+	op.modIndex += lfoFreq
+	if ymfdata.ModTableLen <= op.modIndex {
+		op.modIndex = 0
 	}
 
-	op.tremoloIndex += ymfdata.TremoloTableLen * lfoFreqPerSamples
-	if ymfdata.TremoloTableLen <= op.tremoloIndex {
-		op.tremoloIndex = 0
-	}
-
-	return op.getOutput(modulator, op.phase, waveform)
-}
-
-func (op *Operator) getOutput(modulator, outputPhase float64, waveform []float64) float64 {
-	_, outputPhase = math.Modf(outputPhase + modulator + 2)
-	sampleIndex := int(outputPhase * 1024)
-	return waveform[sampleIndex&1023] * op.envelope
+	sampleIndex := int((op.phase + modulator + 2.0) * 1024)
+	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * op.envelope
 }
 
 func (op *Operator) keyOn() {
 	if 0 < op.ar {
 		op.envelopeGenerator.keyOn()
 		op.phaseGenerator.keyOn()
-		// op.vibratoIndex = 0
+		// op.modIndex = 0
 		// op.tremoloIndex = 0
 	} else {
 		op.envelopeGenerator.stage = Stage_OFF

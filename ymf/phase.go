@@ -1,8 +1,6 @@
 package ymf
 
 import (
-	"math"
-
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
 
@@ -18,10 +16,8 @@ func newPhaseGenerator() *PhaseGenerator {
 func (pg *PhaseGenerator) setFrequency(f_number, block, bo, mult, dt int) {
 	baseFrequency := float64(f_number) * float64(uint(1)<<uint(block+1-bo)) * float64(ymfdata.SampleRate) / float64(1<<20)
 
-	detuneTable := ymfdata.DTCoef[dt]
 	ksn := block<<1 | f_number>>9
-
-	operatorFrequency := baseFrequency + detuneTable[ksn]
+	operatorFrequency := baseFrequency + ymfdata.DTCoef[dt][ksn]
 	operatorFrequency *= ymfdata.MultTable[mult]
 
 	pg.phaseIncrement = operatorFrequency / ymfdata.SampleRate
@@ -33,7 +29,7 @@ func (pg *PhaseGenerator) getPhase(evb, dvb, vibratoIndex int) float64 {
 	} else {
 		pg.phase += pg.phaseIncrement
 	}
-	_, pg.phase = math.Modf(pg.phase)
+	pg.phase -= float64(int(pg.phase))
 	return pg.phase
 }
 

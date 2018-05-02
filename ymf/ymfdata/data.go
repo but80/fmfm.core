@@ -29,13 +29,11 @@ var DTCoef = [8][16]float64{
 
 var LFOFrequency = [4]float64{1.8, 4.0, 5.9, 7.0}
 
-const VibratoTableLen = 8192
+const ModTableLen = 8192
 
-var VibratoTable [4][8192]float64
+var VibratoTable [4][ModTableLen]float64
 
-const TremoloTableLen = 8192
-
-var TremoloTable [4][8192]float64
+var TremoloTable [4][ModTableLen]float64
 
 var FeedbackTable = [8]float64{0, 1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2}
 
@@ -126,8 +124,7 @@ func init() {
 
 	// generate tremolo table
 	{
-		tremoloTableLength := 8192
-		tremoloFrequency := float64(SampleRate) / float64(tremoloTableLength)
+		tremoloFrequency := float64(SampleRate) / float64(ModTableLen)
 
 		// https://github.com/yamaha-webmusic/ymf825board/blob/991485a4cbbe07d84cca707701999875fbc17c74/manual/fbd_spec3.md#dam-eam-dvb-evb
 		tremoloDepth := [4]float64{-1.3, -2.8, -5.8, -11.8} // dB
@@ -140,10 +137,25 @@ func init() {
 				counter++
 				TremoloTable[dam][counter] = TremoloTable[dam][counter-1] + tremoloIncrement
 			}
-			for tremoloDepth[0] < TremoloTable[0][counter] && counter < tremoloTableLength-1 {
+			for tremoloDepth[0] < TremoloTable[0][counter] && counter < ModTableLen-1 {
 				counter++
 				TremoloTable[dam][counter] = TremoloTable[dam][counter-1] - tremoloIncrement
 			}
+		}
+
+		// convert dB -> coef
+		for dam := 0; dam < 4; dam++ {
+			for i := range TremoloTable[dam] {
+				TremoloTable[dam][i] = math.Pow(10.0, TremoloTable[dam][i]/20.0)
+			}
+		}
+	}
+
+	// convert LFO frequency
+	{
+		for i := range LFOFrequency {
+			LFOFrequency[i] /= SampleRate
+			LFOFrequency[i] *= ModTableLen
 		}
 	}
 

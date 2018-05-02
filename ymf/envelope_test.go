@@ -26,7 +26,7 @@ func TestEnvelopeGenerator(t *testing.T) {
 		for ksn := 0; ksn < 16; ksn++ {
 			fnum := (ksn & 1) * 256
 			block := ksn >> 1
-			gen.setAtennuation(fnum, block, ksl)
+			gen.setKeyScalingLevel(fnum, block, ksl)
 			gen.setActualAttackRate(ar, ksr, ksn)
 			gen.setActualDR(dr, ksr, ksn)
 			gen.setActualSustainLevel(sl)

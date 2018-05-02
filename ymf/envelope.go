@@ -28,6 +28,7 @@ type EnvelopeGenerator struct {
 	rrCoefPerSample float64
 	kslCoef         float64
 	tlCoef          float64
+	kslTlCoef       float64
 	sustainLevel    float64
 	currentLevel    float64
 }
@@ -52,9 +53,10 @@ func (eg *EnvelopeGenerator) setActualSustainLevel(sl int) {
 func (eg *EnvelopeGenerator) setTotalLevel(tl int) {
 	tlDB := float64(tl) * -0.75
 	eg.tlCoef = math.Pow(10.0, tlDB/20.0)
+	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
-func (eg *EnvelopeGenerator) setAtennuation(f_number, block, ksl int) {
+func (eg *EnvelopeGenerator) setKeyScalingLevel(f_number, block, ksl int) {
 	hi4bits := f_number >> 6 & 0x0f
 	attenuation := .0
 	switch ksl {
@@ -71,6 +73,7 @@ func (eg *EnvelopeGenerator) setAtennuation(f_number, block, ksl int) {
 		attenuation = ymfdata.KSL3DBTable[hi4bits][block] * 2.0
 	}
 	eg.kslCoef = math.Pow(10, attenuation/20.0)
+	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
 func (eg *EnvelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber int) {
@@ -123,8 +126,6 @@ func calculateActualRate(rate, ksr, keyScaleNumber int) int {
 }
 
 func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
-	tremoloCoef := math.Pow(10.0, ymfdata.TremoloTable[dam][tremoloIndex]/20.0)
-
 	switch eg.stage {
 
 	case Stage_ATTACK:
@@ -161,14 +162,11 @@ func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
 		break
 	}
 
-	outputEnvelope := eg.currentLevel
+	result := eg.currentLevel
 	if eam != 0 {
-		outputEnvelope *= tremoloCoef
+		result *= ymfdata.TremoloTable[dam][tremoloIndex]
 	}
-	outputEnvelope *= eg.kslCoef
-	outputEnvelope *= eg.tlCoef
-
-	return outputEnvelope
+	return result * eg.kslTlCoef
 }
 
 func (eg *EnvelopeGenerator) keyOn() {
