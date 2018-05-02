@@ -9,8 +9,8 @@ import (
 )
 
 func TestEnvelopeGenerator(t *testing.T) {
-	threshDB := float64(-30)
-	thresh := math.Pow(10, threshDB/20)
+	threshDB := -30.0
+	thresh := math.Pow(10.0, threshDB/20.0)
 	gen := newEnvelopeGenerator()
 	eam := 0
 	dam := 0
@@ -33,21 +33,20 @@ func TestEnvelopeGenerator(t *testing.T) {
 			gen.setActualSR(sr, ksr, ksn)
 			gen.setActualRR(rr, ksr, ksn)
 			gen.keyOn()
-			n := 10
+			n := int(.1 * ymfdata.SampleRate)
 			i := 0
 			for ; i < 60*ymfdata.SampleRate; i++ {
 				if i == n {
 					gen.keyOff()
 				}
-				e := gen.getEnvelope(eam, dam, 0)
-				v := math.Pow(10, e/10)
-				if v <= thresh {
+				v := gen.getEnvelope(eam, dam, 0)
+				if n < i && v <= thresh {
 					break
 				}
 			}
 			i -= n
-			secPerDb := float64(i) / float64(ymfdata.SampleRate) / float64(0-threshDB)
-			dbPerSec := float64(1) / secPerDb
+			secPerDb := float64(i) / float64(ymfdata.SampleRate) / (.0 - threshDB)
+			dbPerSec := 1.0 / secPerDb
 			r = append(r, math.Floor(dbPerSec))
 		}
 		result = append(result, r)

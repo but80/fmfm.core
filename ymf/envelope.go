@@ -16,108 +16,100 @@ const (
 	Stage_OFF
 )
 
-const envelopeMinimum = -96
-const envelopeResolution = 0.1875
+const epsilon = 1.0 / 32768.0
 
 type EnvelopeGenerator struct {
 	stage Stage
 
-	actualAR          int
-	xAttackIncrement  float64
-	drDBPerSample     float64
-	srDBPerSample     float64
-	rrDBPerSample     float64
-	kslAttenuation    float64
-	tl                float64
-	sl                float64
-	resolutionMaximum float64
-	percentage10      float64
-	percentage90      float64
-
-	currentLevel float64
-	currentDB    float64
+	actualAR        int
+	arDiffPerSample float64
+	drCoefPerSample float64
+	srCoefPerSample float64
+	rrCoefPerSample float64
+	kslCoef         float64
+	tlCoef          float64
+	sustainLevel    float64
+	currentLevel    float64
 }
 
 func newEnvelopeGenerator() *EnvelopeGenerator {
 	return &EnvelopeGenerator{
 		stage:        Stage_OFF,
 		currentLevel: 0,
-		percentage10: percentageToX(0.1),
-		percentage90: percentageToX(0.9),
-		currentDB:    -96,
 	}
 }
 
 func (eg *EnvelopeGenerator) setActualSustainLevel(sl int) {
-	// If all SL bits are 1, sustain level is set to -93 dB:
+	var slDB float64
 	if sl == 0x0f {
-		eg.sl = -93
-		return
+		slDB = -93
+	} else {
+		slDB = float64(-3 * sl)
 	}
-	// The datasheet states that the SL formula is
-	// sustainLevel = -24*d7 -12*d6 -6*d5 -3*d4,
-	// translated as:
-	eg.sl = float64(-3 * sl)
+	eg.sustainLevel = math.Pow(10.0, slDB/20.0)
 }
 
 func (eg *EnvelopeGenerator) setTotalLevel(tl int) {
-	// The datasheet states that the TL formula is
-	// TL = -(24*d5 + 12*d4 + 6*d3 + 3*d2 + 1.5*d1 + 0.75*d0),
-	// translated as:
-	eg.tl = float64(tl) * -0.75
+	tlDB := float64(tl) * -0.75
+	eg.tlCoef = math.Pow(10.0, tlDB/20.0)
 }
 
 func (eg *EnvelopeGenerator) setAtennuation(f_number, block, ksl int) {
 	hi4bits := f_number >> 6 & 0x0f
+	attenuation := .0
 	switch ksl {
 	case 0:
-		eg.kslAttenuation = 0
+		attenuation = .0
 	case 1:
 		// ~3 dB/Octave
-		eg.kslAttenuation = ymfdata.KSL3DBTable[hi4bits][block]
+		attenuation = ymfdata.KSL3DBTable[hi4bits][block]
 	case 2:
 		// ~1.5 dB/Octave
-		eg.kslAttenuation = ymfdata.KSL3DBTable[hi4bits][block] / 2
+		attenuation = ymfdata.KSL3DBTable[hi4bits][block] / 2.0
 	case 3:
 		// ~6 dB/Octave
-		eg.kslAttenuation = ymfdata.KSL3DBTable[hi4bits][block] * 2
+		attenuation = ymfdata.KSL3DBTable[hi4bits][block] * 2.0
 	}
+	eg.kslCoef = math.Pow(10, attenuation/20.0)
 }
 
 func (eg *EnvelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber int) {
 	eg.actualAR = calculateActualRate(attackRate, ksr, keyScaleNumber)
 	if eg.actualAR == 0 {
-		eg.xAttackIncrement = 0
+		eg.arDiffPerSample = 0
 	} else {
 		sec := 1.75 * math.Pow(.5, float64(eg.actualAR)/4.0-1.0)
-		eg.xAttackIncrement = 1.0 / (sec * ymfdata.SampleRate)
+		eg.arDiffPerSample = 1.0 / (sec * ymfdata.SampleRate)
 	}
 }
 
 func (eg *EnvelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
 	if dr == 0 {
-		eg.drDBPerSample = 0
+		eg.drCoefPerSample = 1.0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(dr)) / 16
-		eg.drDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
+		dbPerSecAt4 := decayDBPerSecAt4[ksr][keyScaleNumber] / 2.0
+		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(dr)) / 16.0 / ymfdata.SampleRate
+		eg.drCoefPerSample = math.Pow(10, -dbPerSample/10)
 	}
 }
 
 func (eg *EnvelopeGenerator) setActualSR(sr, ksr, keyScaleNumber int) {
 	if sr == 0 {
-		eg.srDBPerSample = 0
+		eg.srCoefPerSample = 1.0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(sr)) / 16
-		eg.srDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
+		dbPerSecAt4 := decayDBPerSecAt4[ksr][keyScaleNumber] / 2.0
+		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(sr)) / 16.0 / ymfdata.SampleRate
+		eg.srCoefPerSample = math.Pow(10, -dbPerSample/10)
 	}
 }
 
 func (eg *EnvelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
 	if rr == 0 {
-		eg.rrDBPerSample = 0
+		eg.rrCoefPerSample = 1.0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(rr)) / 16
-		eg.rrDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
+		dbPerSecAt4 := decayDBPerSecAt4[ksr][keyScaleNumber] / 2.0
+		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(rr)) / 16.0 / ymfdata.SampleRate
+		eg.rrCoefPerSample = math.Pow(10, -dbPerSample/10)
 	}
 }
 
@@ -131,77 +123,55 @@ func calculateActualRate(rate, ksr, keyScaleNumber int) int {
 }
 
 func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
-	// The datasheets attenuation values
-	// must be halved to match the real OPL3 output.
-	envelopeSustainLevel := float64(eg.sl) / 2.0
-	envelopeTremolo := ymfdata.TremoloTable[dam][tremoloIndex] / 2.0
-	envelopeAttenuation := eg.kslAttenuation / 2.0
-	envelopeTotalLevel := float64(eg.tl) / 2.0
+	tremoloCoef := math.Pow(10.0, ymfdata.TremoloTable[dam][tremoloIndex]/20.0)
 
-	//
-	// Envelope Generation
-	//
 	switch eg.stage {
 
 	case Stage_ATTACK:
-		eg.currentLevel += eg.xAttackIncrement
-		eg.currentDB = 10.0 * math.Log10(eg.currentLevel)
-		if eg.currentDB < .0 {
+		eg.currentLevel += eg.arDiffPerSample
+		if eg.currentLevel < 1.0 {
 			break
 		}
 		eg.currentLevel = 1.0
-		eg.currentDB = .0
 		eg.stage = Stage_DECAY
 		fallthrough
 
 	case Stage_DECAY:
-		// The decay and release are linear.
-		if envelopeSustainLevel < eg.currentDB {
-			eg.currentDB -= eg.drDBPerSample
+		if eg.sustainLevel < eg.currentLevel {
+			eg.currentLevel *= eg.drCoefPerSample
 			break
 		}
 		eg.stage = Stage_SUSTAIN
 		fallthrough
 
 	case Stage_SUSTAIN:
-		if envelopeMinimum < eg.currentDB {
-			eg.currentDB -= eg.srDBPerSample
+		if epsilon < eg.currentLevel {
+			eg.currentLevel *= eg.srCoefPerSample
 		} else {
 			eg.stage = Stage_OFF
 		}
 		break
 
 	case Stage_RELEASE:
-		// If we have Key OFF, only here we are in the Release stage.
-		// Now, we can turn EGT back and forth and it will have no effect,i.e.,
-		// it will release inexorably to the Off stage.
-		if envelopeMinimum < eg.currentDB {
-			eg.currentDB -= eg.rrDBPerSample
+		if epsilon < eg.currentLevel {
+			eg.currentLevel *= eg.rrCoefPerSample
 		} else {
 			eg.stage = Stage_OFF
 		}
 		break
 	}
 
-	// Ongoing original envelope
-	outputEnvelope := eg.currentDB
-
-	// Tremolo
+	outputEnvelope := eg.currentLevel
 	if eam != 0 {
-		outputEnvelope += envelopeTremolo
+		outputEnvelope *= tremoloCoef
 	}
-
-	// Attenuation
-	outputEnvelope += envelopeAttenuation
-
-	// Total Level
-	outputEnvelope += envelopeTotalLevel
+	outputEnvelope *= eg.kslCoef
+	outputEnvelope *= eg.tlCoef
 
 	return outputEnvelope
 }
 
 func (eg *EnvelopeGenerator) keyOn() {
-	eg.currentLevel = math.Pow(10, eg.currentDB/10.0)
 	eg.stage = Stage_ATTACK
 }
 

@@ -144,8 +144,7 @@ func (op *Operator) getOperatorOutput(modulator float64) float64 {
 		return 0
 	}
 
-	envelopeInDB := op.envelopeGenerator.getEnvelope(op.eam, op.dam, int(op.tremoloIndex))
-	op.envelope = math.Pow(10, envelopeInDB/10)
+	op.envelope = op.envelopeGenerator.getEnvelope(op.eam, op.dam, int(op.tremoloIndex))
 
 	waveform := ymfdata.Waveforms[op.ws]
 
