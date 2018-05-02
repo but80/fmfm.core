@@ -71,7 +71,6 @@ func (eg *EnvelopeGenerator) setTotalLevel(tl int) {
 
 func (eg *EnvelopeGenerator) setAtennuation(f_number, block, ksl int) {
 	hi4bits := f_number >> 6 & 0x0f
-	print(hi4bits)
 	switch ksl {
 	case 0:
 		eg.kslAttenuation = 0

@@ -1,6 +1,8 @@
 package ymfdata
 
-import "math"
+import (
+	"math"
+)
 
 const CHANNEL_COUNT = 16
 const SampleRate = 49700
@@ -168,47 +170,52 @@ func init() {
 		*/
 
 		// ^v to ^-
-		copyHalf := func(dst [1024]float64, src [1024]float64) {
+		copyHalf := func(src [1024]float64) (dst [1024]float64) {
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i]
 				dst[512+i] = 0
 			}
+			return
 		}
 
 		// ^v to ^^
-		copyAbs := func(dst [1024]float64, src [1024]float64) {
+		copyAbs := func(src [1024]float64) (dst [1024]float64) {
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i]
 				dst[512+i] = src[i]
 			}
+			return
 		}
 
 		// ^v to ''
-		copyAbsQuarter := func(dst [1024]float64, src [1024]float64) {
+		copyAbsQuarter := func(src [1024]float64) (dst [1024]float64) {
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i]
 				dst[512+i] = src[i]
 				dst[256+i] = 0
 				dst[768+i] = 0
 			}
+			return
 		}
 
 		// ^v to ▚-
-		copyOct := func(dst [1024]float64, src [1024]float64) {
+		copyOct := func(src [1024]float64) (dst [1024]float64) {
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i*2]
 				dst[512+i] = 0
 			}
+			return
 		}
 
 		// ^v to "-
-		copyAbsOct := func(dst [1024]float64, src [1024]float64) {
+		copyAbsOct := func(src [1024]float64) (dst [1024]float64) {
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i*2]
 				dst[256+i] = src[i*2]
 				dst[512+i] = 0
 				dst[768+i] = 0
 			}
+			return
 		}
 
 		// ==================================================
@@ -219,12 +226,12 @@ func init() {
 		sineTable := Waveforms[0]
 
 		// SIN   | 0:^v 1:^- 2:^^ 3:''
-		copyHalf(Waveforms[1], sineTable)
-		copyAbs(Waveforms[2], sineTable)
-		copyAbsQuarter(Waveforms[3], sineTable)
+		Waveforms[1] = copyHalf(sineTable)
+		Waveforms[2] = copyAbs(sineTable)
+		Waveforms[3] = copyAbsQuarter(sineTable)
 		// SINx2 | 4:▚- 5:"-
-		copyOct(Waveforms[4], sineTable)
-		copyAbsOct(Waveforms[5], sineTable)
+		Waveforms[4] = copyOct(sineTable)
+		Waveforms[5] = copyAbsOct(sineTable)
 
 		// ==================================================
 		// square wave
@@ -235,10 +242,10 @@ func init() {
 		squareTable := Waveforms[6]
 
 		// SQR   | 6:▀▄ 14:▀-
-		copyHalf(Waveforms[14], squareTable)
+		Waveforms[14] = copyHalf(squareTable)
 		// SQRx2 | 22:▘▘ 30:▘-
-		copyOct(Waveforms[22], squareTable)
-		copyOct(Waveforms[30], Waveforms[14])
+		Waveforms[22] = copyOct(squareTable)
+		Waveforms[30] = copyOct(Waveforms[14])
 
 		// ==================================================
 		// exponential
@@ -257,12 +264,12 @@ func init() {
 		csineTable := Waveforms[8]
 
 		// CSIN  | 8:▀▄ 9:^- 10:^^ 11:''
-		copyHalf(Waveforms[9], csineTable)
-		copyAbs(Waveforms[10], csineTable)
-		copyAbsQuarter(Waveforms[11], csineTable)
+		Waveforms[9] = copyHalf(csineTable)
+		Waveforms[10] = copyAbs(csineTable)
+		Waveforms[11] = copyAbsQuarter(csineTable)
 		// CSINx2| 12:▚- 13:"-
-		copyOct(Waveforms[12], csineTable)
-		copyAbsOct(Waveforms[13], csineTable)
+		Waveforms[12] = copyOct(csineTable)
+		Waveforms[13] = copyAbsOct(csineTable)
 
 		// ==================================================
 		// triangle wave
@@ -275,12 +282,12 @@ func init() {
 		triTable := Waveforms[16]
 
 		// TRI   | 16:▀▄ 17:^- 18:^^ 19:''
-		copyHalf(Waveforms[17], triTable)
-		copyAbs(Waveforms[18], triTable)
-		copyAbsQuarter(Waveforms[19], triTable)
+		Waveforms[17] = copyHalf(triTable)
+		Waveforms[18] = copyAbs(triTable)
+		Waveforms[19] = copyAbsQuarter(triTable)
 		// TRIx2 | 20:▚- 21:"-
-		copyOct(Waveforms[20], triTable)
-		copyAbsOct(Waveforms[21], triTable)
+		Waveforms[20] = copyOct(triTable)
+		Waveforms[21] = copyAbsOct(triTable)
 
 		// ==================================================
 		// saw wave
@@ -291,12 +298,12 @@ func init() {
 		sawTable := Waveforms[24]
 
 		// SAW   | 24:▀▄ 25:▀- 26:▀▀ 27:''
-		copyHalf(Waveforms[25], sawTable)
-		copyAbs(Waveforms[26], sawTable)
-		copyAbsQuarter(Waveforms[27], sawTable)
+		Waveforms[25] = copyHalf(sawTable)
+		Waveforms[26] = copyAbs(sawTable)
+		Waveforms[27] = copyAbsQuarter(sawTable)
 		// SAWx2 | 28:▚- 29:"-
-		copyOct(Waveforms[28], sawTable)
-		copyAbsOct(Waveforms[29], sawTable)
+		Waveforms[28] = copyOct(sawTable)
+		Waveforms[29] = copyAbsOct(sawTable)
 
 	}
 

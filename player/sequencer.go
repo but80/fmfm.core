@@ -270,7 +270,7 @@ func (seq *Sequencer) occupyChannel(slotID, channel, note, velocity int, instr *
 		// for HIGHEST_NOTE < note {
 		// 	note -= 12
 		// }
-		note += 2
+		note += 2 - 12
 	}
 	slot.realnote = note
 
@@ -584,6 +584,7 @@ func (seq *Sequencer) ymfWriteInstrument(slotID int, instr *voice.VM35VoicePC) {
 	seq.chip.WriteChannel(ymf.ChRegister_ALG, slotID, int(v.ALG))
 	seq.chip.WriteChannel(ymf.ChRegister_LFO, slotID, v.LFO)
 	seq.chip.WriteChannel(ymf.ChRegister_PANPOT, slotID, int(v.PANPOT))
+	seq.chip.WriteChannel(ymf.ChRegister_BO, slotID, int(v.BO))
 }
 
 func (seq *Sequencer) ymfShutup() {
