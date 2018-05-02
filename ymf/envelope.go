@@ -119,7 +119,7 @@ func (eg *EnvelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
 	if dr == 0 {
 		eg.drDBPerSample = 0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(dr)) / 16
+		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(dr)) / 16.0
 		eg.drDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
 	}
 }
@@ -128,7 +128,7 @@ func (eg *EnvelopeGenerator) setActualSR(sr, ksr, keyScaleNumber int) {
 	if sr == 0 {
 		eg.srDBPerSample = 0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(sr)) / 16
+		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(sr)) / 16.0
 		eg.srDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
 	}
 }
@@ -137,7 +137,7 @@ func (eg *EnvelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
 	if rr == 0 {
 		eg.rrDBPerSample = 0
 	} else {
-		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(rr)) / 16
+		dbPerSec := decayDBPerSecAt4[ksr][keyScaleNumber] * float64(uint(1)<<uint(rr)) / 16.0
 		eg.rrDBPerSample = dbPerSec / 2 / ymfdata.SampleRate
 	}
 }
