@@ -17,7 +17,7 @@ func newPhaseGenerator(chip *Chip) *PhaseGenerator {
 }
 
 func (pg *PhaseGenerator) setFrequency(f_number, block, bo, mult, dt int) {
-	baseFrequency := float64(f_number) * float64(uint(1)<<uint(block+3-bo)) / 16.0 / ymfdata.FnumK
+	baseFrequency := float64(f_number<<uint(block+3-bo)) / (16.0 * ymfdata.FnumK)
 
 	ksn := block<<1 | f_number>>9
 	operatorFrequency := baseFrequency + ymfdata.DTCoef[dt][ksn]

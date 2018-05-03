@@ -505,6 +505,10 @@ func (seq *Sequencer) ymfWriteFreq(slotID, note, pitch int, keyon bool) {
 	freq := ymfdata.A3Freq * math.Pow(2.0, n/12.0)
 
 	block := note / 12
+	if 7 < block {
+		block = 7
+	}
+
 	fnum := int(freq*ymfdata.FnumK) >> uint(block-1)
 	if fnum < 0 {
 		fnum = 0
