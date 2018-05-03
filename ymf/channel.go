@@ -172,6 +172,10 @@ func (ch *Channel) updateFNUM() {
 
 func (ch *Channel) updateALG() {
 	ch.alg = ch.chip.registers.readChannel(ch.channelID, ChRegister_ALG)
+	ch.feedback1Prev = 0
+	ch.feedback1Curr = 0
+	ch.feedback3Prev = 0
+	ch.feedback3Curr = 0
 	ch.updateOperators()
 }
 
@@ -343,13 +347,17 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 		channelOutput = op1Output + op3Output + op4Output
 	}
 
-	ch.feedback1Prev = ch.feedback1Curr
-	ch.feedback1Curr = op1Output * op1.feedbackCoef
-	ch.feedbackOut1 = (ch.feedback1Prev + ch.feedback1Curr) / 2.0
+	if op1.feedbackCoef != .0 {
+		ch.feedback1Prev = ch.feedback1Curr
+		ch.feedback1Curr = op1Output * op1.feedbackCoef
+		ch.feedbackOut1 = (ch.feedback1Prev + ch.feedback1Curr) / 2.0
+	}
 
-	ch.feedback3Prev = ch.feedback3Curr
-	ch.feedback3Curr = op3Output * op3.feedbackCoef
-	ch.feedbackOut3 = (ch.feedback3Prev + ch.feedback3Curr) / 2.0
+	if op3.feedbackCoef != .0 {
+		ch.feedback3Prev = ch.feedback3Curr
+		ch.feedback3Curr = op3Output * op3.feedbackCoef
+		ch.feedbackOut3 = (ch.feedback3Prev + ch.feedback3Curr) / 2.0
+	}
 
 	channelOutput *= ch.volumeExpressionCoef
 	return channelOutput * ch.panCoefL, channelOutput * ch.panCoefR
