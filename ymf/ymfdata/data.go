@@ -27,9 +27,10 @@ var DTCoef = [8][16]float64{
 	{-0.09, -0.09, -0.14, -0.14, -0.18, -0.23, -0.28, -0.32, -0.41, -0.46, -0.59, -0.64, -0.87, -0.91, -1.00, -1.00},
 }
 
-var LFOFrequency = [4]float64{1.8, 4.0, 5.9, 7.0}
+var LFOFrequency = [4]uint64{}
 
 const ModTableLen = 8192
+const ModTableLenBits = 13
 
 var VibratoTable [4][ModTableLen]float64
 
@@ -155,9 +156,9 @@ func init() {
 
 	// convert LFO frequency
 	{
-		for i := range LFOFrequency {
-			LFOFrequency[i] /= SampleRate
-			LFOFrequency[i] *= ModTableLen
+		lfoFreqHz := [4]float64{1.8, 4.0, 5.9, 7.0}
+		for i, hz := range lfoFreqHz {
+			LFOFrequency[i] = uint64(hz / SampleRate * float64(1<<63) * 2.0)
 		}
 	}
 

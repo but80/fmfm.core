@@ -31,7 +31,7 @@ type Operator struct {
 
 	envelope float64
 	phase    float64
-	modIndex float64 // TODO: modulation reset timing
+	modIndex uint64 // TODO: modulation reset timing
 
 	envelopeGenerator *EnvelopeGenerator
 
@@ -146,7 +146,7 @@ func (op *Operator) getOperatorOutput(modulator float64) float64 {
 }
 
 func (op *Operator) getOperatorOutput2() {
-	modIndex := int(op.modIndex)
+	modIndex := int(op.modIndex >> (64 - ymfdata.ModTableLenBits))
 	op.envelope = op.envelopeGenerator.getEnvelope(op.eam, op.dam, modIndex)
 	op.phase = op.phaseGenerator.getPhase(op.evb, op.dvb, modIndex)
 }
@@ -154,9 +154,6 @@ func (op *Operator) getOperatorOutput2() {
 func (op *Operator) getOperatorOutput3() {
 	lfoFreq := ymfdata.LFOFrequency[op.chip.registers.readChannel(op.channelID, ChRegister_LFO)]
 	op.modIndex += lfoFreq
-	if ymfdata.ModTableLen <= op.modIndex {
-		op.modIndex = 0
-	}
 }
 
 func (op *Operator) getOperatorOutput4(modulator float64) float64 {
