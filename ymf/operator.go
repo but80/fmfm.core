@@ -157,7 +157,7 @@ func (op *Operator) getOperatorOutput3() {
 }
 
 func (op *Operator) getOperatorOutput4(modulator float64) float64 {
-	sampleIndex := int((op.phase + modulator + 2.0) * ymfdata.WaveformLen)
+	sampleIndex := int((op.phase + modulator + 1024.0) * ymfdata.WaveformLen)
 	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * op.envelope
 }
 

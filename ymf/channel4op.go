@@ -1,8 +1,6 @@
 package ymf
 
 import (
-	"math"
-
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
 
@@ -338,12 +336,12 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 	}
 
 	ch.feedback[0][0] = ch.feedback[0][1]
-	_, ch.feedback[0][1] = math.Modf(op1Output * ymfdata.FeedbackTable[op1.fb])
+	ch.feedback[0][1] = op1Output * ymfdata.FeedbackTable[op1.fb]
 	ch.feedback[1][0] = ch.feedback[1][1]
-	_, ch.feedback[1][1] = math.Modf(op3Output * ymfdata.FeedbackTable[op3.fb])
+	ch.feedback[1][1] = op3Output * ymfdata.FeedbackTable[op3.fb]
 
-	ch.feedbackOut[0] = (ch.feedback[0][0] + ch.feedback[0][1]) / 2
-	ch.feedbackOut[1] = (ch.feedback[1][0] + ch.feedback[1][1]) / 2
+	ch.feedbackOut[0] = (ch.feedback[0][0] + ch.feedback[0][1]) / 2.0
+	ch.feedbackOut[1] = (ch.feedback[1][0] + ch.feedback[1][1]) / 2.0
 
 	// TODO: cache in 5bits
 	pan := ch.chpan + (ch.panpot-15)*4

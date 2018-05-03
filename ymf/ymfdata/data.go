@@ -6,6 +6,7 @@ import (
 
 const CHANNEL_COUNT = 16
 const SampleRate = 44100 // 49700
+var Pow64Of2 = float64(1<<63) * 2.0
 
 var VolumeTable = [...]float64{
 	1e30, 47.9, 42.6, 37.2, 33.1, 29.8, 27.0, 24.6,
@@ -159,7 +160,7 @@ func init() {
 	{
 		lfoFreqHz := [4]float64{1.8, 4.0, 5.9, 7.0}
 		for i, hz := range lfoFreqHz {
-			LFOFrequency[i] = uint64(hz / SampleRate * float64(1<<63) * 2.0)
+			LFOFrequency[i] = uint64(hz / SampleRate * Pow64Of2)
 		}
 	}
 
