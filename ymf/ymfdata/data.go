@@ -31,6 +31,7 @@ var LFOFrequency = [4]uint64{}
 
 const ModTableLen = 8192
 const ModTableLenBits = 13
+const ModTableIndexShift = 64 - ModTableLenBits
 
 var VibratoTable [4][ModTableLen]float64
 
