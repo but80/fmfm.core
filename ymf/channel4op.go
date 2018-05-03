@@ -108,9 +108,12 @@ type Channel4op struct {
 	expression int
 	bo         int
 
-	feedback    [2][2]float64
-	feedbackOut [2]float64
-	toPhase     float64
+	feedback             [2][2]float64
+	feedbackOut          [2]float64
+	toPhase              float64
+	volumeExpressionCoef float64
+	panCoefL             float64
+	panCoefR             float64
 
 	Operators [4]*Operator
 }
@@ -136,6 +139,7 @@ func newChannel4op(channelID int, chip *Chip) *Channel4op {
 	for i := range ch.Operators {
 		ch.Operators[i] = newOperator(channelID, i, chip)
 	}
+	ch.updatePanCoef()
 	return ch
 }
 
@@ -174,38 +178,38 @@ func (ch *Channel4op) updateLFO() {
 
 func (ch *Channel4op) updatePANPOT() {
 	ch.panpot = ch.chip.registers.readChannel(ch.channelID, ChRegister_PANPOT)
+	ch.updatePanCoef()
 }
 
 func (ch *Channel4op) updateCHPAN() {
 	ch.chpan = ch.chip.registers.readChannel(ch.channelID, ChRegister_CHPAN)
+	ch.updatePanCoef()
+}
+
+func (ch *Channel4op) updatePanCoef() {
+	pan := ch.chpan + (ch.panpot-15)*4
+	if pan < 0 {
+		pan = 0
+	} else if 127 < pan {
+		pan = 127
+	}
+	ch.panCoefL = ymfdata.PanTable[pan][0]
+	ch.panCoefR = ymfdata.PanTable[pan][1]
 }
 
 func (ch *Channel4op) updateVOLUME() {
 	ch.volume = ch.chip.registers.readChannel(ch.channelID, ChRegister_VOLUME)
+	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
 func (ch *Channel4op) updateEXPRESSION() {
 	ch.expression = ch.chip.registers.readChannel(ch.channelID, ChRegister_EXPRESSION)
+	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
 func (ch *Channel4op) updateBO() {
 	ch.bo = ch.chip.registers.readChannel(ch.channelID, ChRegister_BO)
 	ch.updateOperators()
-}
-
-func (ch *Channel4op) updateChannel() {
-	ch.updateKON()
-	ch.updateBLOCK()
-	ch.updateFNUM()
-	ch.updateALG()
-	ch.updateLFO()
-}
-
-func (ch *Channel4op) toStereo(channelOutput float64, volume32, expression32, pan128 int) (float64, float64) {
-	channelOutput *= ymfdata.VolumeTable[volume32]
-	channelOutput *= ymfdata.VolumeTable[expression32]
-	p := ymfdata.PanTable[pan128]
-	return channelOutput * p[0], channelOutput * p[1]
 }
 
 func (ch *Channel4op) getChannelOutput() (float64, float64) {
@@ -343,14 +347,8 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 	ch.feedbackOut[0] = (ch.feedback[0][0] + ch.feedback[0][1]) / 2.0
 	ch.feedbackOut[1] = (ch.feedback[1][0] + ch.feedback[1][1]) / 2.0
 
-	// TODO: cache in 5bits
-	pan := ch.chpan + (ch.panpot-15)*4
-	if pan < 0 {
-		pan = 0
-	} else if 127 < pan {
-		pan = 127
-	}
-	return ch.toStereo(channelOutput, ch.volume>>2, ch.expression>>2, pan)
+	channelOutput *= ch.volumeExpressionCoef
+	return channelOutput * ch.panCoefL, channelOutput * ch.panCoefR
 }
 
 func (ch *Channel4op) keyOn() {
