@@ -1,0 +1,9 @@
+prof:
+  summary: ''
+  command: |
+    go run -gcflags '-N -l' *.go
+
+run:
+  summary: ''
+  command: |
+    go run main.go

@@ -29,7 +29,9 @@ func (pg *PhaseGenerator) getPhase(evb, dvb, vibratoIndex int) float64 {
 	} else {
 		pg.phase += pg.phaseIncrement
 	}
-	pg.phase -= float64(int(pg.phase))
+	if 1.0 <= pg.phase {
+		pg.phase -= 1.0
+	}
 	return pg.phase
 }
 

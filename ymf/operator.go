@@ -140,18 +140,26 @@ func (op *Operator) getOperatorOutput(modulator float64) float64 {
 	if op.envelopeGenerator.stage == Stage_OFF {
 		return 0
 	}
+	op.getOperatorOutput2()
+	op.getOperatorOutput3()
+	return op.getOperatorOutput4(modulator)
+}
 
+func (op *Operator) getOperatorOutput2() {
 	modIndex := int(op.modIndex)
 	op.envelope = op.envelopeGenerator.getEnvelope(op.eam, op.dam, modIndex)
 	op.phase = op.phaseGenerator.getPhase(op.evb, op.dvb, modIndex)
+}
 
+func (op *Operator) getOperatorOutput3() {
 	lfoFreq := ymfdata.LFOFrequency[op.chip.registers.readChannel(op.channelID, ChRegister_LFO)]
-
 	op.modIndex += lfoFreq
 	if ymfdata.ModTableLen <= op.modIndex {
 		op.modIndex = 0
 	}
+}
 
+func (op *Operator) getOperatorOutput4(modulator float64) float64 {
 	sampleIndex := int((op.phase + modulator + 2.0) * ymfdata.WaveformLen)
 	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * op.envelope
 }
