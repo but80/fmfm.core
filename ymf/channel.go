@@ -93,7 +93,7 @@ CNT(Cn) = 1, CNT(Cn+3) = 1
       OP4 --------> | -> OUT
 */
 
-type Channel4op struct {
+type Channel struct {
 	channelID int
 
 	chip       *Chip
@@ -122,8 +122,8 @@ type Channel4op struct {
 	Operators [4]*Operator
 }
 
-func newChannel4op(channelID int, chip *Chip) *Channel4op {
-	ch := &Channel4op{
+func newChannel4op(channelID int, chip *Chip) *Channel {
+	ch := &Channel{
 		chip:      chip,
 		channelID: channelID,
 
@@ -147,7 +147,7 @@ func newChannel4op(channelID int, chip *Chip) *Channel4op {
 	return ch
 }
 
-func (ch *Channel4op) updateKON() {
+func (ch *Channel) updateKON() {
 	newKon := ch.chip.registers.readChannel(ch.channelID, ChRegister_KON)
 	if newKon == ch.kon {
 		return
@@ -160,37 +160,37 @@ func (ch *Channel4op) updateKON() {
 	ch.kon = newKon
 }
 
-func (ch *Channel4op) updateBLOCK() {
+func (ch *Channel) updateBLOCK() {
 	ch.block = ch.chip.registers.readChannel(ch.channelID, ChRegister_BLOCK)
 	ch.updateOperators()
 }
 
-func (ch *Channel4op) updateFNUM() {
+func (ch *Channel) updateFNUM() {
 	ch.fnum = ch.chip.registers.readChannel(ch.channelID, ChRegister_FNUM)
 	ch.updateOperators()
 }
 
-func (ch *Channel4op) updateALG() {
+func (ch *Channel) updateALG() {
 	ch.alg = ch.chip.registers.readChannel(ch.channelID, ChRegister_ALG)
 	ch.updateOperators()
 }
 
-func (ch *Channel4op) updateLFO() {
+func (ch *Channel) updateLFO() {
 	ch.lfo = ch.chip.registers.readChannel(ch.channelID, ChRegister_LFO)
 	ch.updateOperators()
 }
 
-func (ch *Channel4op) updatePANPOT() {
+func (ch *Channel) updatePANPOT() {
 	ch.panpot = ch.chip.registers.readChannel(ch.channelID, ChRegister_PANPOT)
 	ch.updatePanCoef()
 }
 
-func (ch *Channel4op) updateCHPAN() {
+func (ch *Channel) updateCHPAN() {
 	ch.chpan = ch.chip.registers.readChannel(ch.channelID, ChRegister_CHPAN)
 	ch.updatePanCoef()
 }
 
-func (ch *Channel4op) updatePanCoef() {
+func (ch *Channel) updatePanCoef() {
 	pan := ch.chpan + (ch.panpot-15)*4
 	if pan < 0 {
 		pan = 0
@@ -201,22 +201,22 @@ func (ch *Channel4op) updatePanCoef() {
 	ch.panCoefR = ymfdata.PanTable[pan][1]
 }
 
-func (ch *Channel4op) updateVOLUME() {
+func (ch *Channel) updateVOLUME() {
 	ch.volume = ch.chip.registers.readChannel(ch.channelID, ChRegister_VOLUME)
 	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
-func (ch *Channel4op) updateEXPRESSION() {
+func (ch *Channel) updateEXPRESSION() {
 	ch.expression = ch.chip.registers.readChannel(ch.channelID, ChRegister_EXPRESSION)
 	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
-func (ch *Channel4op) updateBO() {
+func (ch *Channel) updateBO() {
 	ch.bo = ch.chip.registers.readChannel(ch.channelID, ChRegister_BO)
 	ch.updateOperators()
 }
 
-func (ch *Channel4op) getChannelOutput() (float64, float64) {
+func (ch *Channel) getChannelOutput() (float64, float64) {
 	var channelOutput float64
 	var op1Output float64
 	var op2Output float64
@@ -355,7 +355,7 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 	return channelOutput * ch.panCoefL, channelOutput * ch.panCoefR
 }
 
-func (ch *Channel4op) keyOn() {
+func (ch *Channel) keyOn() {
 	for _, op := range ch.Operators {
 		op.keyOn()
 	}
@@ -365,13 +365,13 @@ func (ch *Channel4op) keyOn() {
 	ch.feedback3Curr = 0
 }
 
-func (ch *Channel4op) keyOff() {
+func (ch *Channel) keyOff() {
 	for _, op := range ch.Operators {
 		op.keyOff()
 	}
 }
 
-func (ch *Channel4op) updateOperators() {
+func (ch *Channel) updateOperators() {
 	// Key Scale Number, used in EnvelopeGenerator.setActualRates().
 	keyScaleNumber := ch.block*2 + (ch.fnum >> 9)
 	for i, op := range ch.Operators {

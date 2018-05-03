@@ -4,13 +4,13 @@ import "github.com/but80/fmfm/ymf/ymfdata"
 
 type Chip struct {
 	registers     Registers
-	Channels      []*Channel4op
+	Channels      []*Channel
 	currentOutput []float64
 }
 
 func NewChip() *Chip {
 	chip := &Chip{
-		Channels:      make([]*Channel4op, ymfdata.CHANNEL_COUNT),
+		Channels:      make([]*Channel, ymfdata.CHANNEL_COUNT),
 		currentOutput: make([]float64, 2),
 	}
 	chip.initChannels()
@@ -104,7 +104,7 @@ func (chip *Chip) WriteOperator(address OpRegister, channelID, operatorIndex, da
 }
 
 func (chip *Chip) initChannels() {
-	chip.Channels = make([]*Channel4op, ymfdata.CHANNEL_COUNT)
+	chip.Channels = make([]*Channel, ymfdata.CHANNEL_COUNT)
 	for i := range chip.Channels {
 		chip.Channels[i] = newChannel4op(i, chip)
 	}
