@@ -344,11 +344,11 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 	}
 
 	ch.feedback1Prev = ch.feedback1Curr
-	ch.feedback1Curr = op1Output * ymfdata.FeedbackTable[op1.fb]
-	ch.feedback3Prev = ch.feedback3Curr
-	ch.feedback3Curr = op3Output * ymfdata.FeedbackTable[op3.fb]
-
+	ch.feedback1Curr = op1Output * op1.feedbackCoef
 	ch.feedbackOut1 = (ch.feedback1Prev + ch.feedback1Curr) / 2.0
+
+	ch.feedback3Prev = ch.feedback3Curr
+	ch.feedback3Curr = op3Output * op3.feedbackCoef
 	ch.feedbackOut3 = (ch.feedback3Prev + ch.feedback3Curr) / 2.0
 
 	channelOutput *= ch.volumeExpressionCoef

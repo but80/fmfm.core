@@ -23,7 +23,7 @@ type Operator struct {
 	rr             int
 	xof            int
 	ws             int
-	fb             int
+	feedbackCoef   float64
 	keyScaleNumber int
 	f_number       int
 	block          int
@@ -133,7 +133,8 @@ func (op *Operator) updateWS() {
 }
 
 func (op *Operator) updateFB() {
-	op.fb = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_FB)
+	fb := op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_FB)
+	op.feedbackCoef = ymfdata.FeedbackTable[fb]
 }
 
 func (op *Operator) getOperatorOutput(modulator float64) float64 {
