@@ -61,6 +61,8 @@ var KSL3DBTable = [16][8]float64{
 	{0, -3, -6, -9, -12, -15, -18, -21},
 }
 
+const WaveformLen = 1024
+
 var Waveforms [32][]float64
 
 func CalculateIncrement(begin, end, period float64) float64 {
@@ -186,12 +188,12 @@ func init() {
 		*/
 
 		for i := range Waveforms {
-			Waveforms[i] = make([]float64, 1024)
+			Waveforms[i] = make([]float64, WaveformLen)
 		}
 
 		// ^v to ^-
 		copyHalf := func(src []float64) []float64 {
-			dst := make([]float64, 1024)
+			dst := make([]float64, WaveformLen)
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i]
 				dst[512+i] = 0
@@ -201,7 +203,7 @@ func init() {
 
 		// ^v to ^^
 		copyAbs := func(src []float64) []float64 {
-			dst := make([]float64, 1024)
+			dst := make([]float64, WaveformLen)
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i]
 				dst[512+i] = src[i]
@@ -211,7 +213,7 @@ func init() {
 
 		// ^v to ''
 		copyAbsQuarter := func(src []float64) []float64 {
-			dst := make([]float64, 1024)
+			dst := make([]float64, WaveformLen)
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i]
 				dst[512+i] = src[i]
@@ -223,7 +225,7 @@ func init() {
 
 		// ^v to ▚-
 		copyOct := func(src []float64) []float64 {
-			dst := make([]float64, 1024)
+			dst := make([]float64, WaveformLen)
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i*2]
 				dst[512+i] = 0
@@ -233,7 +235,7 @@ func init() {
 
 		// ^v to "-
 		copyAbsOct := func(src []float64) []float64 {
-			dst := make([]float64, 1024)
+			dst := make([]float64, WaveformLen)
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i*2]
 				dst[256+i] = src[i*2]
@@ -245,8 +247,8 @@ func init() {
 
 		// ==================================================
 		// sine wave
-		for i := 0; i < 1024; i++ {
-			Waveforms[0][i] = math.Sin(2 * math.Pi * float64(i) / 1024)
+		for i := 0; i < WaveformLen; i++ {
+			Waveforms[0][i] = math.Sin(2 * math.Pi * float64(i) / WaveformLen)
 		}
 		sineTable := Waveforms[0]
 
@@ -282,8 +284,8 @@ func init() {
 
 		// ==================================================
 		// clipped sinewave
-		for i := 0; i < 1024; i++ {
-			theta := 2 * math.Pi * float64(i) / 1024
+		for i := 0; i < WaveformLen; i++ {
+			theta := 2 * math.Pi * float64(i) / WaveformLen
 			Waveforms[8][i] = math.Max(-1, math.Min(math.Sin(theta)*math.Sqrt2, 1))
 		}
 		csineTable := Waveforms[8]
