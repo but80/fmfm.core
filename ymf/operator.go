@@ -29,9 +29,9 @@ type Operator struct {
 	block          int
 	bo             int
 
-	envelope     float64
-	phase        float64
-	modIndexFrac uint64 // TODO: modulation reset timing
+	envelope       float64
+	phaseFrac64    uint64
+	modIndexFrac64 uint64 // TODO: modulation reset timing
 
 	envelopeGenerator *EnvelopeGenerator
 
@@ -147,18 +147,19 @@ func (op *Operator) getOperatorOutput(modulator float64) float64 {
 }
 
 func (op *Operator) getOperatorOutput2() {
-	modIndex := int(op.modIndexFrac >> ymfdata.ModTableIndexShift)
+	modIndex := int(op.modIndexFrac64 >> ymfdata.ModTableIndexShift)
 	op.envelope = op.envelopeGenerator.getEnvelope(op.eam, op.dam, modIndex)
-	op.phase = op.phaseGenerator.getPhase(op.evb, op.dvb, modIndex)
+	op.phaseFrac64 = op.phaseGenerator.getPhase(op.evb, op.dvb, modIndex)
 }
 
 func (op *Operator) getOperatorOutput3() {
 	lfo := op.chip.registers.readChannel(op.channelID, ChRegister_LFO)
-	op.modIndexFrac += ymfdata.LFOFrequency[lfo]
+	op.modIndexFrac64 += ymfdata.LFOFrequency[lfo]
 }
 
 func (op *Operator) getOperatorOutput4(modulator float64) float64 {
-	sampleIndex := int((op.phase + modulator + 1024.0) * ymfdata.WaveformLen)
+	sampleIndex := op.phaseFrac64 >> ymfdata.WaveformIndexShift
+	sampleIndex += uint64((modulator + 1024.0) * ymfdata.WaveformLen)
 	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * op.envelope
 }
 
@@ -166,7 +167,7 @@ func (op *Operator) keyOn() {
 	if 0 < op.ar {
 		op.envelopeGenerator.keyOn()
 		op.phaseGenerator.keyOn()
-		// op.modIndexFrac = 0
+		// op.modIndexFrac64 = 0
 		// op.tremoloIndex = 0
 	} else {
 		op.envelopeGenerator.stage = Stage_OFF

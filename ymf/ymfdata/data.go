@@ -6,7 +6,9 @@ import (
 
 const CHANNEL_COUNT = 16
 const SampleRate = 44100 // 49700
-var Pow64Of2 = float64(1<<63) * 2.0
+var Pow32Of2 = float64(1 << 32)
+var Pow63Of2 = float64(1 << 63)
+var Pow64Of2 = Pow63Of2 * 2.0
 
 var VolumeTable = [...]float64{
 	1e30, 47.9, 42.6, 37.2, 33.1, 29.8, 27.0, 24.6,
@@ -34,7 +36,7 @@ const ModTableLen = 8192
 const ModTableLenBits = 13
 const ModTableIndexShift = 64 - ModTableLenBits
 
-var VibratoTable [4][ModTableLen]float64
+var VibratoTableInt32Frac32 [4][ModTableLen]uint64
 
 var TremoloTable [4][ModTableLen]float64
 
@@ -65,6 +67,8 @@ var KSL3DBTable = [16][8]float64{
 }
 
 const WaveformLen = 1024
+const WaveformLenBits = 10
+const WaveformIndexShift = 64 - WaveformLenBits
 
 var Waveforms [32][]float64
 
@@ -98,31 +102,37 @@ func init() {
 			math.Pow(cent, 13.5),
 			math.Pow(cent, 26.8),
 		}
+		var vibratoTable [4][ModTableLen]float64
 		for dvb := 0; dvb < 4; dvb++ {
 			i := 0
 			for ; i < 1024; i++ {
-				VibratoTable[dvb][i] = 1
+				vibratoTable[dvb][i] = 1
 			}
 			for ; i < 2048; i++ {
-				VibratoTable[dvb][i] = math.Sqrt(vibratoDepth[dvb])
+				vibratoTable[dvb][i] = math.Sqrt(vibratoDepth[dvb])
 			}
 			for ; i < 3072; i++ {
-				VibratoTable[dvb][i] = vibratoDepth[dvb]
+				vibratoTable[dvb][i] = vibratoDepth[dvb]
 			}
 			for ; i < 4096; i++ {
-				VibratoTable[dvb][i] = math.Sqrt(vibratoDepth[dvb])
+				vibratoTable[dvb][i] = math.Sqrt(vibratoDepth[dvb])
 			}
 			for ; i < 5120; i++ {
-				VibratoTable[dvb][i] = 1
+				vibratoTable[dvb][i] = 1
 			}
 			for ; i < 6144; i++ {
-				VibratoTable[dvb][i] = 1 / math.Sqrt(vibratoDepth[dvb])
+				vibratoTable[dvb][i] = 1 / math.Sqrt(vibratoDepth[dvb])
 			}
 			for ; i < 7168; i++ {
-				VibratoTable[dvb][i] = 1 / vibratoDepth[dvb]
+				vibratoTable[dvb][i] = 1 / vibratoDepth[dvb]
 			}
 			for ; i < 8192; i++ {
-				VibratoTable[dvb][i] = 1 / math.Sqrt(vibratoDepth[dvb])
+				vibratoTable[dvb][i] = 1 / math.Sqrt(vibratoDepth[dvb])
+			}
+		}
+		for dvb := 0; dvb < 4; dvb++ {
+			for i := 0; i < ModTableLen; i++ {
+				VibratoTableInt32Frac32[dvb][i] = uint64(vibratoTable[dvb][i] * Pow32Of2)
 			}
 		}
 	}
