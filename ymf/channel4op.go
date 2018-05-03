@@ -108,8 +108,12 @@ type Channel4op struct {
 	expression int
 	bo         int
 
-	feedback             [2][2]float64
-	feedbackOut          [2]float64
+	feedback1Prev        float64
+	feedback1Curr        float64
+	feedback3Prev        float64
+	feedback3Curr        float64
+	feedbackOut1         float64
+	feedbackOut3         float64
 	toPhase              float64
 	volumeExpressionCoef float64
 	panCoefL             float64
@@ -232,7 +236,7 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 
 		channelOutput = op2.getOperatorOutput(op1Output * ch.toPhase)
 
@@ -243,10 +247,10 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 		op2Output = op2.getOperatorOutput(noModulator)
 
-		channelOutput = op2Output + op4Output
+		channelOutput = op1Output + op2Output
 
 	case 2:
 		// (FB)1 -> | -> OUT
@@ -260,9 +264,9 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 		op2Output = op2.getOperatorOutput(noModulator)
-		op3Output = op3.getOperatorOutput(ch.feedbackOut[1])
+		op3Output = op3.getOperatorOutput(ch.feedbackOut3)
 		op4Output = op4.getOperatorOutput(noModulator)
 
 		channelOutput = op1Output + op2Output + op3Output + op4Output
@@ -274,7 +278,7 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 		op2Output = op2.getOperatorOutput(noModulator)
 		op3Output = op3.getOperatorOutput(op2Output * ch.toPhase)
 
@@ -286,7 +290,7 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 		op2Output = op2.getOperatorOutput(op1Output * ch.toPhase)
 		op3Output = op3.getOperatorOutput(op2Output * ch.toPhase)
 
@@ -299,10 +303,10 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 		op2Output = op2.getOperatorOutput(op1Output * ch.toPhase)
 
-		op3Output = op3.getOperatorOutput(ch.feedbackOut[1])
+		op3Output = op3.getOperatorOutput(ch.feedbackOut3)
 		op4Output = op4.getOperatorOutput(op3Output * ch.toPhase)
 
 		channelOutput = op2Output + op4Output
@@ -314,7 +318,7 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 		op2Output = op2.getOperatorOutput(noModulator)
 		op3Output = op3.getOperatorOutput(op2Output * ch.toPhase)
 		op4Output = op4.getOperatorOutput(op3Output * ch.toPhase)
@@ -331,7 +335,7 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 			return 0, 0
 		}
 
-		op1Output = op1.getOperatorOutput(ch.feedbackOut[0])
+		op1Output = op1.getOperatorOutput(ch.feedbackOut1)
 		op2Output = op2.getOperatorOutput(noModulator)
 		op3Output = op3.getOperatorOutput(op2Output * ch.toPhase)
 		op4Output = op4.getOperatorOutput(noModulator)
@@ -339,13 +343,13 @@ func (ch *Channel4op) getChannelOutput() (float64, float64) {
 		channelOutput = op1Output + op3Output + op4Output
 	}
 
-	ch.feedback[0][0] = ch.feedback[0][1]
-	ch.feedback[0][1] = op1Output * ymfdata.FeedbackTable[op1.fb]
-	ch.feedback[1][0] = ch.feedback[1][1]
-	ch.feedback[1][1] = op3Output * ymfdata.FeedbackTable[op3.fb]
+	ch.feedback1Prev = ch.feedback1Curr
+	ch.feedback1Curr = op1Output * ymfdata.FeedbackTable[op1.fb]
+	ch.feedback3Prev = ch.feedback3Curr
+	ch.feedback3Curr = op3Output * ymfdata.FeedbackTable[op3.fb]
 
-	ch.feedbackOut[0] = (ch.feedback[0][0] + ch.feedback[0][1]) / 2.0
-	ch.feedbackOut[1] = (ch.feedback[1][0] + ch.feedback[1][1]) / 2.0
+	ch.feedbackOut1 = (ch.feedback1Prev + ch.feedback1Curr) / 2.0
+	ch.feedbackOut3 = (ch.feedback3Prev + ch.feedback3Curr) / 2.0
 
 	channelOutput *= ch.volumeExpressionCoef
 	return channelOutput * ch.panCoefL, channelOutput * ch.panCoefR
@@ -355,10 +359,10 @@ func (ch *Channel4op) keyOn() {
 	for _, op := range ch.Operators {
 		op.keyOn()
 	}
-	ch.feedback[0][0] = 0
-	ch.feedback[0][1] = 0
-	ch.feedback[1][0] = 0
-	ch.feedback[1][1] = 0
+	ch.feedback1Prev = 0
+	ch.feedback1Curr = 0
+	ch.feedback3Prev = 0
+	ch.feedback3Curr = 0
 }
 
 func (ch *Channel4op) keyOff() {
