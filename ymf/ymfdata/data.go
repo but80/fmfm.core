@@ -5,7 +5,11 @@ import (
 )
 
 const CHANNEL_COUNT = 16
-const SampleRate = 44100 // 49700
+const SampleRate = float64(48000)
+const A3Note = 11 + 12*3 // TODO: A3=69のはず？
+const A3Freq = float64(440.0)
+const FnumK = float64(1<<19) / SampleRate * .5
+
 var Pow32Of2 = float64(1 << 32)
 var Pow63Of2 = float64(1 << 63)
 var Pow64Of2 = Pow63Of2 * 2.0
@@ -139,7 +143,7 @@ func init() {
 
 	// generate tremolo table
 	{
-		tremoloFrequency := float64(SampleRate) / float64(ModTableLen)
+		tremoloFrequency := SampleRate / float64(ModTableLen)
 
 		// https://github.com/yamaha-webmusic/ymf825board/blob/991485a4cbbe07d84cca707701999875fbc17c74/manual/fbd_spec3.md#dam-eam-dvb-evb
 		tremoloDepth := [4]float64{-1.3, -2.8, -5.8, -11.8} // dB

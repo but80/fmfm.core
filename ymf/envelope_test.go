@@ -45,7 +45,7 @@ func TestEnvelopeGenerator(t *testing.T) {
 				}
 			}
 			i -= n
-			secPerDb := float64(i) / float64(ymfdata.SampleRate) / (.0 - threshDB)
+			secPerDb := float64(i) / ymfdata.SampleRate / (.0 - threshDB)
 			dbPerSec := 1.0 / secPerDb
 			r = append(r, math.Floor(dbPerSec))
 		}

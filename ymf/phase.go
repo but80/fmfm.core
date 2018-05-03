@@ -5,22 +5,25 @@ import (
 )
 
 type PhaseGenerator struct {
+	chip                 *Chip
 	phaseFrac64          uint64
 	phaseIncrementFrac64 uint64
 }
 
-func newPhaseGenerator() *PhaseGenerator {
-	return &PhaseGenerator{}
+func newPhaseGenerator(chip *Chip) *PhaseGenerator {
+	return &PhaseGenerator{
+		chip: chip,
+	}
 }
 
 func (pg *PhaseGenerator) setFrequency(f_number, block, bo, mult, dt int) {
-	baseFrequency := float64(f_number) * float64(uint(1)<<uint(block+1-bo)) * float64(ymfdata.SampleRate) / float64(1<<20)
+	baseFrequency := float64(f_number) * float64(uint(1)<<uint(block+3-bo)) / 16.0 / ymfdata.FnumK
 
 	ksn := block<<1 | f_number>>9
 	operatorFrequency := baseFrequency + ymfdata.DTCoef[dt][ksn]
 	operatorFrequency *= ymfdata.MultTable[mult]
 
-	pg.phaseIncrementFrac64 = uint64(operatorFrequency / ymfdata.SampleRate * ymfdata.Pow64Of2)
+	pg.phaseIncrementFrac64 = uint64(operatorFrequency / pg.chip.SampleRate * ymfdata.Pow64Of2)
 }
 
 func (pg *PhaseGenerator) getPhase(evb, dvb, vibratoIndex int) uint64 {

@@ -15,7 +15,7 @@ func main() {
 	}
 
 	renderer := player.NewRenderer()
-	chip := ymf.NewChip()
+	chip := ymf.NewChip(renderer.Parameters.SampleRate)
 	seq := player.NewSequencer(chip, lib)
 	seq.Load()
 	renderer.Start(chip.Next)

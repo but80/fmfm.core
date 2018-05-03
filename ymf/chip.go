@@ -3,13 +3,15 @@ package ymf
 import "github.com/but80/fmfm/ymf/ymfdata"
 
 type Chip struct {
+	SampleRate    float64
 	registers     Registers
 	Channels      []*Channel
 	currentOutput []float64
 }
 
-func NewChip() *Chip {
+func NewChip(sampleRate float64) *Chip {
 	chip := &Chip{
+		SampleRate:    sampleRate,
 		Channels:      make([]*Channel, ymfdata.CHANNEL_COUNT),
 		currentOutput: make([]float64, 2),
 	}

@@ -9,16 +9,14 @@ import (
 )
 
 type Renderer struct {
-	stream *portaudio.Stream
+	Parameters portaudio.StreamParameters
+	stream     *portaudio.Stream
 }
 
 var portautioInitOnce = sync.Once{}
 
 func NewRenderer() *Renderer {
-	return &Renderer{}
-}
-
-func (renderer *Renderer) Start(processor func() (float64, float64)) {
+	renderer := &Renderer{}
 	portautioInitOnce.Do(func() {
 		portaudio.Initialize()
 		closer.Bind(func() {
@@ -48,7 +46,7 @@ func (renderer *Renderer) Start(processor func() (float64, float64)) {
 	// 	panic("device not found")
 	// }
 
-	params := portaudio.HighLatencyParameters(nil, selectedDevinfo)
+	renderer.Parameters = portaudio.HighLatencyParameters(nil, selectedDevinfo)
 	// params := portaudio.StreamParameters{
 	// 	Output: portaudio.StreamDeviceParameters{
 	// 		Device: selectedDevinfo,
@@ -59,7 +57,12 @@ func (renderer *Renderer) Start(processor func() (float64, float64)) {
 	// 	FramesPerBuffer: 0,
 	// }
 
-	renderer.stream, err = portaudio.OpenStream(params, func(out [][]float32) {
+	return renderer
+}
+
+func (renderer *Renderer) Start(processor func() (float64, float64)) {
+	var err error
+	renderer.stream, err = portaudio.OpenStream(renderer.Parameters, func(out [][]float32) {
 		for i := range out[0] {
 			l, r := processor()
 			out[0][i] = float32(l)
@@ -77,12 +80,4 @@ func (renderer *Renderer) Start(processor func() (float64, float64)) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func (renderer *Renderer) SampleRate() float64 {
-	return renderer.stream.Info().SampleRate
-}
-
-func (renderer *Renderer) A4Frequency() float64 {
-	return 440
 }
