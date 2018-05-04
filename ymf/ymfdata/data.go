@@ -4,16 +4,31 @@ import (
 	"math"
 )
 
+// ChannelCount は、最大チャンネル数です。
 const ChannelCount = 16
+
+// SampleRate は、内部的なサンプルレート[Hz]です。
 const SampleRate = float64(48000)
+
+// A3Note は、MIDIメッセージにおけるA3のノートナンバーです。
 const A3Note = 11 + 12*3 // TODO: A3=69のはず？
+
+// A3Freq は、A3の周波数[Hz]です。
 const A3Freq = float64(440.0)
+
+// FNUMCoef は、周波数とFNUMを相互に変換する際に使用する係数です。
 const FNUMCoef = float64(1<<19) / SampleRate * .5
 
+// Pow32Of2 は、2の32乗です。
 var Pow32Of2 = float64(1 << 32)
+
+// Pow63Of2 は、2の63乗です。
 var Pow63Of2 = float64(1 << 63)
+
+// Pow64Of2 は、2の64乗です。
 var Pow64Of2 = Pow63Of2 * 2.0
 
+// VolumeTable は、MIDIメッセージのボリュームやエクスプレッションによって振幅にかかる係数のテーブルです。
 var VolumeTable = [...]float64{
 	1e30, 47.9, 42.6, 37.2, 33.1, 29.8, 27.0, 24.6,
 	22.4, 20.6, 18.9, 17.3, 15.9, 14.6, 13.4, 12.2,
@@ -21,8 +36,10 @@ var VolumeTable = [...]float64{
 	4.4, 3.6, 3.0, 2.3, 1.7, 1.1, 0.6, 0.0,
 }
 
+// PanTable は、MIDIメッセージのパンによって左右それぞれの振幅にかかる係数のテーブルです。
 var PanTable [128][2]float64
 
+// DTCoef は、DTパラメータ および BLOCKとFNUM上位1ビットによって加わる周波数差分[Hz]のテーブルです。
 var DTCoef = [8][16]float64{
 	{0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00},
 	{0.00, 0.00, 0.05, 0.05, 0.05, 0.05, 0.09, 0.09, 0.14, 0.14, 0.18, 0.23, 0.27, 0.32, 0.37, 0.37},
@@ -34,20 +51,35 @@ var DTCoef = [8][16]float64{
 	{-0.09, -0.09, -0.14, -0.14, -0.18, -0.23, -0.28, -0.32, -0.41, -0.46, -0.59, -0.64, -0.87, -0.91, -1.00, -1.00},
 }
 
+// LFOFrequency は、LFOパラメータによって決まるビブラートやトレモロの周波数のテーブルです。
+// 単位は、2の64乗を1周とする1サンプルあたりの増分です。
 var LFOFrequency = [4]uint64{}
 
+// ModTableLen は、モジュレーション（ビブラートやトレモロ）の振幅テーブルの長さです。
 const ModTableLen = 8192
+
+// ModTableLenBits は、モジュレーション振幅テーブルのインデックスに必要なビット数です。
+// 2 の ModTableLenBits 乗が ModTableLen になります。
 const ModTableLenBits = 13
+
+// ModTableIndexShift は、2の64乗を1周とする値からモジュレーション振幅テーブルの
+// インデックスに変換する際、右シフトするビット数です。
 const ModTableIndexShift = 64 - ModTableLenBits
 
+// VibratoTableInt32Frac32 は、ビブラート（DVB）によって周波数にかかる係数のテーブルです。
+// 整数部32bit・小数部32bitで表されます。
 var VibratoTableInt32Frac32 [4][ModTableLen]uint64
 
+// TremoloTable は、トレモロ（DAM）によって振幅にかかる係数のテーブルです。
 var TremoloTable [4][ModTableLen]float64
 
+// FeedbackTable は、FBパラメータによってフィードバックされる信号の振幅にかかる係数のテーブルです。
 var FeedbackTable = [8]float64{0, 1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2}
 
+// MultTable は、MULTパラメータによって周波数にかかる係数のテーブルです。
 var MultTable = [16]float64{0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12, 12, 15, 15}
 
+// KSL3DBTable は、KSLパラメータによる振幅の減衰量のテーブルです。
 var KSL3DBTable = [16][8]float64{
 	{0, 0, 0, 0, 0, 0, 0, 0},
 	{0, 0, 0, 0, 0, -3, -6, -9},
@@ -70,10 +102,18 @@ var KSL3DBTable = [16][8]float64{
 	{0, -3, -6, -9, -12, -15, -18, -21},
 }
 
+// WaveformLen は、波形テーブルの長さです。
 const WaveformLen = 1024
+
+// WaveformLenBits は、波形テーブルのインデックスに必要なビット数です。
+// 2 の WaveformLenBits 乗が WaveformLen になります。
 const WaveformLenBits = 10
+
+// WaveformIndexShift は、2の64乗を1周とする値から波形テーブルの
+// インデックスに変換する際、右シフトするビット数です。
 const WaveformIndexShift = 64 - WaveformLenBits
 
+// Waveforms は、波形テーブルです。
 var Waveforms [32][]float64
 
 func calculateIncrement(begin, end, period float64) float64 {
