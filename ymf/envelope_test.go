@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/but80/fmfm/ymf/ymfdata"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEnvelopeGenerator(t *testing.T) {
@@ -26,17 +26,19 @@ func TestEnvelopeGenerator(t *testing.T) {
 		for ksn := 0; ksn < 16; ksn++ {
 			fnum := (ksn & 1) * 256
 			block := ksn >> 1
+			gen.setTotalLevel(0)
 			gen.setKeyScalingLevel(fnum, block, ksl)
 			gen.setActualAttackRate(ar, ksr, ksn)
 			gen.setActualDR(dr, ksr, ksn)
 			gen.setActualSustainLevel(sl)
 			gen.setActualSR(sr, ksr, ksn)
 			gen.setActualRR(rr, ksr, ksn)
-			gen.keyOn()
 			n := int(.1 * ymfdata.SampleRate)
 			i := 0
-			for ; i < 60*ymfdata.SampleRate; i++ {
-				if i == n {
+			for ; i < int(60.0*ymfdata.SampleRate); i++ {
+				if i == 1 {
+					gen.keyOn()
+				} else if i == n {
 					gen.keyOff()
 				}
 				v := gen.getEnvelope(eam, dam, 0)

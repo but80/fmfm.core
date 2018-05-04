@@ -34,20 +34,22 @@ type EnvelopeGenerator struct {
 }
 
 func newEnvelopeGenerator() *EnvelopeGenerator {
-	return &EnvelopeGenerator{
+	eg := &EnvelopeGenerator{
 		stage:        Stage_OFF,
 		currentLevel: 0,
 	}
+	eg.setTotalLevel(0)
+	eg.setKeyScalingLevel(0, 0, 0)
+	return eg
 }
 
 func (eg *EnvelopeGenerator) setActualSustainLevel(sl int) {
-	var slDB float64
 	if sl == 0x0f {
-		slDB = -93
+		eg.sustainLevel = 0
 	} else {
-		slDB = float64(-3 * sl)
+		slDB := -3.0 * float64(sl)
+		eg.sustainLevel = math.Pow(10.0, slDB/20.0)
 	}
-	eg.sustainLevel = math.Pow(10.0, slDB/20.0)
 }
 
 func (eg *EnvelopeGenerator) setTotalLevel(tl int) {
