@@ -6,7 +6,7 @@ import (
 
 const noModulator = 0
 
-var IS_MODULATOR = [8][4]bool{
+var isModulatorMatrix = [8][4]bool{
 	{true, false, false, false},
 	{false, false, false, false},
 	{false, false, false, false},
@@ -383,6 +383,6 @@ func (ch *Channel) updateOperators() {
 	// Key Scale Number, used in EnvelopeGenerator.setActualRates().
 	keyScaleNumber := ch.block*2 + (ch.fnum >> 9)
 	for i, op := range ch.Operators {
-		op.updateOperator(keyScaleNumber, ch.fnum, ch.block, ch.bo, IS_MODULATOR[ch.alg][i])
+		op.updateOperator(keyScaleNumber, ch.fnum, ch.block, ch.bo, isModulatorMatrix[ch.alg][i])
 	}
 }

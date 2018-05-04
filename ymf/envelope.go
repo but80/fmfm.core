@@ -58,8 +58,8 @@ func (eg *EnvelopeGenerator) setTotalLevel(tl int) {
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
-func (eg *EnvelopeGenerator) setKeyScalingLevel(f_number, block, ksl int) {
-	hi4bits := f_number >> 6 & 0x0f
+func (eg *EnvelopeGenerator) setKeyScalingLevel(fnum, block, ksl int) {
+	hi4bits := fnum >> 6 & 0x0f
 	attenuation := .0
 	switch ksl {
 	case 0:
