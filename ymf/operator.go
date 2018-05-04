@@ -54,29 +54,29 @@ func newOperator(channelID, operatorIndex int, chip *Chip) *Operator {
 }
 
 func (op *Operator) updateEAM() {
-	op.eam = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_EAM)
+	op.eam = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.EAM)
 }
 
 func (op *Operator) updateEVB() {
-	op.evb = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_EVB)
+	op.evb = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.EVB)
 }
 
 func (op *Operator) updateDAM() {
-	op.dam = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_DAM)
+	op.dam = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.DAM)
 }
 
 func (op *Operator) updateDVB() {
-	op.dvb = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_DVB)
+	op.dvb = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.DVB)
 }
 
 func (op *Operator) updateDT() {
-	op.dt = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_DT)
+	op.dt = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.DT)
 	op.phaseGenerator.setFrequency(op.f_number, op.block, op.bo, op.mult, op.dt)
 }
 
 func (op *Operator) updateKSR() {
 	// TODO: BOの影響は受けるのか？
-	op.ksr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_KSR)
+	op.ksr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.KSR)
 	op.envelopeGenerator.setActualAttackRate(op.ar, op.ksr, op.keyScaleNumber)
 	op.envelopeGenerator.setActualDR(op.dr, op.ksr, op.keyScaleNumber)
 	op.envelopeGenerator.setActualSR(op.sr, op.ksr, op.keyScaleNumber)
@@ -84,56 +84,56 @@ func (op *Operator) updateKSR() {
 }
 
 func (op *Operator) updateMULT() {
-	op.mult = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_MULT)
+	op.mult = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.MULT)
 	op.phaseGenerator.setFrequency(op.f_number, op.block, op.bo, op.mult, op.dt)
 }
 
 func (op *Operator) updateKSL() {
 	// TODO: BOの影響は受けるのか？
-	op.ksl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_KSL)
+	op.ksl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.KSL)
 	op.envelopeGenerator.setKeyScalingLevel(op.f_number, op.block, op.ksl)
 }
 
 func (op *Operator) updateTL() {
-	op.tl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_TL)
+	op.tl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.TL)
 	op.envelopeGenerator.setTotalLevel(op.tl)
 }
 
 func (op *Operator) updateAR() {
-	op.ar = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_AR)
+	op.ar = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.AR)
 	op.envelopeGenerator.setActualAttackRate(op.ar, op.ksr, op.keyScaleNumber)
 }
 
 func (op *Operator) updateDR() {
-	op.dr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_DR)
+	op.dr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.DR)
 	op.envelopeGenerator.setActualDR(op.dr, op.ksr, op.keyScaleNumber)
 }
 
 func (op *Operator) updateSL() {
-	op.sl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_SL)
+	op.sl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.SL)
 	op.envelopeGenerator.setActualSustainLevel(op.sl)
 }
 
 func (op *Operator) updateSR() {
-	op.sr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_SR)
+	op.sr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.SR)
 	op.envelopeGenerator.setActualSR(op.sr, op.ksr, op.keyScaleNumber)
 }
 
 func (op *Operator) updateRR() {
-	op.rr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_RR)
+	op.rr = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.RR)
 	op.envelopeGenerator.setActualRR(op.rr, op.ksr, op.keyScaleNumber)
 }
 
 func (op *Operator) updateXOF() {
-	op.xof = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_XOF)
+	op.xof = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.XOF)
 }
 
 func (op *Operator) updateWS() {
-	op.ws = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_WS)
+	op.ws = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.WS)
 }
 
 func (op *Operator) updateFB() {
-	fb := op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegister_FB)
+	fb := op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.FB)
 	op.feedbackCoef = ymfdata.FeedbackTable[fb]
 }
 
@@ -146,7 +146,7 @@ func (op *Operator) getOperatorOutput(modulator float64) float64 {
 	op.envelope = op.envelopeGenerator.getEnvelope(op.eam, op.dam, modIndex)
 	op.phaseFrac64 = op.phaseGenerator.getPhase(op.evb, op.dvb, modIndex)
 
-	lfo := op.chip.registers.readChannel(op.channelID, ChRegister_LFO)
+	lfo := op.chip.registers.readChannel(op.channelID, ChRegisters.LFO)
 	op.modIndexFrac64 += ymfdata.LFOFrequency[lfo]
 
 	sampleIndex := op.phaseFrac64 >> ymfdata.WaveformIndexShift

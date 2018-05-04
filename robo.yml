@@ -1,9 +1,14 @@
 prof:
-  summary: ''
+  summary: 'Run program with profiling'
   command: |
     go run -gcflags '-N -l' *.go
 
 run:
-  summary: ''
+  summary: 'Run program'
   command: |
     go run main.go
+
+test:
+  summary: 'Run test'
+  command: |
+    go test ./...

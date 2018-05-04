@@ -148,7 +148,7 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 }
 
 func (ch *Channel) updateKON() {
-	newKon := ch.chip.registers.readChannel(ch.channelID, ChRegister_KON)
+	newKon := ch.chip.registers.readChannel(ch.channelID, ChRegisters.KON)
 	if newKon == ch.kon {
 		return
 	}
@@ -161,17 +161,17 @@ func (ch *Channel) updateKON() {
 }
 
 func (ch *Channel) updateBLOCK() {
-	ch.block = ch.chip.registers.readChannel(ch.channelID, ChRegister_BLOCK)
+	ch.block = ch.chip.registers.readChannel(ch.channelID, ChRegisters.BLOCK)
 	ch.updateOperators()
 }
 
 func (ch *Channel) updateFNUM() {
-	ch.fnum = ch.chip.registers.readChannel(ch.channelID, ChRegister_FNUM)
+	ch.fnum = ch.chip.registers.readChannel(ch.channelID, ChRegisters.FNUM)
 	ch.updateOperators()
 }
 
 func (ch *Channel) updateALG() {
-	ch.alg = ch.chip.registers.readChannel(ch.channelID, ChRegister_ALG)
+	ch.alg = ch.chip.registers.readChannel(ch.channelID, ChRegisters.ALG)
 	ch.feedback1Prev = 0
 	ch.feedback1Curr = 0
 	ch.feedback3Prev = 0
@@ -180,17 +180,17 @@ func (ch *Channel) updateALG() {
 }
 
 func (ch *Channel) updateLFO() {
-	ch.lfo = ch.chip.registers.readChannel(ch.channelID, ChRegister_LFO)
+	ch.lfo = ch.chip.registers.readChannel(ch.channelID, ChRegisters.LFO)
 	ch.updateOperators()
 }
 
 func (ch *Channel) updatePANPOT() {
-	ch.panpot = ch.chip.registers.readChannel(ch.channelID, ChRegister_PANPOT)
+	ch.panpot = ch.chip.registers.readChannel(ch.channelID, ChRegisters.PANPOT)
 	ch.updatePanCoef()
 }
 
 func (ch *Channel) updateCHPAN() {
-	ch.chpan = ch.chip.registers.readChannel(ch.channelID, ChRegister_CHPAN)
+	ch.chpan = ch.chip.registers.readChannel(ch.channelID, ChRegisters.CHPAN)
 	ch.updatePanCoef()
 }
 
@@ -206,17 +206,17 @@ func (ch *Channel) updatePanCoef() {
 }
 
 func (ch *Channel) updateVOLUME() {
-	ch.volume = ch.chip.registers.readChannel(ch.channelID, ChRegister_VOLUME)
+	ch.volume = ch.chip.registers.readChannel(ch.channelID, ChRegisters.VOLUME)
 	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
 func (ch *Channel) updateEXPRESSION() {
-	ch.expression = ch.chip.registers.readChannel(ch.channelID, ChRegister_EXPRESSION)
+	ch.expression = ch.chip.registers.readChannel(ch.channelID, ChRegisters.EXPRESSION)
 	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
 func (ch *Channel) updateBO() {
-	ch.bo = ch.chip.registers.readChannel(ch.channelID, ChRegister_BO)
+	ch.bo = ch.chip.registers.readChannel(ch.channelID, ChRegisters.BO)
 	ch.updateOperators()
 }
 

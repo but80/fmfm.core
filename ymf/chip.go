@@ -33,34 +33,34 @@ func (chip *Chip) WriteChannel(address ChRegister, channelID, data int) {
 	chip.registers.write(int(address)+channelID, data)
 	switch address {
 
-	case ChRegister_KON:
+	case ChRegisters.KON:
 		chip.Channels[channelID].updateKON()
 
-	case ChRegister_BLOCK:
+	case ChRegisters.BLOCK:
 		chip.Channels[channelID].updateBLOCK()
 
-	case ChRegister_FNUM:
+	case ChRegisters.FNUM:
 		chip.Channels[channelID].updateFNUM()
 
-	case ChRegister_ALG:
+	case ChRegisters.ALG:
 		chip.Channels[channelID].updateALG()
 
-	case ChRegister_LFO:
+	case ChRegisters.LFO:
 		chip.Channels[channelID].updateLFO()
 
-	case ChRegister_PANPOT:
+	case ChRegisters.PANPOT:
 		chip.Channels[channelID].updatePANPOT()
 
-	case ChRegister_CHPAN:
+	case ChRegisters.CHPAN:
 		chip.Channels[channelID].updateCHPAN()
 
-	case ChRegister_VOLUME:
+	case ChRegisters.VOLUME:
 		chip.Channels[channelID].updateVOLUME()
 
-	case ChRegister_EXPRESSION:
+	case ChRegisters.EXPRESSION:
 		chip.Channels[channelID].updateEXPRESSION()
 
-	case ChRegister_BO:
+	case ChRegisters.BO:
 		chip.Channels[channelID].updateBO()
 	}
 }
@@ -68,39 +68,39 @@ func (chip *Chip) WriteChannel(address ChRegister, channelID, data int) {
 func (chip *Chip) WriteOperator(address OpRegister, channelID, operatorIndex, data int) {
 	chip.registers.writeOperator(channelID, operatorIndex, address, data)
 	switch address {
-	case OpRegister_EAM:
+	case OpRegisters.EAM:
 		chip.Channels[channelID].Operators[operatorIndex].updateEAM()
-	case OpRegister_EVB:
+	case OpRegisters.EVB:
 		chip.Channels[channelID].Operators[operatorIndex].updateEVB()
-	case OpRegister_DAM:
+	case OpRegisters.DAM:
 		chip.Channels[channelID].Operators[operatorIndex].updateDAM()
-	case OpRegister_DVB:
+	case OpRegisters.DVB:
 		chip.Channels[channelID].Operators[operatorIndex].updateDVB()
-	case OpRegister_DT:
+	case OpRegisters.DT:
 		chip.Channels[channelID].Operators[operatorIndex].updateDT()
-	case OpRegister_KSR:
+	case OpRegisters.KSR:
 		chip.Channels[channelID].Operators[operatorIndex].updateKSR()
-	case OpRegister_MULT:
+	case OpRegisters.MULT:
 		chip.Channels[channelID].Operators[operatorIndex].updateMULT()
-	case OpRegister_KSL:
+	case OpRegisters.KSL:
 		chip.Channels[channelID].Operators[operatorIndex].updateKSL()
-	case OpRegister_TL:
+	case OpRegisters.TL:
 		chip.Channels[channelID].Operators[operatorIndex].updateTL()
-	case OpRegister_AR:
+	case OpRegisters.AR:
 		chip.Channels[channelID].Operators[operatorIndex].updateAR()
-	case OpRegister_DR:
+	case OpRegisters.DR:
 		chip.Channels[channelID].Operators[operatorIndex].updateDR()
-	case OpRegister_SL:
+	case OpRegisters.SL:
 		chip.Channels[channelID].Operators[operatorIndex].updateSL()
-	case OpRegister_SR:
+	case OpRegisters.SR:
 		chip.Channels[channelID].Operators[operatorIndex].updateSR()
-	case OpRegister_RR:
+	case OpRegisters.RR:
 		chip.Channels[channelID].Operators[operatorIndex].updateRR()
-	case OpRegister_XOF:
+	case OpRegisters.XOF:
 		chip.Channels[channelID].Operators[operatorIndex].updateXOF()
-	case OpRegister_WS:
+	case OpRegisters.WS:
 		chip.Channels[channelID].Operators[operatorIndex].updateWS()
-	case OpRegister_FB:
+	case OpRegisters.FB:
 		chip.Channels[channelID].Operators[operatorIndex].updateFB()
 	}
 }

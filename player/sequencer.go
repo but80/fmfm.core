@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/but80/smaf825/smaf/voice"
-	"github.com/xlab/portmidi"
 	"github.com/but80/fmfm/ymf"
 	"github.com/but80/fmfm/ymf/ymfdata"
+	"github.com/but80/smaf825/smaf/voice"
+	"github.com/xlab/portmidi"
 )
 
 const defaultMIDIDeviceName = "IAC YAMAHA Virtual MIDI Device 0"
@@ -231,7 +231,7 @@ func (seq *Sequencer) writeModulation(slot int, instr *voice.VM35VoicePC, state 
 	// TODO: モジュレータではevbだけを見る(stateは無視)？
 	o := fmvoice.Operators
 	seq.ymfWriteSlotEachOps(
-		ymf.OpRegister_EVB,
+		ymf.OpRegisters.EVB,
 		slot,
 		bool2int(o[0].EVB || state),
 		bool2int(o[1].EVB || state),
@@ -280,10 +280,10 @@ func (seq *Sequencer) occupySlot(slotID, channel, note, velocity int, instr *voi
 	if slot.flags&CH_VIBRATO != 0 {
 		seq.writeModulation(slotID, instr, true)
 	}
-	seq.chip.WriteChannel(ymf.ChRegister_CHPAN, slotID, int(seq.channelStates[channel].pan))
-	seq.chip.WriteChannel(ymf.ChRegister_VOLUME, slotID, int(seq.channelStates[channel].volume))
-	seq.chip.WriteChannel(ymf.ChRegister_EXPRESSION, slotID, int(seq.channelStates[channel].expression))
-	seq.chip.WriteChannel(ymf.ChRegister_BO, slotID, int(fmvoice.BO))
+	seq.chip.WriteChannel(ymf.ChRegisters.CHPAN, slotID, int(seq.channelStates[channel].pan))
+	seq.chip.WriteChannel(ymf.ChRegisters.VOLUME, slotID, int(seq.channelStates[channel].volume))
+	seq.chip.WriteChannel(ymf.ChRegisters.EXPRESSION, slotID, int(seq.channelStates[channel].expression))
+	seq.chip.WriteChannel(ymf.ChRegisters.BO, slotID, int(fmvoice.BO))
 	seq.ymfWriteVelocity(slotID, slot.velocity, instr)
 	seq.writeFrequency(slotID, note, slot.pitch, true)
 }
@@ -295,10 +295,10 @@ func (seq *Sequencer) releaseSlot(slotID int, killed bool) {
 	slot.time = time.Now()
 	slot.flags = CH_FREE
 	if killed {
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_SL, slotID, 0)
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_RR, slotID, 15) // release rate - fastest
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_KSL, slotID, 0)
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_TL, slotID, 0x3f) // no volume
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.SL, slotID, 0)
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.RR, slotID, 15) // release rate - fastest
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.KSL, slotID, 0)
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.TL, slotID, 0x3f) // no volume
 	}
 }
 
@@ -392,7 +392,7 @@ func (seq *Sequencer) ymfChangeControl(channel int, controller MIDIControl, valu
 		for i, slot := range seq.slots {
 			if slot.channel == channel {
 				slot.time = time.Now()
-				seq.chip.WriteChannel(ymf.ChRegister_VOLUME, i, value)
+				seq.chip.WriteChannel(ymf.ChRegisters.VOLUME, i, value)
 			}
 		}
 
@@ -401,7 +401,7 @@ func (seq *Sequencer) ymfChangeControl(channel int, controller MIDIControl, valu
 		for i, slot := range seq.slots {
 			if slot.channel == channel {
 				slot.time = time.Now()
-				seq.chip.WriteChannel(ymf.ChRegister_EXPRESSION, i, value)
+				seq.chip.WriteChannel(ymf.ChRegisters.EXPRESSION, i, value)
 			}
 		}
 
@@ -410,7 +410,7 @@ func (seq *Sequencer) ymfChangeControl(channel int, controller MIDIControl, valu
 		for i, slot := range seq.slots {
 			if slot.channel == channel {
 				slot.time = time.Now()
-				seq.chip.WriteChannel(ymf.ChRegister_CHPAN, i, value)
+				seq.chip.WriteChannel(ymf.ChRegisters.CHPAN, i, value)
 			}
 		}
 
@@ -524,13 +524,13 @@ func (seq *Sequencer) ymfWriteFreq(slotID, note, pitch int, keyon bool) {
 		block = 7
 	}
 
-	seq.chip.WriteChannel(ymf.ChRegister_FNUM, slotID, fnum)
-	seq.chip.WriteChannel(ymf.ChRegister_BLOCK, slotID, block)
+	seq.chip.WriteChannel(ymf.ChRegisters.FNUM, slotID, fnum)
+	seq.chip.WriteChannel(ymf.ChRegisters.BLOCK, slotID, block)
 	k := 0
 	if keyon {
 		k = 1
 	}
-	seq.chip.WriteChannel(ymf.ChRegister_KON, slotID, k)
+	seq.chip.WriteChannel(ymf.ChRegisters.KON, slotID, k)
 }
 
 func ymfConvertVelocity(data, velocity int) int {
@@ -550,7 +550,7 @@ func (seq *Sequencer) ymfWriteVelocity(slotID, velocity int, instr *voice.VM35Vo
 		if !ops[i].IsModulator {
 			v = ymfConvertVelocity(op.TL, velocity)
 		}
-		seq.chip.WriteOperator(ymf.OpRegister_TL, slotID, i, v)
+		seq.chip.WriteOperator(ymf.OpRegisters.TL, slotID, i, v)
 	}
 }
 
@@ -567,43 +567,43 @@ func (seq *Sequencer) ymfWriteInstrument(slotID int, instr *voice.VM35VoicePC) {
 		// TODO: warning
 		return
 	}
-	seq.ymfWriteSlotAllOps(ymf.OpRegister_TL, slotID, 0x3f) // no volume
+	seq.ymfWriteSlotAllOps(ymf.OpRegisters.TL, slotID, 0x3f) // no volume
 
 	for i, op := range v.Operators {
-		seq.chip.WriteOperator(ymf.OpRegister_EAM, slotID, i, bool2int(op.EAM))
-		seq.chip.WriteOperator(ymf.OpRegister_EVB, slotID, i, bool2int(op.EVB))
-		seq.chip.WriteOperator(ymf.OpRegister_DAM, slotID, i, op.DAM)
-		seq.chip.WriteOperator(ymf.OpRegister_DVB, slotID, i, op.DVB)
-		seq.chip.WriteOperator(ymf.OpRegister_DT, slotID, i, op.DT)
-		seq.chip.WriteOperator(ymf.OpRegister_KSL, slotID, i, op.KSL)
-		seq.chip.WriteOperator(ymf.OpRegister_KSR, slotID, i, bool2int(op.KSR))
-		seq.chip.WriteOperator(ymf.OpRegister_WS, slotID, i, op.WS)
-		seq.chip.WriteOperator(ymf.OpRegister_MULT, slotID, i, int(op.MULTI))
-		seq.chip.WriteOperator(ymf.OpRegister_FB, slotID, i, op.FB)
-		seq.chip.WriteOperator(ymf.OpRegister_AR, slotID, i, op.AR)
-		seq.chip.WriteOperator(ymf.OpRegister_DR, slotID, i, op.DR)
-		seq.chip.WriteOperator(ymf.OpRegister_SL, slotID, i, op.SL)
-		seq.chip.WriteOperator(ymf.OpRegister_SR, slotID, i, op.SR)
-		seq.chip.WriteOperator(ymf.OpRegister_RR, slotID, i, op.RR)
-		seq.chip.WriteOperator(ymf.OpRegister_TL, slotID, i, op.TL)
-		seq.chip.WriteOperator(ymf.OpRegister_XOF, slotID, i, bool2int(op.XOF))
+		seq.chip.WriteOperator(ymf.OpRegisters.EAM, slotID, i, bool2int(op.EAM))
+		seq.chip.WriteOperator(ymf.OpRegisters.EVB, slotID, i, bool2int(op.EVB))
+		seq.chip.WriteOperator(ymf.OpRegisters.DAM, slotID, i, op.DAM)
+		seq.chip.WriteOperator(ymf.OpRegisters.DVB, slotID, i, op.DVB)
+		seq.chip.WriteOperator(ymf.OpRegisters.DT, slotID, i, op.DT)
+		seq.chip.WriteOperator(ymf.OpRegisters.KSL, slotID, i, op.KSL)
+		seq.chip.WriteOperator(ymf.OpRegisters.KSR, slotID, i, bool2int(op.KSR))
+		seq.chip.WriteOperator(ymf.OpRegisters.WS, slotID, i, op.WS)
+		seq.chip.WriteOperator(ymf.OpRegisters.MULT, slotID, i, int(op.MULTI))
+		seq.chip.WriteOperator(ymf.OpRegisters.FB, slotID, i, op.FB)
+		seq.chip.WriteOperator(ymf.OpRegisters.AR, slotID, i, op.AR)
+		seq.chip.WriteOperator(ymf.OpRegisters.DR, slotID, i, op.DR)
+		seq.chip.WriteOperator(ymf.OpRegisters.SL, slotID, i, op.SL)
+		seq.chip.WriteOperator(ymf.OpRegisters.SR, slotID, i, op.SR)
+		seq.chip.WriteOperator(ymf.OpRegisters.RR, slotID, i, op.RR)
+		seq.chip.WriteOperator(ymf.OpRegisters.TL, slotID, i, op.TL)
+		seq.chip.WriteOperator(ymf.OpRegisters.XOF, slotID, i, bool2int(op.XOF))
 	}
 
-	seq.chip.WriteChannel(ymf.ChRegister_ALG, slotID, int(v.ALG))
-	seq.chip.WriteChannel(ymf.ChRegister_LFO, slotID, v.LFO)
-	seq.chip.WriteChannel(ymf.ChRegister_PANPOT, slotID, int(v.PANPOT))
-	seq.chip.WriteChannel(ymf.ChRegister_BO, slotID, int(v.BO))
+	seq.chip.WriteChannel(ymf.ChRegisters.ALG, slotID, int(v.ALG))
+	seq.chip.WriteChannel(ymf.ChRegisters.LFO, slotID, v.LFO)
+	seq.chip.WriteChannel(ymf.ChRegisters.PANPOT, slotID, int(v.PANPOT))
+	seq.chip.WriteChannel(ymf.ChRegisters.BO, slotID, int(v.BO))
 }
 
 func (seq *Sequencer) ymfShutup() {
 	for i := range seq.slots {
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_KSL, i, 0)
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_TL, i, 0x3f) // turn off volume
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_AR, i, 15)   // the fastest attack,
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_DR, i, 15)   // decay
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_SL, i, 0)    //
-		seq.ymfWriteSlotAllOps(ymf.OpRegister_RR, i, 15)   // ... and release
-		seq.chip.WriteChannel(ymf.ChRegister_KON, i, 0)    // KEY-OFF
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.KSL, i, 0)
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.TL, i, 0x3f) // turn off volume
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.AR, i, 15)   // the fastest attack,
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.DR, i, 15)   // decay
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.SL, i, 0)    //
+		seq.ymfWriteSlotAllOps(ymf.OpRegisters.RR, i, 15)   // ... and release
+		seq.chip.WriteChannel(ymf.ChRegisters.KON, i, 0)    // KEY-OFF
 	}
 }
 
