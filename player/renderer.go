@@ -8,6 +8,8 @@ import (
 	"github.com/xlab/closer"
 )
 
+// Renderer は、波形をレンダリングしてオーディオデバイスに出力します。
+// TODO: rename
 type Renderer struct {
 	Parameters portaudio.StreamParameters
 	stream     *portaudio.Stream
@@ -15,6 +17,7 @@ type Renderer struct {
 
 var portautioInitOnce = sync.Once{}
 
+// NewRenderer は、新しいRendererを作成します。
 func NewRenderer() *Renderer {
 	renderer := &Renderer{}
 	portautioInitOnce.Do(func() {
@@ -60,6 +63,7 @@ func NewRenderer() *Renderer {
 	return renderer
 }
 
+// Start は、processor によって生成される波形のオーディオデバイスへの出力を開始します。
 func (renderer *Renderer) Start(processor func() (float64, float64)) {
 	var err error
 	renderer.stream, err = portaudio.OpenStream(renderer.Parameters, func(out [][]float32) {

@@ -68,6 +68,8 @@ type channelState struct {
 	rpn        uint16
 }
 
+// Sequencer は、MIDIメッセージを受信して Chip のレジスタをコントロールします。
+// TODO: rename
 type Sequencer struct {
 	chip    *ymf.Chip
 	library *voice.VM5VoiceLib
@@ -78,6 +80,7 @@ type Sequencer struct {
 
 var newSequencerOnce = sync.Once{}
 
+// NewSequencer は、新しい Sequencer を作成します。
 func NewSequencer(chip *ymf.Chip, library *voice.VM5VoiceLib) *Sequencer {
 	newSequencerOnce.Do(func() {
 		portmidi.Initialize()
@@ -190,7 +193,8 @@ func (seq *Sequencer) onPitchBend(ch, l, h int) {
 	seq.ymfPitchWheel(ch, h*128+l)
 }
 
-func (seq *Sequencer) Load() {
+// Reset は、音源の状態をリセットします。
+func (seq *Sequencer) Reset() {
 	for _, slot := range seq.slots {
 		slot.channel = -1
 		slot.note = 0
@@ -206,10 +210,6 @@ func (seq *Sequencer) Load() {
 		state.volume = 100
 		state.pan = 64
 	}
-	seq.rewind()
-}
-
-func (seq *Sequencer) rewind() {
 	seq.ymfShutup()
 	seq.ymfStopMusic()
 	seq.ymfPlayMusic()

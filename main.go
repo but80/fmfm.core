@@ -17,7 +17,7 @@ func main() {
 	renderer := player.NewRenderer()
 	chip := ymf.NewChip(renderer.Parameters.SampleRate)
 	seq := player.NewSequencer(chip, lib)
-	seq.Load()
+	seq.Reset()
 	renderer.Start(chip.Next)
 	time.Sleep(24 * time.Hour)
 }
