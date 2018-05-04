@@ -1,5 +1,6 @@
 # fmFM
 
+[![Build Status](https://travis-ci.org/but80/fmfm.svg?branch=master)](https://travis-ci.org/but80/fmfm)
 [![Go Report Card](https://goreportcard.com/badge/github.com/but80/fmfm)](https://goreportcard.com/report/github.com/but80/fmfm)
 [![Godoc](https://godoc.org/github.com/but80/fmfm?status.svg)](http://godoc.org/github.com/but80/fmfm)
 
