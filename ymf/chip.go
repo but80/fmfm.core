@@ -12,7 +12,7 @@ type Chip struct {
 func NewChip(sampleRate float64) *Chip {
 	chip := &Chip{
 		SampleRate:    sampleRate,
-		Channels:      make([]*Channel, ymfdata.CHANNEL_COUNT),
+		Channels:      make([]*Channel, ymfdata.ChannelCount),
 		currentOutput: make([]float64, 2),
 	}
 	chip.initChannels()
@@ -106,7 +106,7 @@ func (chip *Chip) WriteOperator(address OpRegister, channelID, operatorIndex, da
 }
 
 func (chip *Chip) initChannels() {
-	chip.Channels = make([]*Channel, ymfdata.CHANNEL_COUNT)
+	chip.Channels = make([]*Channel, ymfdata.ChannelCount)
 	for i := range chip.Channels {
 		chip.Channels[i] = newChannel4op(i, chip)
 	}

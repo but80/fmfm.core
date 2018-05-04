@@ -16,10 +16,10 @@ func newPhaseGenerator(chip *Chip) *PhaseGenerator {
 	}
 }
 
-func (pg *PhaseGenerator) setFrequency(f_number, block, bo, mult, dt int) {
-	baseFrequency := float64(f_number<<uint(block+3-bo)) / (16.0 * ymfdata.FnumK)
+func (pg *PhaseGenerator) setFrequency(fnum, block, bo, mult, dt int) {
+	baseFrequency := float64(fnum<<uint(block+3-bo)) / (16.0 * ymfdata.FNUMCoef)
 
-	ksn := block<<1 | f_number>>9
+	ksn := block<<1 | fnum>>9
 	operatorFrequency := baseFrequency + ymfdata.DTCoef[dt][ksn]
 	operatorFrequency *= ymfdata.MultTable[mult]
 

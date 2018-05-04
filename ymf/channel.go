@@ -236,7 +236,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 
 	case 0:
 		// (FB)1 -> 2 -> OUT
-		if op2.envelopeGenerator.stage == Stage_OFF {
+		if op2.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 
@@ -247,7 +247,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 	case 1:
 		// (FB)1 -> | -> OUT
 		//     2 -> |
-		if op1.envelopeGenerator.stage == Stage_OFF && op2.envelopeGenerator.stage == Stage_OFF {
+		if op1.envelopeGenerator.stage == stageOff && op2.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 
@@ -261,10 +261,10 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 		//     2 -> |
 		// (FB)3 -> |
 		//     4 -> |
-		if op1.envelopeGenerator.stage == Stage_OFF &&
-			op2.envelopeGenerator.stage == Stage_OFF &&
-			op3.envelopeGenerator.stage == Stage_OFF &&
-			op4.envelopeGenerator.stage == Stage_OFF {
+		if op1.envelopeGenerator.stage == stageOff &&
+			op2.envelopeGenerator.stage == stageOff &&
+			op3.envelopeGenerator.stage == stageOff &&
+			op4.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 
@@ -278,7 +278,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 	case 3:
 		// (FB)OP1 --------> | -> OP4 -> OUT
 		//     OP2 -> OP3 -> |
-		if op4.envelopeGenerator.stage == Stage_OFF {
+		if op4.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 
@@ -290,7 +290,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 
 	case 4:
 		// (FB)OP1 -> OP2 -> OP3 -> OP4 -> OUT
-		if op4.envelopeGenerator.stage == Stage_OFF {
+		if op4.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 
@@ -303,7 +303,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 	case 5:
 		// (FB)OP1 -> OP2 -> | -> OUT
 		// (FB)OP3 -> OP4 -> |
-		if op2.envelopeGenerator.stage == Stage_OFF && op4.envelopeGenerator.stage == Stage_OFF {
+		if op2.envelopeGenerator.stage == stageOff && op4.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 
@@ -318,7 +318,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 	case 6:
 		// (FB)OP1 ---------------> | -> OUT
 		//     OP2 -> OP3 -> OP4 -> |
-		if op1.envelopeGenerator.stage == Stage_OFF && op4.envelopeGenerator.stage == Stage_OFF {
+		if op1.envelopeGenerator.stage == stageOff && op4.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 
@@ -333,9 +333,9 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 		// (FB)OP1 --------> | -> OUT
 		//     OP2 -> OP3 -> |
 		//     OP4 --------> |
-		if op1.envelopeGenerator.stage == Stage_OFF &&
-			op3.envelopeGenerator.stage == Stage_OFF &&
-			op4.envelopeGenerator.stage == Stage_OFF {
+		if op1.envelopeGenerator.stage == stageOff &&
+			op3.envelopeGenerator.stage == stageOff &&
+			op4.envelopeGenerator.stage == stageOff {
 			return 0, 0
 		}
 

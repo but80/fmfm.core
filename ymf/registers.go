@@ -85,12 +85,12 @@ func (regs *Registers) write(address, data int) {
 }
 
 func (regs *Registers) writeOperator(channel, operatorIndex int, offset OpRegister, data int) {
-	operatorID := channel + operatorIndex*ymfdata.CHANNEL_COUNT
+	operatorID := channel + operatorIndex*ymfdata.ChannelCount
 	regs.registers[operatorID+int(offset)] = data
 }
 
 func (regs *Registers) readOperator(channel, operatorIndex int, offset OpRegister) int {
-	operatorID := channel + operatorIndex*ymfdata.CHANNEL_COUNT
+	operatorID := channel + operatorIndex*ymfdata.ChannelCount
 	return regs.registers[operatorID+int(offset)]
 }
 

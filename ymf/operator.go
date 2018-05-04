@@ -25,7 +25,7 @@ type Operator struct {
 	ws             int
 	feedbackCoef   float64
 	keyScaleNumber int
-	f_number       int
+	fnum           int
 	block          int
 	bo             int
 
@@ -71,7 +71,7 @@ func (op *Operator) updateDVB() {
 
 func (op *Operator) updateDT() {
 	op.dt = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.DT)
-	op.phaseGenerator.setFrequency(op.f_number, op.block, op.bo, op.mult, op.dt)
+	op.phaseGenerator.setFrequency(op.fnum, op.block, op.bo, op.mult, op.dt)
 }
 
 func (op *Operator) updateKSR() {
@@ -85,13 +85,13 @@ func (op *Operator) updateKSR() {
 
 func (op *Operator) updateMULT() {
 	op.mult = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.MULT)
-	op.phaseGenerator.setFrequency(op.f_number, op.block, op.bo, op.mult, op.dt)
+	op.phaseGenerator.setFrequency(op.fnum, op.block, op.bo, op.mult, op.dt)
 }
 
 func (op *Operator) updateKSL() {
 	// TODO: BOの影響は受けるのか？
 	op.ksl = op.chip.registers.readOperator(op.channelID, op.operatorIndex, OpRegisters.KSL)
-	op.envelopeGenerator.setKeyScalingLevel(op.f_number, op.block, op.ksl)
+	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.ksl)
 }
 
 func (op *Operator) updateTL() {
@@ -138,7 +138,7 @@ func (op *Operator) updateFB() {
 }
 
 func (op *Operator) getOperatorOutput(modulator float64) float64 {
-	if op.envelopeGenerator.stage == Stage_OFF {
+	if op.envelopeGenerator.stage == stageOff {
 		return 0
 	}
 
@@ -161,7 +161,7 @@ func (op *Operator) keyOn() {
 		// op.modIndexFrac64 = 0
 		// op.tremoloIndex = 0
 	} else {
-		op.envelopeGenerator.stage = Stage_OFF
+		op.envelopeGenerator.stage = stageOff
 	}
 }
 
@@ -173,7 +173,7 @@ func (op *Operator) keyOff() {
 
 func (op *Operator) updateOperator(ksn, fnum, blk, bo int, isModulator bool) {
 	op.keyScaleNumber = ksn
-	op.f_number = fnum
+	op.fnum = fnum
 	op.block = blk
 	op.bo = bo
 	op.IsModulator = isModulator

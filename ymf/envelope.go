@@ -6,20 +6,20 @@ import (
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
 
-type Stage int
+type stage int
 
 const (
-	Stage_ATTACK Stage = iota
-	Stage_DECAY
-	Stage_SUSTAIN
-	Stage_RELEASE
-	Stage_OFF
+	stageOff stage = iota
+	stageAttack
+	stageDecay
+	stageSustain
+	stageRelease
 )
 
 const epsilon = 1.0 / 32768.0
 
 type EnvelopeGenerator struct {
-	stage Stage
+	stage stage
 
 	actualAR        int
 	arDiffPerSample float64
@@ -35,7 +35,7 @@ type EnvelopeGenerator struct {
 
 func newEnvelopeGenerator() *EnvelopeGenerator {
 	eg := &EnvelopeGenerator{
-		stage:        Stage_OFF,
+		stage:        stageOff,
 		currentLevel: 0,
 	}
 	eg.setTotalLevel(0)
@@ -130,36 +130,36 @@ func calculateActualRate(rate, ksr, keyScaleNumber int) int {
 func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
 	switch eg.stage {
 
-	case Stage_ATTACK:
+	case stageAttack:
 		eg.currentLevel += eg.arDiffPerSample
 		if eg.currentLevel < 1.0 {
 			break
 		}
 		eg.currentLevel = 1.0
-		eg.stage = Stage_DECAY
+		eg.stage = stageDecay
 		fallthrough
 
-	case Stage_DECAY:
+	case stageDecay:
 		if eg.sustainLevel < eg.currentLevel {
 			eg.currentLevel *= eg.drCoefPerSample
 			break
 		}
-		eg.stage = Stage_SUSTAIN
+		eg.stage = stageSustain
 		fallthrough
 
-	case Stage_SUSTAIN:
+	case stageSustain:
 		if epsilon < eg.currentLevel {
 			eg.currentLevel *= eg.srCoefPerSample
 		} else {
-			eg.stage = Stage_OFF
+			eg.stage = stageOff
 		}
 		break
 
-	case Stage_RELEASE:
+	case stageRelease:
 		if epsilon < eg.currentLevel {
 			eg.currentLevel *= eg.rrCoefPerSample
 		} else {
-			eg.stage = Stage_OFF
+			eg.stage = stageOff
 		}
 		break
 	}
@@ -172,12 +172,12 @@ func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
 }
 
 func (eg *EnvelopeGenerator) keyOn() {
-	eg.stage = Stage_ATTACK
+	eg.stage = stageAttack
 }
 
 func (eg *EnvelopeGenerator) keyOff() {
-	if eg.stage != Stage_OFF {
-		eg.stage = Stage_RELEASE
+	if eg.stage != stageOff {
+		eg.stage = stageRelease
 	}
 }
 

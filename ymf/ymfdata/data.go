@@ -4,11 +4,11 @@ import (
 	"math"
 )
 
-const CHANNEL_COUNT = 16
+const ChannelCount = 16
 const SampleRate = float64(48000)
 const A3Note = 11 + 12*3 // TODO: A3=69のはず？
 const A3Freq = float64(440.0)
-const FnumK = float64(1<<19) / SampleRate * .5
+const FNUMCoef = float64(1<<19) / SampleRate * .5
 
 var Pow32Of2 = float64(1 << 32)
 var Pow63Of2 = float64(1 << 63)
@@ -76,7 +76,7 @@ const WaveformIndexShift = 64 - WaveformLenBits
 
 var Waveforms [32][]float64
 
-func CalculateIncrement(begin, end, period float64) float64 {
+func calculateIncrement(begin, end, period float64) float64 {
 	return (end - begin) / SampleRate * (1 / period)
 }
 
@@ -149,7 +149,7 @@ func init() {
 		tremoloDepth := [4]float64{-1.3, -2.8, -5.8, -11.8} // dB
 
 		for dam := 0; dam < 4; dam++ {
-			tremoloIncrement := CalculateIncrement(tremoloDepth[dam], 0, 1/(2*tremoloFrequency))
+			tremoloIncrement := calculateIncrement(tremoloDepth[dam], 0, 1/(2*tremoloFrequency))
 			TremoloTable[dam][0] = tremoloDepth[dam]
 			counter := 0
 			for TremoloTable[0][counter] < 0 {

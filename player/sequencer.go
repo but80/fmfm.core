@@ -73,7 +73,7 @@ type Sequencer struct {
 	library *voice.VM5VoiceLib
 
 	channelStates [16]*channelState
-	slots         [ymfdata.CHANNEL_COUNT]*slot
+	slots         [ymfdata.ChannelCount]*slot
 }
 
 var newSequencerOnce = sync.Once{}
@@ -507,7 +507,7 @@ func (seq *Sequencer) ymfWriteFreq(slotID, note, pitch int, keyon bool) {
 		block = 7
 	}
 
-	fnum := int(freq*ymfdata.FnumK) >> uint(block-1)
+	fnum := int(freq*ymfdata.FNUMCoef) >> uint(block-1)
 	if fnum < 0 {
 		fnum = 0
 	} else {
