@@ -1,9 +1,12 @@
 # fmFM
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/but80/fmfm)](https://goreportcard.com/report/github.com/but80/fmfm)
+[![Godoc](https://godoc.org/github.com/but80/fmfm?status.svg)](http://godoc.org/github.com/but80/fmfm)
+
 **WORK IN PROGRESS**
 
 YAMAHA MA-5 / YMF825 clone software FM synthesizer
- 
+
 - Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
 
 ## Requirements
