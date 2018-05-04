@@ -1,12 +1,17 @@
-prof:
-  summary: 'Run program with profiling'
-  command: |
-    go run -gcflags '-N -l' *.go
-
 run:
   summary: 'Run program'
   command: |
     go run main.go
+
+prof:
+  summary: 'Run program with profiling'
+  command: |
+    go run *.go
+
+prof2:
+  summary: 'Run program with profiling without inlining optimization'
+  command: |
+    go run -gcflags '-N -l' *.go
 
 test:
   summary: 'Run test'
@@ -21,4 +26,4 @@ lint:
 fmt:
   summary: 'Format code'
   command: |
-    find . -not \( \( -name vendor -or -name assets \) -prune \) -name "*.go" | xargs -I{} goimports -w {}
+    find . -not \( \( -name vendor -or -name assets \) -prune \) -name '*.go' | xargs -I{} goimports -w {}
