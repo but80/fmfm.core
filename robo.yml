@@ -12,3 +12,13 @@ test:
   summary: 'Run test'
   command: |
     go test ./...
+
+lint:
+  summary: 'Check coding style'
+  command: |
+    gometalinter --config=.gometalinter.json ./...
+
+fmt:
+  summary: 'Format code'
+  command: |
+    find . -not \( \( -name vendor -or -name assets \) -prune \) -name "*.go" | xargs -I{} goimports -w {}
