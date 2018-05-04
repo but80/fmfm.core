@@ -2,13 +2,18 @@ package ymf
 
 import "github.com/but80/fmfm/ymf/ymfdata"
 
+// Chip は、FM音源チップ全体を表す型です。
 type Chip struct {
-	SampleRate    float64
+	// SampleRate は、出力波形の目標サンプルレートです。
+	SampleRate float64
+	// Channels は、このチップが備える全チャンネルです。
+	Channels []*Channel
+
 	registers     Registers
-	Channels      []*Channel
 	currentOutput []float64
 }
 
+// NewChip は、新しい Chip を作成します。
 func NewChip(sampleRate float64) *Chip {
 	chip := &Chip{
 		SampleRate:    sampleRate,
@@ -19,6 +24,7 @@ func NewChip(sampleRate float64) *Chip {
 	return chip
 }
 
+// Next は、次のサンプルを生成し、その左右それぞれの振幅を返します。
 func (chip *Chip) Next() (float64, float64) {
 	var l, r float64
 	for _, channel := range chip.Channels {
@@ -29,6 +35,7 @@ func (chip *Chip) Next() (float64, float64) {
 	return l, r
 }
 
+// WriteChannel は、チャンネルレジスタに値を書き込みます。
 func (chip *Chip) WriteChannel(address ChRegister, channelID, data int) {
 	chip.registers.write(int(address)+channelID, data)
 	switch address {
@@ -65,6 +72,7 @@ func (chip *Chip) WriteChannel(address ChRegister, channelID, data int) {
 	}
 }
 
+// WriteOperator は、オペレータレジスタに値を書き込みます。
 func (chip *Chip) WriteOperator(address OpRegister, channelID, operatorIndex, data int) {
 	chip.registers.writeOperator(channelID, operatorIndex, address, data)
 	switch address {

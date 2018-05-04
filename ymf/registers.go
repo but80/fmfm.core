@@ -6,8 +6,10 @@ import (
 
 const registerSize = 0x500
 
+// OpRegister は、オペレータパラメータを保持するレジスタの種類を表す型です。
 type OpRegister int
 
+// OpRegisters は、オペレータパラメータを保持するレジスタの種類のコレクションです。
 var OpRegisters = struct {
 	IDMask OpRegister
 	EAM    OpRegister
@@ -48,8 +50,10 @@ var OpRegisters = struct {
 	XOF:    0x4c0,
 }
 
+// ChRegister は、チャンネルパラメータを保持するレジスタの種類を表す型です。
 type ChRegister int
 
+// ChRegisters は、チャンネルパラメータを保持するレジスタの種類のコレクションです。
 var ChRegisters = struct {
 	IDMask     ChRegister
 	KON        ChRegister
@@ -76,6 +80,7 @@ var ChRegisters = struct {
 	BO:         0xa0,
 }
 
+// Registers は、全レジスタのコンテナです。
 type Registers struct {
 	registers [registerSize]int
 }
