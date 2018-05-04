@@ -6,12 +6,13 @@
 
 **WORK IN PROGRESS**
 
-YAMAHA MA-5 / YMF825 clone software FM synthesizer
+**fmFM** (Fake Mobile FM synth) is a YAMAHA MA-5 / YMF825 clone software FM synthesizer.
 
-- Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
+Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
 
-## Requirements
+# Requirements
 
+- macOS
 - [PortMIDI](http://portmedia.sourceforge.net/portmidi/)
   
   ```
@@ -25,11 +26,12 @@ YAMAHA MA-5 / YMF825 clone software FM synthesizer
   brew install portaudio
   ```
 
-## Usage
+# Usage
 
 ```
 go run main.go
 ```
 
 - A voice library (`.vm5`) must be placed on `voice/default.vm5` before running.
-- Receives MIDI messages via the port named `IAC YAMAHA Virtual MIDI Device 0`.
+- The IAC virtual MIDI port named `IAC YAMAHA Virtual MIDI Device 0` must be created before running.
+  fmFM receives the MIDI messages via this port.
