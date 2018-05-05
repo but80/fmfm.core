@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/but80/fmfm/player"
+	"github.com/but80/fmfm/cmd/fmfm-cli/player"
 	"github.com/but80/fmfm/ymf"
 	"github.com/but80/smaf825/smaf/voice"
 )

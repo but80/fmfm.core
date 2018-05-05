@@ -1,22 +1,22 @@
 run:
   summary: 'Run program'
   command: |
-    go run main.go
+    go run cmd/fmfm-cli/main.go
 
 prof:
   summary: 'Run program with profiling'
   command: |
-    go run *.go
+    go run cmd/fmfm-cli/*.go
 
 prof2:
   summary: 'Run program with profiling without inlining optimization'
   command: |
-    go run -gcflags '-N -l' *.go
+    go run -gcflags '-N -l' cmd/fmfm-cli/*.go
 
 test:
   summary: 'Run test'
   command: |
-    go test ./...
+    go test ./ymf/...
 
 lint:
   summary: 'Check coding style'
