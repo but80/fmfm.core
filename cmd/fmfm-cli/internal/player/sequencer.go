@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/but80/fmfm"
 	"github.com/but80/fmfm/ymf"
 	"github.com/but80/smaf825/smaf/voice"
 	"github.com/xlab/portmidi"
@@ -11,32 +12,10 @@ import (
 
 const defaultMIDIDeviceName = "IAC YAMAHA Virtual MIDI Device 0"
 
-const (
-	ccBank         = 0
-	ccModulation   = 1
-	ccDataEntryHi  = 6
-	ccVolume       = 7
-	ccPan          = 10
-	ccExpression   = 11
-	ccDataEntryLo  = 38
-	ccSustainPedal = 64
-	ccSoftPedal    = 67
-	ccReverb       = 91
-	ccChorus       = 93
-	ccNRPNLo       = 98
-	ccNRPNHi       = 99
-	ccRPNLo        = 100
-	ccRPNHi        = 101
-	ccSoundsOff    = 120
-	ccNotesOff     = 123
-	ccMono         = 126
-	ccPoly         = 127
-)
-
 // Sequencer は、PortMIDI により MIDIメッセージを受信して Chip のレジスタをコントロールします。
 // TODO: rename
 type Sequencer struct {
-	*Controller
+	*fmfm.Controller
 }
 
 var newSequencerOnce = sync.Once{}
@@ -67,7 +46,7 @@ func NewSequencer(chip *ymf.Chip, library *voice.VM5VoiceLib) *Sequencer {
 	// defer in.Close()
 
 	seq := &Sequencer{
-		Controller: NewController(chip, library),
+		Controller: fmfm.NewController(chip, library),
 	}
 
 	go func() {

@@ -1,4 +1,4 @@
-package player
+package fmfm
 
 import (
 	"fmt"
@@ -17,6 +17,28 @@ const (
 )
 
 const modThresh = 40
+
+const (
+	ccBank         = 0
+	ccModulation   = 1
+	ccDataEntryHi  = 6
+	ccVolume       = 7
+	ccPan          = 10
+	ccExpression   = 11
+	ccDataEntryLo  = 38
+	ccSustainPedal = 64
+	ccSoftPedal    = 67
+	ccReverb       = 91
+	ccChorus       = 93
+	ccNRPNLo       = 98
+	ccNRPNHi       = 99
+	ccRPNLo        = 100
+	ccRPNHi        = 101
+	ccSoundsOff    = 120
+	ccNotesOff     = 123
+	ccMono         = 126
+	ccPoly         = 127
+)
 
 type slot struct {
 	channel    int
@@ -66,6 +88,7 @@ func NewController(chip *ymf.Chip, library *voice.VM5VoiceLib) *Controller {
 	return ctrl
 }
 
+// NoteOn は、MIDIノートオン受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) NoteOn(ch, note, velocity int) {
 	// TODO: remove
 	if ch == 9 {
@@ -90,6 +113,7 @@ func (ctrl *Controller) NoteOn(ch, note, velocity int) {
 	}
 }
 
+// NoteOff は、MIDIノートオフ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) NoteOff(ch, note int) {
 	sus := ctrl.channelStates[ch].sustain
 	for slotID, slot := range ctrl.slots {
@@ -103,14 +127,17 @@ func (ctrl *Controller) NoteOff(ch, note int) {
 	}
 }
 
+// ControlChange は、MIDIコントロールチェンジ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) ControlChange(ch, cc, value int) {
 	ctrl.ymfChangeControl(ch, cc, value)
 }
 
+// ProgramChange は、MIDIプログラムチェンジ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) ProgramChange(ch, value int) {
 	ctrl.ymfProgramChange(ch, value)
 }
 
+// PitchBend は、MIDIピッチベンド受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) PitchBend(ch, l, h int) {
 	ctrl.ymfPitchWheel(ch, h*128+l)
 }
