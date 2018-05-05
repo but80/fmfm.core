@@ -13,6 +13,12 @@ prof2:
   command: |
     go run -gcflags '-N -l' cmd/fmfm-cli/*.go
 
+build:
+  summary: 'Build binary'
+  command: |
+    mkdir -p build/fmfm-module
+    go build -o build/fmfm-module/fmfm.so -buildmode=c-shared cmd/fmfm-module/main.go
+
 test:
   summary: 'Run test'
   command: |

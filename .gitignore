@@ -2,6 +2,7 @@
 *.mmf
 *.vm5
 /voice/
+/build/
 
 
 # Created by https://www.gitignore.io/api/osx,windows,code,intellij,go
