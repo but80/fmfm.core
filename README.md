@@ -14,13 +14,13 @@ Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
 
 - macOS
 - [PortMIDI](http://portmedia.sourceforge.net/portmidi/)
-  
+
   ```
   # On macOS
   brew install portmidi
   ```
 - [PortAudio](http://www.portaudio.com/)
-  
+
   ```
   # On macOS
   brew install portaudio
@@ -29,7 +29,7 @@ Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
 # Usage
 
 ```
-go run main.go
+go run cmd/fmfm-cli/main.go
 ```
 
 - A voice library (`.vm5`) must be placed on `voice/default.vm5` before running.

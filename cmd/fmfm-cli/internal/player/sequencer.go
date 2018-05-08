@@ -6,7 +6,7 @@ import (
 
 	"github.com/but80/fmfm"
 	"github.com/but80/fmfm/ymf"
-	"github.com/but80/smaf825/smaf/voice"
+	"github.com/but80/smaf825/pb/smaf"
 	"github.com/xlab/portmidi"
 )
 
@@ -21,7 +21,7 @@ type Sequencer struct {
 var newSequencerOnce = sync.Once{}
 
 // NewSequencer は、新しい Sequencer を作成します。
-func NewSequencer(chip *ymf.Chip, library *voice.VM5VoiceLib) *Sequencer {
+func NewSequencer(chip *ymf.Chip, library *smaf.VM5VoiceLib) *Sequencer {
 	newSequencerOnce.Do(func() {
 		portmidi.Initialize()
 		if portmidi.CountDevices() < 1 {

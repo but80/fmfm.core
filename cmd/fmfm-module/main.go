@@ -6,14 +6,14 @@ import (
 
 	"github.com/but80/fmfm"
 	"github.com/but80/fmfm/ymf"
-	"github.com/but80/smaf825/smaf/voice"
+	"github.com/but80/smaf825/pb/smaf"
 )
 
 func main() {
 	// noop
 }
 
-var lib *voice.VM5VoiceLib
+var lib *smaf.VM5VoiceLib
 var chip *ymf.Chip
 var ctrl *fmfm.Controller
 var initOnce sync.Once
@@ -24,7 +24,7 @@ func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 	result := 0
 	initOnce.Do(func() {
 		var err error
-		lib, err = voice.NewVM5VoiceLib(C.GoString(voicePath))
+		lib, err = smaf.NewVM5VoiceLib(C.GoString(voicePath))
 		if err != nil {
 			panic(err)
 		}
