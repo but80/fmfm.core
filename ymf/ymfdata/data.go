@@ -273,8 +273,8 @@ func init() {
 			dst := make([]float64, WaveformLen)
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i]
-				dst[512+i] = src[i]
 				dst[256+i] = 0
+				dst[512+i] = src[i]
 				dst[768+i] = 0
 			}
 			return dst
@@ -328,7 +328,7 @@ func init() {
 		// SQR   | 6:▀▄ 14:▀-
 		Waveforms[14] = copyHalf(squareTable)
 		// SQRx2 | 22:▘▘ 30:▘-
-		Waveforms[22] = copyOct(squareTable)
+		Waveforms[22] = copyAbsQuarter(squareTable)
 		Waveforms[30] = copyOct(Waveforms[14])
 
 		// ==================================================

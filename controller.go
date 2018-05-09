@@ -104,6 +104,11 @@ func (ctrl *Controller) NoteOn(ch, note, velocity int) {
 		return
 	}
 
+	if instr.VoiceType != smaf.VoiceType_FM {
+		fmt.Printf("unsupported voice type: @%d-%d-%d note=%d type=%s\n", instr.BankMsb, instr.BankLsb, instr.Pc, note, instr.VoiceType)
+		return
+	}
+
 	slotID := ctrl.findFreeSlot(ch, note)
 	if 0 <= slotID {
 		ctrl.occupySlot(slotID, ch, note, velocity, instr)
@@ -163,10 +168,6 @@ func (ctrl *Controller) Reset() {
 	ctrl.ymfPlayMusic()
 }
 
-func (ctrl *Controller) writeFrequency(slot, note, pitch int, keyon bool) {
-	ctrl.ymfWriteFreq(slot, note, pitch, keyon)
-}
-
 func (ctrl *Controller) writeModulation(slot int, instr *smaf.VM35VoicePC, state bool) {
 	fmvoice := instr.FmVoice
 
@@ -193,16 +194,10 @@ func (ctrl *Controller) occupySlot(slotID, channel, note, velocity int, instr *s
 	}
 	slot.time = time.Now()
 
-	if instr.VoiceType != smaf.VoiceType_FM {
-		// TODO: warning
-		return
-	}
-
 	slot.velocity = velocity
+	slot.finetune = 0
 	if instr.DrumNote != 0 {
 		note = int(instr.FmVoice.DrumKey)
-	} else {
-		slot.finetune = 0
 	}
 	slot.pitch = slot.finetune + int(state.pitch)
 	slot.instrument = instr
@@ -218,13 +213,10 @@ func (ctrl *Controller) occupySlot(slotID, channel, note, velocity int, instr *s
 	slot.realnote = note
 
 	ctrl.ymfWriteInstrument(slotID, instr)
-	if slot.flags&flagVibrato != 0 {
-		ctrl.writeModulation(slotID, instr, true)
-	}
+	ctrl.writeModulation(slotID, instr, slot.flags&flagVibrato != 0)
 	ctrl.chip.WriteChannel(ymf.ChRegisters.CHPAN, slotID, int(ctrl.channelStates[channel].pan))
 	ctrl.chip.WriteChannel(ymf.ChRegisters.VOLUME, slotID, int(ctrl.channelStates[channel].volume))
 	ctrl.chip.WriteChannel(ymf.ChRegisters.EXPRESSION, slotID, int(ctrl.channelStates[channel].expression))
-	ctrl.chip.WriteChannel(ymf.ChRegisters.BO, slotID, int(instr.FmVoice.Bo))
 	ctrl.ymfWriteVelocity(slotID, slot.velocity, instr)
 	ctrl.writeFrequency(slotID, note, slot.pitch, true)
 }
@@ -294,13 +286,18 @@ func (ctrl *Controller) getInstrument(channel, note int) (*smaf.VM35VoicePC, boo
 			return p, true
 		}
 	}
-	fmt.Printf("voice not found: @%d-%d-%d\n", s.bankMSB, s.bankLSB, s.pc)
+	fmt.Printf("voice not found: @%d-%d-%d note=%d\n", s.bankMSB, s.bankLSB, s.pc, note)
+
+	// TODO: Remove
+	if s.bankMSB == 125 && s.pc != 1 {
+		s.pc = 1
+		return ctrl.getInstrument(channel, note)
+	}
+
 	return ctrl.libraries[0].Programs[0], false
 }
 
 func (ctrl *Controller) ymfPitchWheel(channel, pitch int) {
-	// Convert pitch from 14-bit to 7-bit, then scale it, since the player
-	// code only understands sensitivities of 2 semitones.
 	pitch = int(float64(pitch-8192)*float64(ctrl.channelStates[channel].pitchSens)/(200*128) + 64)
 	ctrl.channelStates[channel].pitch = int8(pitch)
 	for i, slot := range ctrl.slots {
@@ -451,7 +448,7 @@ func (ctrl *Controller) ymfWriteSlotEachOps(regbase ymf.OpRegister, slotID, data
 	ctrl.chip.WriteOperator(regbase, slotID, 3, data4)
 }
 
-func (ctrl *Controller) ymfWriteFreq(slotID, note, pitch int, keyon bool) {
+func (ctrl *Controller) writeFrequency(slotID, note, pitch int, keyon bool) {
 	n := float64(note-ymfdata.A3Note) + float64(pitch-64)/32.0
 	freq := ymfdata.A3Freq * math.Pow(2.0, n/12.0)
 
