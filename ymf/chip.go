@@ -1,11 +1,16 @@
 package ymf
 
-import "github.com/but80/fmfm/ymf/ymfdata"
+import (
+	"math"
+	"github.com/but80/fmfm/ymf/ymfdata"
+)
 
 // Chip は、FM音源チップ全体を表す型です。
 type Chip struct {
 	// SampleRate は、出力波形の目標サンプルレートです。
 	SampleRate float64
+	// TotalLevel は、出力のトータルな音量[dB]です。
+	TotalLevel float64
 	// Channels は、このチップが備える全チャンネルです。
 	Channels []*Channel
 
@@ -14,9 +19,10 @@ type Chip struct {
 }
 
 // NewChip は、新しい Chip を作成します。
-func NewChip(sampleRate float64) *Chip {
+func NewChip(sampleRate, totalLevel float64) *Chip {
 	chip := &Chip{
 		SampleRate:    sampleRate,
+		TotalLevel:    totalLevel,
 		Channels:      make([]*Channel, ymfdata.ChannelCount),
 		currentOutput: make([]float64, 2),
 	}
@@ -32,7 +38,8 @@ func (chip *Chip) Next() (float64, float64) {
 		l += cl
 		r += cr
 	}
-	return l, r
+	v := math.Pow(10, chip.TotalLevel / 20)
+	return l*v, r*v
 }
 
 // WriteChannel は、チャンネルレジスタに値を書き込みます。

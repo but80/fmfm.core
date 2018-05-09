@@ -21,7 +21,7 @@ type Sequencer struct {
 var newSequencerOnce = sync.Once{}
 
 // NewSequencer は、新しい Sequencer を作成します。
-func NewSequencer(chip *ymf.Chip, library *smaf.VM5VoiceLib) *Sequencer {
+func NewSequencer(chip *ymf.Chip, libraries []*smaf.VM5VoiceLib) *Sequencer {
 	newSequencerOnce.Do(func() {
 		portmidi.Initialize()
 		if portmidi.CountDevices() < 1 {
@@ -46,7 +46,7 @@ func NewSequencer(chip *ymf.Chip, library *smaf.VM5VoiceLib) *Sequencer {
 	// defer in.Close()
 
 	seq := &Sequencer{
-		Controller: fmfm.NewController(chip, library),
+		Controller: fmfm.NewController(chip, libraries),
 	}
 
 	go func() {

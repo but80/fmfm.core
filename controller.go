@@ -19,12 +19,13 @@ const (
 const modThresh = 40
 
 const (
-	ccBank         = 0
+	ccBankMSB      = 0
 	ccModulation   = 1
 	ccDataEntryHi  = 6
 	ccVolume       = 7
 	ccPan          = 10
 	ccExpression   = 11
+	ccBankLSB      = 32
 	ccDataEntryLo  = 38
 	ccSustainPedal = 64
 	ccSoftPedal    = 67
@@ -53,7 +54,9 @@ type slot struct {
 }
 
 type channelState struct {
-	instr      uint32
+	bankLSB    uint8
+	bankMSB    uint8
+	pc         uint8
 	volume     uint8
 	expression uint8
 	pan        uint8
@@ -67,17 +70,17 @@ type channelState struct {
 // Controller は、MIDIに類似するインタフェースで Chip のレジスタをコントロールします。
 type Controller struct {
 	chip    *ymf.Chip
-	library *smaf.VM5VoiceLib
+	libraries []*smaf.VM5VoiceLib
 
 	channelStates [16]*channelState
 	slots         [ymfdata.ChannelCount]*slot
 }
 
 // NewController は、新しい Controller を作成します。
-func NewController(chip *ymf.Chip, library *smaf.VM5VoiceLib) *Controller {
+func NewController(chip *ymf.Chip, libraries []*smaf.VM5VoiceLib) *Controller {
 	ctrl := &Controller{
 		chip:    chip,
-		library: library,
+		libraries: libraries,
 	}
 	for i := range ctrl.slots {
 		ctrl.slots[i] = &slot{}
@@ -90,10 +93,6 @@ func NewController(chip *ymf.Chip, library *smaf.VM5VoiceLib) *Controller {
 
 // NoteOn は、MIDIノートオン受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) NoteOn(ch, note, velocity int) {
-	// TODO: remove
-	if ch == 9 {
-		return
-	}
 	if velocity == 0 {
 		ctrl.NoteOff(ch, note)
 		return
@@ -283,14 +282,20 @@ func (ctrl *Controller) findFreeSlot(channel, note int) int {
 func (ctrl *Controller) getInstrument(channel, note int) (*smaf.VM35VoicePC, bool) {
 	// TODO: smaf825側で検索
 	// TODO: ドラム音色
-	n := ctrl.channelStates[channel].instr
-	for _, p := range ctrl.library.Programs {
-		if p.Pc == n {
+	s := ctrl.channelStates[channel]
+	for _, lib := range ctrl.libraries {
+		for _, p := range lib.Programs {
+			if !(p.Pc == uint32(s.pc) && p.BankLsb == uint32(s.bankLSB) && p.BankMsb == uint32(s.bankMSB)) {
+				continue
+			}
+			if p.DrumNote != 0 && int(p.DrumNote) != note {
+				continue
+			}
 			return p, true
 		}
 	}
-	fmt.Printf("voice not found: @%d\n", n)
-	return ctrl.library.Programs[0], false
+	fmt.Printf("voice not found: @%d-%d-%d\n", s.bankMSB, s.bankLSB, s.pc)
+	return ctrl.libraries[0].Programs[0], false
 }
 
 func (ctrl *Controller) ymfPitchWheel(channel, pitch int) {
@@ -309,6 +314,10 @@ func (ctrl *Controller) ymfPitchWheel(channel, pitch int) {
 
 func (ctrl *Controller) ymfChangeControl(channel int, controller int, value int) {
 	switch controller {
+	case ccBankMSB:
+		ctrl.channelStates[channel].bankMSB = uint8(value)
+	case ccBankLSB:
+		ctrl.channelStates[channel].bankLSB = uint8(value)
 	case ccModulation:
 		ctrl.channelStates[channel].modulation = uint8(value)
 		for i, slot := range ctrl.slots {
@@ -402,7 +411,7 @@ func (ctrl *Controller) ymfChangeControl(channel int, controller int, value int)
 }
 
 func (ctrl *Controller) ymfProgramChange(channel, value int) {
-	ctrl.channelStates[channel].instr = uint32(value)
+	ctrl.channelStates[channel].pc = uint8(value)
 }
 
 func (ctrl *Controller) ymfResetControllers(channel int) {
