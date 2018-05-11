@@ -50,7 +50,6 @@ type slot struct {
 	flags       flag
 	finetune    int
 	pitch       int
-	velocity    int
 	instrument  *smaf.VM35VoicePC
 	time        time.Time
 }
@@ -260,7 +259,6 @@ func (ctrl *Controller) Reset() {
 		slot.realnote = 0
 		slot.finetune = 0
 		slot.pitch = 0
-		slot.velocity = 0
 		slot.instrument = nil
 		slot.time = time.Time{}
 	}
@@ -268,24 +266,16 @@ func (ctrl *Controller) Reset() {
 		state.volume = 100
 		state.pan = 64
 	}
-	ctrl.ymfShutup()
+	ctrl.muteAllSlots()
 	ctrl.releaseAllSlots()
 	ctrl.resetAllMIDIChannels()
 }
 
-func (ctrl *Controller) writeModulation(slot int, instr *smaf.VM35VoicePC, state bool) {
-	fmvoice := instr.FmVoice
-
+func (ctrl *Controller) writeModulation(slotID int, instr *smaf.VM35VoicePC, state bool) {
 	// TODO: モジュレータではevbだけを見る(stateは無視)？
-	o := fmvoice.Operators
-	ctrl.ymfWriteSlotEachOps(
-		ymf.EVB,
-		slot,
-		bool2int(o[0].Evb || state),
-		bool2int(o[1].Evb || state),
-		bool2int(o[2].Evb || state),
-		bool2int(o[3].Evb || state),
-	)
+	for i, o := range instr.FmVoice.Operators {
+		ctrl.registers.WriteOperator(slotID, i, ymf.EVB, bool2int(o.Evb || state))
+	}
 }
 
 func (ctrl *Controller) occupySlot(slotID, midich, note, velocity int, instr *smaf.VM35VoicePC) {
@@ -299,7 +289,6 @@ func (ctrl *Controller) occupySlot(slotID, midich, note, velocity int, instr *sm
 	}
 	slot.time = time.Now()
 
-	slot.velocity = velocity
 	slot.finetune = 0
 	if instr.DrumNote != 0 {
 		note = int(instr.FmVoice.DrumKey)
@@ -333,10 +322,10 @@ func (ctrl *Controller) releaseSlot(slotID int, killed bool) {
 	slot.time = time.Now()
 	slot.flags = flagFree
 	if killed {
-		ctrl.ymfWriteSlotAllOps(ymf.SL, slotID, 0)
-		ctrl.ymfWriteSlotAllOps(ymf.RR, slotID, 15) // release rate - fastest
-		ctrl.ymfWriteSlotAllOps(ymf.KSL, slotID, 0)
-		ctrl.ymfWriteSlotAllOps(ymf.TL, slotID, 0x3f) // no volume
+		ctrl.writeSlotAllOps(ymf.SL, slotID, 0)
+		ctrl.writeSlotAllOps(ymf.RR, slotID, 15) // release rate - fastest
+		ctrl.writeSlotAllOps(ymf.KSL, slotID, 0)
+		ctrl.writeSlotAllOps(ymf.TL, slotID, 0x3f) // no volume
 	}
 }
 
@@ -419,18 +408,11 @@ func (ctrl *Controller) releaseAllSlots() {
 	}
 }
 
-func (ctrl *Controller) ymfWriteSlotAllOps(regbase ymf.OpRegister, slotID, data int) {
+func (ctrl *Controller) writeSlotAllOps(regbase ymf.OpRegister, slotID, data int) {
 	ctrl.registers.WriteOperator(slotID, 0, regbase, data)
 	ctrl.registers.WriteOperator(slotID, 1, regbase, data)
 	ctrl.registers.WriteOperator(slotID, 2, regbase, data)
 	ctrl.registers.WriteOperator(slotID, 3, regbase, data)
-}
-
-func (ctrl *Controller) ymfWriteSlotEachOps(regbase ymf.OpRegister, slotID, data1, data2, data3, data4 int) {
-	ctrl.registers.WriteOperator(slotID, 0, regbase, data1)
-	ctrl.registers.WriteOperator(slotID, 1, regbase, data2)
-	ctrl.registers.WriteOperator(slotID, 2, regbase, data3)
-	ctrl.registers.WriteOperator(slotID, 3, regbase, data4)
 }
 
 func (ctrl *Controller) writeFrequency(slotID, note, pitch int, keyon bool) {
@@ -474,7 +456,7 @@ func bool2int(b bool) int {
 }
 
 func (ctrl *Controller) ymfWriteInstrument(slotID int, instr *smaf.VM35VoicePC) {
-	ctrl.ymfWriteSlotAllOps(ymf.TL, slotID, 0x3f) // no volume
+	ctrl.writeSlotAllOps(ymf.TL, slotID, 0x3f) // no volume
 
 	for i, op := range instr.FmVoice.Operators {
 		ctrl.registers.WriteOperator(slotID, i, ymf.EAM, bool2int(op.Eam))
@@ -502,14 +484,14 @@ func (ctrl *Controller) ymfWriteInstrument(slotID int, instr *smaf.VM35VoicePC) 
 	ctrl.registers.WriteChannel(slotID, ymf.BO, int(instr.FmVoice.Bo))
 }
 
-func (ctrl *Controller) ymfShutup() {
+func (ctrl *Controller) muteAllSlots() {
 	for i := range ctrl.slots {
-		ctrl.ymfWriteSlotAllOps(ymf.KSL, i, 0)
-		ctrl.ymfWriteSlotAllOps(ymf.TL, i, 0x3f)   // turn off volume
-		ctrl.ymfWriteSlotAllOps(ymf.AR, i, 15)     // the fastest attack,
-		ctrl.ymfWriteSlotAllOps(ymf.DR, i, 15)     // decay
-		ctrl.ymfWriteSlotAllOps(ymf.SL, i, 0)      //
-		ctrl.ymfWriteSlotAllOps(ymf.RR, i, 15)     // ... and release
+		ctrl.writeSlotAllOps(ymf.KSL, i, 0)
+		ctrl.writeSlotAllOps(ymf.TL, i, 0x3f)   // turn off volume
+		ctrl.writeSlotAllOps(ymf.AR, i, 15)     // the fastest attack,
+		ctrl.writeSlotAllOps(ymf.DR, i, 15)     // decay
+		ctrl.writeSlotAllOps(ymf.SL, i, 0)      //
+		ctrl.writeSlotAllOps(ymf.RR, i, 15)     // ... and release
 		ctrl.registers.WriteChannel(i, ymf.KON, 0) // KEY-OFF
 	}
 }
