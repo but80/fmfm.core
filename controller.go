@@ -94,13 +94,13 @@ func NewController(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Cont
 }
 
 // NoteOn は、MIDIノートオン受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) NoteOn(ch, note, velocity int) {
+func (ctrl *Controller) NoteOn(midich, note, velocity int) {
 	if velocity == 0 {
-		ctrl.NoteOff(ch, note)
+		ctrl.NoteOff(midich, note)
 		return
 	}
 
-	instr, ok := ctrl.getInstrument(ch, note)
+	instr, ok := ctrl.getInstrument(midich, note)
 	if !ok {
 		// TODO: warning
 		return
@@ -111,11 +111,11 @@ func (ctrl *Controller) NoteOn(ch, note, velocity int) {
 		return
 	}
 
-	slotID := ctrl.findFreeSlot(ch, note)
+	slotID := ctrl.findFreeSlot(midich, note)
 	if 0 <= slotID {
-		ctrl.occupySlot(slotID, ch, note, velocity, instr)
+		ctrl.occupySlot(slotID, midich, note, velocity, instr)
 	} else {
-		// TODO: warning
+		fmt.Printf("no free slot for MIDI channel #%d\n", midich)
 	}
 }
 
@@ -322,7 +322,7 @@ func (ctrl *Controller) occupySlot(slotID, midich, note, velocity int, instr *sm
 	ctrl.registers.WriteChannel(slotID, ymf.CHPAN, int(ctrl.midiChannelStates[midich].pan))
 	ctrl.registers.WriteChannel(slotID, ymf.VOLUME, int(ctrl.midiChannelStates[midich].volume))
 	ctrl.registers.WriteChannel(slotID, ymf.EXPRESSION, int(ctrl.midiChannelStates[midich].expression))
-	ctrl.ymfWriteVelocity(slotID, slot.velocity, instr)
+	ctrl.registers.WriteChannel(slotID, ymf.VELOCITY, velocity)
 	ctrl.writeFrequency(slotID, note, slot.pitch, true)
 }
 
@@ -392,12 +392,6 @@ func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool
 		}
 	}
 	// fmt.Printf("voice not found: @%d-%d-%d note=%d\n", s.bankMSB, s.bankLSB, s.pc, note)
-
-	// TODO: Remove
-	if s.bankMSB == 125 && s.pc != 1 {
-		s.pc = 1
-		return ctrl.getInstrument(midich, note)
-	}
 
 	return ctrl.libraries[0].Programs[0], false
 }
@@ -472,19 +466,6 @@ func (ctrl *Controller) writeFrequency(slotID, note, pitch int, keyon bool) {
 	ctrl.registers.WriteChannel(slotID, ymf.KON, k)
 }
 
-func ymfConvertVelocity(data, velocity int) int {
-	r := int(velocitytable[velocity])
-	return 0x3f - ((0x3f - data) * r >> 7)
-}
-
-func (ctrl *Controller) ymfWriteVelocity(slotID, velocity int, instr *smaf.VM35VoicePC) {
-	for i, op := range instr.FmVoice.Operators {
-		tlModulator := int(op.Tl)
-		tlCarrier := ymfConvertVelocity(tlModulator, velocity)
-		ctrl.registers.WriteTL(slotID, i, tlCarrier, tlModulator)
-	}
-}
-
 func bool2int(b bool) int {
 	if b {
 		return 1
@@ -531,23 +512,4 @@ func (ctrl *Controller) ymfShutup() {
 		ctrl.ymfWriteSlotAllOps(ymf.RR, i, 15)     // ... and release
 		ctrl.registers.WriteChannel(i, ymf.KON, 0) // KEY-OFF
 	}
-}
-
-var velocitytable = [...]uint8{
-	0, 1, 3, 5, 6, 8, 10, 11,
-	13, 14, 16, 17, 19, 20, 22, 23,
-	25, 26, 27, 29, 30, 32, 33, 34,
-	36, 37, 39, 41, 43, 45, 47, 49,
-	50, 52, 54, 55, 57, 59, 60, 61,
-	63, 64, 66, 67, 68, 69, 71, 72,
-	73, 74, 75, 76, 77, 79, 80, 81,
-	82, 83, 84, 84, 85, 86, 87, 88,
-	89, 90, 91, 92, 92, 93, 94, 95,
-	96, 96, 97, 98, 99, 99, 100, 101,
-	101, 102, 103, 103, 104, 105, 105, 106,
-	107, 107, 108, 109, 109, 110, 110, 111,
-	112, 112, 113, 113, 114, 114, 115, 115,
-	116, 117, 117, 118, 118, 119, 119, 120,
-	120, 121, 121, 122, 122, 123, 123, 123,
-	124, 124, 125, 125, 126, 126, 127, 127,
 }

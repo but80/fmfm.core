@@ -106,20 +106,21 @@ type Channel struct {
 	chpan      int
 	volume     int
 	expression int
+	velocity   int
 	bo         int
 
-	feedback1Prev        float64
-	feedback1Curr        float64
-	feedback3Prev        float64
-	feedback3Curr        float64
-	feedbackOut1         float64
-	feedbackOut3         float64
-	toPhase              float64
-	volumeExpressionCoef float64
-	modIndexFrac64       uint64
-	lfoFrequency         uint64
-	panCoefL             float64
-	panCoefR             float64
+	feedback1Prev   float64
+	feedback1Curr   float64
+	feedback3Prev   float64
+	feedback3Curr   float64
+	feedbackOut1    float64
+	feedbackOut3    float64
+	toPhase         float64
+	attenuationCoef float64
+	modIndexFrac64  uint64
+	lfoFrequency    uint64
+	panCoefL        float64
+	panCoefR        float64
 
 	operators [4]*operator
 }
@@ -135,8 +136,9 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 		alg:        0,
 		panpot:     15,
 		chpan:      64,
-		volume:     0,
-		expression: 0,
+		volume:     100,
+		expression: 127,
+		velocity:   0,
 		bo:         1,
 
 		toPhase: 4,
@@ -208,12 +210,21 @@ func (ch *Channel) updatePanCoef() {
 
 func (ch *Channel) setVOLUME(v int) {
 	ch.volume = v
-	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
+	ch.updateAttenuation()
 }
 
 func (ch *Channel) setEXPRESSION(v int) {
 	ch.expression = v
-	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
+	ch.updateAttenuation()
+}
+
+func (ch *Channel) setVELOCITY(v int) {
+	ch.velocity = v
+	ch.updateAttenuation()
+}
+
+func (ch *Channel) updateAttenuation() {
+	ch.attenuationCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2] * ymfdata.VolumeTable[ch.velocity>>2]
 }
 
 func (ch *Channel) setBO(v int) {
@@ -363,7 +374,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 		ch.feedbackOut3 = (ch.feedback3Prev + ch.feedback3Curr) / 2.0
 	}
 
-	channelOutput *= ch.volumeExpressionCoef
+	channelOutput *= ch.attenuationCoef
 	return channelOutput * ch.panCoefL, channelOutput * ch.panCoefR
 }
 

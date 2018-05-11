@@ -88,6 +88,8 @@ func (regs *Registers) WriteChannel(channel int, offset ymf.ChRegister, v int) {
 		regs.chip.channels[channel].setVOLUME(v)
 	case ymf.EXPRESSION:
 		regs.chip.channels[channel].setEXPRESSION(v)
+	case ymf.VELOCITY:
+		regs.chip.channels[channel].setVELOCITY(v)
 	case ymf.BO:
 		regs.chip.channels[channel].setBO(v)
 	}

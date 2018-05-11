@@ -62,6 +62,8 @@ const (
 	VOLUME
 	// EXPRESSION は、EXPRESSION レジスタです。
 	EXPRESSION
+	// VELOCITY は、VELOCITY レジスタです。
+	VELOCITY
 	// BO は、BO レジスタです。
 	BO
 )
