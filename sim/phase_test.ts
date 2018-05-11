@@ -1,7 +1,7 @@
-import PhaseGenerator from './phase-generator'
+import phaseGenerator from './phase-generator'
 import { YMF_DATA } from './data'
 
-describe('PhaseGenerator', () => {
+describe('phaseGenerator', () => {
 
   it('generates phase detuned by DT', () => {
     function round (v: number): number {
@@ -9,7 +9,7 @@ describe('PhaseGenerator', () => {
     }
 
     function measure (fnum: number, block: number, mult: number, dt: number): number {
-      const gen = new PhaseGenerator()
+      const gen = new phaseGenerator()
       gen.setFrequency(fnum, block, mult, dt)
       gen.keyOn()
       let dPhase = gen.getPhase(0, 0, 0)

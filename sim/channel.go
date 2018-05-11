@@ -1,4 +1,4 @@
-package ymf
+package sim
 
 import (
 	"github.com/but80/fmfm/ymf/ymfdata"
@@ -93,6 +93,7 @@ CNT(Cn) = 1, CNT(Cn+3) = 1
       OP4 --------> | -> OUT
 */
 
+// Channel は、音源のチャンネルです。
 type Channel struct {
 	channelID int
 
@@ -101,7 +102,6 @@ type Channel struct {
 	kon        int
 	block      int
 	alg        int
-	lfo        int
 	panpot     int
 	chpan      int
 	volume     int
@@ -119,7 +119,7 @@ type Channel struct {
 	panCoefL             float64
 	panCoefR             float64
 
-	Operators [4]*Operator
+	operators [4]*operator
 }
 
 func newChannel4op(channelID int, chip *Chip) *Channel {
@@ -131,7 +131,6 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 		kon:        0,
 		block:      0,
 		alg:        0,
-		lfo:        0,
 		panpot:     15,
 		chpan:      64,
 		volume:     0,
@@ -140,57 +139,59 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 
 		toPhase: 4,
 	}
-	for i := range ch.Operators {
-		ch.Operators[i] = newOperator(channelID, i, chip)
+	for i := range ch.operators {
+		ch.operators[i] = newOperator(channelID, i, chip)
 	}
 	ch.updatePanCoef()
 	return ch
 }
 
-func (ch *Channel) updateKON() {
-	newKon := ch.chip.registers.readChannel(ch.channelID, ChRegisters.KON)
-	if newKon == ch.kon {
+func (ch *Channel) setKON(v int) {
+	if v == ch.kon {
 		return
 	}
-	if newKon == 1 {
-		ch.keyOn()
-	} else {
+	ch.kon = v
+	if v == 0 {
 		ch.keyOff()
+	} else {
+		ch.keyOn()
 	}
-	ch.kon = newKon
 }
 
-func (ch *Channel) updateBLOCK() {
-	ch.block = ch.chip.registers.readChannel(ch.channelID, ChRegisters.BLOCK)
-	ch.updateOperators()
+func (ch *Channel) setBLOCK(v int) {
+	ch.block = v
+	ch.updateFrequency()
 }
 
-func (ch *Channel) updateFNUM() {
-	ch.fnum = ch.chip.registers.readChannel(ch.channelID, ChRegisters.FNUM)
-	ch.updateOperators()
+func (ch *Channel) setFNUM(v int) {
+	ch.fnum = v
+	ch.updateFrequency()
 }
 
-func (ch *Channel) updateALG() {
-	ch.alg = ch.chip.registers.readChannel(ch.channelID, ChRegisters.ALG)
+func (ch *Channel) setALG(v int) {
+	ch.alg = v
 	ch.feedback1Prev = 0
 	ch.feedback1Curr = 0
 	ch.feedback3Prev = 0
 	ch.feedback3Curr = 0
-	ch.updateOperators()
+	for i, op := range ch.operators {
+		op.isModulator = isModulatorMatrix[ch.alg][i]
+	}
 }
 
-func (ch *Channel) updateLFO() {
-	ch.lfo = ch.chip.registers.readChannel(ch.channelID, ChRegisters.LFO)
-	ch.updateOperators()
+func (ch *Channel) setLFO(v int) {
+	for _, op := range ch.operators {
+		op.setLFO(v)
+	}
 }
 
-func (ch *Channel) updatePANPOT() {
-	ch.panpot = ch.chip.registers.readChannel(ch.channelID, ChRegisters.PANPOT)
+func (ch *Channel) setPANPOT(v int) {
+	ch.panpot = v
 	ch.updatePanCoef()
 }
 
-func (ch *Channel) updateCHPAN() {
-	ch.chpan = ch.chip.registers.readChannel(ch.channelID, ChRegisters.CHPAN)
+func (ch *Channel) setCHPAN(v int) {
+	ch.chpan = v
 	ch.updatePanCoef()
 }
 
@@ -205,19 +206,19 @@ func (ch *Channel) updatePanCoef() {
 	ch.panCoefR = ymfdata.PanTable[pan][1]
 }
 
-func (ch *Channel) updateVOLUME() {
-	ch.volume = ch.chip.registers.readChannel(ch.channelID, ChRegisters.VOLUME)
+func (ch *Channel) setVOLUME(v int) {
+	ch.volume = v
 	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
-func (ch *Channel) updateEXPRESSION() {
-	ch.expression = ch.chip.registers.readChannel(ch.channelID, ChRegisters.EXPRESSION)
+func (ch *Channel) setEXPRESSION(v int) {
+	ch.expression = v
 	ch.volumeExpressionCoef = ymfdata.VolumeTable[ch.volume>>2] * ymfdata.VolumeTable[ch.expression>>2]
 }
 
-func (ch *Channel) updateBO() {
-	ch.bo = ch.chip.registers.readChannel(ch.channelID, ChRegisters.BO)
-	ch.updateOperators()
+func (ch *Channel) setBO(v int) {
+	ch.bo = v
+	ch.updateFrequency()
 }
 
 func (ch *Channel) getChannelOutput() (float64, float64) {
@@ -227,10 +228,10 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 	var op3Output float64
 	var op4Output float64
 
-	op1 := ch.Operators[0]
-	op2 := ch.Operators[1]
-	op3 := ch.Operators[2]
-	op4 := ch.Operators[3]
+	op1 := ch.operators[0]
+	op2 := ch.operators[1]
+	op3 := ch.operators[2]
+	op4 := ch.operators[3]
 
 	switch ch.alg {
 
@@ -364,7 +365,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 }
 
 func (ch *Channel) keyOn() {
-	for _, op := range ch.Operators {
+	for _, op := range ch.operators {
 		op.keyOn()
 	}
 	ch.feedback1Prev = 0
@@ -374,15 +375,13 @@ func (ch *Channel) keyOn() {
 }
 
 func (ch *Channel) keyOff() {
-	for _, op := range ch.Operators {
+	for _, op := range ch.operators {
 		op.keyOff()
 	}
 }
 
-func (ch *Channel) updateOperators() {
-	// Key Scale Number, used in EnvelopeGenerator.setActualRates().
-	keyScaleNumber := ch.block*2 + (ch.fnum >> 9)
-	for i, op := range ch.Operators {
-		op.updateOperator(keyScaleNumber, ch.fnum, ch.block, ch.bo, isModulatorMatrix[ch.alg][i])
+func (ch *Channel) updateFrequency() {
+	for _, op := range ch.operators {
+		op.setFrequency(ch.fnum, ch.block, ch.bo)
 	}
 }

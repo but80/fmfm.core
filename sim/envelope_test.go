@@ -1,4 +1,4 @@
-package ymf
+package sim
 
 import (
 	"math"

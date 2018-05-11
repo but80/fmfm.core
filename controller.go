@@ -10,10 +10,12 @@ import (
 	"github.com/but80/smaf825/pb/smaf"
 )
 
+type flag int
+
 const (
-	flagSustain = 0x02
-	flagVibrato = 0x04
-	flagFree    = 0x80
+	flagSustain flag = 0x02
+	flagVibrato flag = 0x04
+	flagFree    flag = 0x80
 )
 
 const modThresh = 40
@@ -42,18 +44,18 @@ const (
 )
 
 type slot struct {
-	channel    int
-	note       int
-	realnote   int
-	flags      int
-	finetune   int
-	pitch      int
-	velocity   int
-	instrument *smaf.VM35VoicePC
-	time       time.Time
+	midiChannel int
+	note        int
+	realnote    int
+	flags       flag
+	finetune    int
+	pitch       int
+	velocity    int
+	instrument  *smaf.VM35VoicePC
+	time        time.Time
 }
 
-type channelState struct {
+type midiChannelState struct {
 	bankLSB    uint8
 	bankMSB    uint8
 	pc         uint8
@@ -69,24 +71,24 @@ type channelState struct {
 
 // Controller は、MIDIに類似するインタフェースで Chip のレジスタをコントロールします。
 type Controller struct {
-	chip    *ymf.Chip
+	registers ymf.Registers
 	libraries []*smaf.VM5VoiceLib
 
-	channelStates [16]*channelState
-	slots         [ymfdata.ChannelCount]*slot
+	midiChannelStates [16]*midiChannelState
+	slots             [ymfdata.ChannelCount]*slot
 }
 
 // NewController は、新しい Controller を作成します。
-func NewController(chip *ymf.Chip, libraries []*smaf.VM5VoiceLib) *Controller {
+func NewController(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Controller {
 	ctrl := &Controller{
-		chip:    chip,
+		registers: registers,
 		libraries: libraries,
 	}
 	for i := range ctrl.slots {
 		ctrl.slots[i] = &slot{}
 	}
-	for i := range ctrl.channelStates {
-		ctrl.channelStates[i] = &channelState{}
+	for i := range ctrl.midiChannelStates {
+		ctrl.midiChannelStates[i] = &midiChannelState{}
 	}
 	return ctrl
 }
@@ -119,9 +121,9 @@ func (ctrl *Controller) NoteOn(ch, note, velocity int) {
 
 // NoteOff は、MIDIノートオフ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) NoteOff(ch, note int) {
-	sus := ctrl.channelStates[ch].sustain
+	sus := ctrl.midiChannelStates[ch].sustain
 	for slotID, slot := range ctrl.slots {
-		if slot.channel == ch && slot.note == note {
+		if slot.midiChannel == ch && slot.note == note {
 			if sus < 0x40 {
 				ctrl.releaseSlot(slotID, false)
 			} else {
@@ -132,24 +134,127 @@ func (ctrl *Controller) NoteOff(ch, note int) {
 }
 
 // ControlChange は、MIDIコントロールチェンジ受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) ControlChange(ch, cc, value int) {
-	ctrl.ymfChangeControl(ch, cc, value)
+func (ctrl *Controller) ControlChange(midich, cc, value int) {
+	switch cc {
+	case ccBankMSB:
+		ctrl.midiChannelStates[midich].bankMSB = uint8(value)
+	case ccBankLSB:
+		ctrl.midiChannelStates[midich].bankLSB = uint8(value)
+	case ccModulation:
+		ctrl.midiChannelStates[midich].modulation = uint8(value)
+		for i, slot := range ctrl.slots {
+			if slot.midiChannel == midich {
+				flags := slot.flags
+				slot.time = time.Now()
+				if modThresh <= value {
+					slot.flags |= flagVibrato
+					if slot.flags != flags {
+						ctrl.writeModulation(i, slot.instrument, true)
+					}
+				} else {
+					slot.flags &= ^flagVibrato
+					if slot.flags != flags {
+						ctrl.writeModulation(i, slot.instrument, false)
+					}
+				}
+			}
+		}
+
+	case ccVolume: // change volume
+		ctrl.midiChannelStates[midich].volume = uint8(value)
+		for i, slot := range ctrl.slots {
+			if slot.midiChannel == midich {
+				slot.time = time.Now()
+				ctrl.registers.WriteChannel(i, ymf.VOLUME, value)
+			}
+		}
+
+	case ccExpression: // change expression
+		ctrl.midiChannelStates[midich].expression = uint8(value)
+		for i, slot := range ctrl.slots {
+			if slot.midiChannel == midich {
+				slot.time = time.Now()
+				ctrl.registers.WriteChannel(i, ymf.EXPRESSION, value)
+			}
+		}
+
+	case ccPan: // change pan (balance)
+		ctrl.midiChannelStates[midich].pan = uint8(value)
+		for i, slot := range ctrl.slots {
+			if slot.midiChannel == midich {
+				slot.time = time.Now()
+				ctrl.registers.WriteChannel(i, ymf.CHPAN, value)
+			}
+		}
+
+	case ccSustainPedal: // change sustain pedal (hold)
+		ctrl.midiChannelStates[midich].sustain = uint8(value)
+		if value < 0x40 {
+			ctrl.releaseSustain(midich)
+		}
+
+	case ccNotesOff: // turn off all notes that are not sustained
+		for i, slot := range ctrl.slots {
+			if slot.midiChannel == midich {
+				if ctrl.midiChannelStates[midich].sustain < 0x40 {
+					ctrl.releaseSlot(i, false)
+				} else {
+					slot.flags |= flagSustain
+				}
+			}
+		}
+
+	case ccSoundsOff: // release all notes for this channel
+		for i, slot := range ctrl.slots {
+			if slot.midiChannel == midich {
+				ctrl.releaseSlot(i, false)
+			}
+		}
+
+	case ccRPNHi:
+		ctrl.midiChannelStates[midich].rpn = (ctrl.midiChannelStates[midich].rpn & 0x007f) | (uint16(value) << 7)
+
+	case ccRPNLo:
+		ctrl.midiChannelStates[midich].rpn = (ctrl.midiChannelStates[midich].rpn & 0x3f80) | uint16(value)
+
+	case ccNRPNLo, ccNRPNHi:
+		ctrl.midiChannelStates[midich].rpn = 0x3fff
+
+	case ccDataEntryHi:
+		if ctrl.midiChannelStates[midich].rpn == 0 {
+			ctrl.midiChannelStates[midich].pitchSens = uint16(value)*100 + (ctrl.midiChannelStates[midich].pitchSens % 100)
+		}
+
+	case ccDataEntryLo:
+		if ctrl.midiChannelStates[midich].rpn == 0 {
+			ctrl.midiChannelStates[midich].pitchSens = uint16(value) + uint16(ctrl.midiChannelStates[midich].pitchSens/100)*100
+		}
+	}
 }
 
 // ProgramChange は、MIDIプログラムチェンジ受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) ProgramChange(ch, value int) {
-	ctrl.ymfProgramChange(ch, value)
+func (ctrl *Controller) ProgramChange(midich, pc int) {
+	ctrl.midiChannelStates[midich].pc = uint8(pc)
 }
 
 // PitchBend は、MIDIピッチベンド受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) PitchBend(ch, l, h int) {
-	ctrl.ymfPitchWheel(ch, h*128+l)
+func (ctrl *Controller) PitchBend(midich, l, h int) {
+	pitch := h*128 + l - 8192
+	pitch = int(float64(pitch)*float64(ctrl.midiChannelStates[midich].pitchSens)/(200*128) + 64)
+	ctrl.midiChannelStates[midich].pitch = int8(pitch)
+	for i, slot := range ctrl.slots {
+		if slot.midiChannel == midich {
+			slot.time = time.Now()
+			slot.pitch = slot.finetune + pitch
+			ctrl.writeFrequency(i, slot.realnote, slot.pitch, true)
+		}
+	}
 }
 
 // Reset は、音源の状態をリセットします。
 func (ctrl *Controller) Reset() {
 	for _, slot := range ctrl.slots {
-		slot.channel = -1
+		slot.midiChannel = -1
 		slot.note = 0
 		slot.flags = 0
 		slot.realnote = 0
@@ -159,13 +264,13 @@ func (ctrl *Controller) Reset() {
 		slot.instrument = nil
 		slot.time = time.Time{}
 	}
-	for _, state := range ctrl.channelStates {
+	for _, state := range ctrl.midiChannelStates {
 		state.volume = 100
 		state.pan = 64
 	}
 	ctrl.ymfShutup()
-	ctrl.ymfStopMusic()
-	ctrl.ymfPlayMusic()
+	ctrl.releaseAllSlots()
+	ctrl.resetAllMIDIChannels()
 }
 
 func (ctrl *Controller) writeModulation(slot int, instr *smaf.VM35VoicePC, state bool) {
@@ -174,7 +279,7 @@ func (ctrl *Controller) writeModulation(slot int, instr *smaf.VM35VoicePC, state
 	// TODO: モジュレータではevbだけを見る(stateは無視)？
 	o := fmvoice.Operators
 	ctrl.ymfWriteSlotEachOps(
-		ymf.OpRegisters.EVB,
+		ymf.EVB,
 		slot,
 		bool2int(o[0].Evb || state),
 		bool2int(o[1].Evb || state),
@@ -183,10 +288,10 @@ func (ctrl *Controller) writeModulation(slot int, instr *smaf.VM35VoicePC, state
 	)
 }
 
-func (ctrl *Controller) occupySlot(slotID, channel, note, velocity int, instr *smaf.VM35VoicePC) {
-	state := ctrl.channelStates[channel]
+func (ctrl *Controller) occupySlot(slotID, midich, note, velocity int, instr *smaf.VM35VoicePC) {
+	state := ctrl.midiChannelStates[midich]
 	slot := ctrl.slots[slotID]
-	slot.channel = channel
+	slot.midiChannel = midich
 	slot.note = note
 	slot.flags = 0
 	if modThresh <= state.modulation {
@@ -214,9 +319,9 @@ func (ctrl *Controller) occupySlot(slotID, channel, note, velocity int, instr *s
 
 	ctrl.ymfWriteInstrument(slotID, instr)
 	ctrl.writeModulation(slotID, instr, slot.flags&flagVibrato != 0)
-	ctrl.chip.WriteChannel(ymf.ChRegisters.CHPAN, slotID, int(ctrl.channelStates[channel].pan))
-	ctrl.chip.WriteChannel(ymf.ChRegisters.VOLUME, slotID, int(ctrl.channelStates[channel].volume))
-	ctrl.chip.WriteChannel(ymf.ChRegisters.EXPRESSION, slotID, int(ctrl.channelStates[channel].expression))
+	ctrl.registers.WriteChannel(slotID, ymf.CHPAN, int(ctrl.midiChannelStates[midich].pan))
+	ctrl.registers.WriteChannel(slotID, ymf.VOLUME, int(ctrl.midiChannelStates[midich].volume))
+	ctrl.registers.WriteChannel(slotID, ymf.EXPRESSION, int(ctrl.midiChannelStates[midich].expression))
 	ctrl.ymfWriteVelocity(slotID, slot.velocity, instr)
 	ctrl.writeFrequency(slotID, note, slot.pitch, true)
 }
@@ -224,26 +329,26 @@ func (ctrl *Controller) occupySlot(slotID, channel, note, velocity int, instr *s
 func (ctrl *Controller) releaseSlot(slotID int, killed bool) {
 	slot := ctrl.slots[slotID]
 	ctrl.writeFrequency(slotID, slot.realnote, slot.pitch, false)
-	slot.channel = -1
+	slot.midiChannel = -1
 	slot.time = time.Now()
 	slot.flags = flagFree
 	if killed {
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.SL, slotID, 0)
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.RR, slotID, 15) // release rate - fastest
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.KSL, slotID, 0)
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.TL, slotID, 0x3f) // no volume
+		ctrl.ymfWriteSlotAllOps(ymf.SL, slotID, 0)
+		ctrl.ymfWriteSlotAllOps(ymf.RR, slotID, 15) // release rate - fastest
+		ctrl.ymfWriteSlotAllOps(ymf.KSL, slotID, 0)
+		ctrl.ymfWriteSlotAllOps(ymf.TL, slotID, 0x3f) // no volume
 	}
 }
 
-func (ctrl *Controller) releaseSustain(channel int) {
+func (ctrl *Controller) releaseSustain(midich int) {
 	for i, slot := range ctrl.slots {
-		if slot.channel == channel && slot.flags&flagSustain != 0 {
+		if slot.midiChannel == midich && slot.flags&flagSustain != 0 {
 			ctrl.releaseSlot(i, false)
 		}
 	}
 }
 
-func (ctrl *Controller) findFreeSlot(channel, note int) int {
+func (ctrl *Controller) findFreeSlot(midich, note int) int {
 	for i := 0; i < len(ctrl.slots); i++ {
 		if ctrl.slots[i].flags&flagFree != 0 {
 			return i
@@ -271,10 +376,10 @@ func (ctrl *Controller) findFreeSlot(channel, note int) int {
 	return -1
 }
 
-func (ctrl *Controller) getInstrument(channel, note int) (*smaf.VM35VoicePC, bool) {
+func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool) {
 	// TODO: smaf825側で検索
 	// TODO: ドラム音色
-	s := ctrl.channelStates[channel]
+	s := ctrl.midiChannelStates[midich]
 	for _, lib := range ctrl.libraries {
 		for _, p := range lib.Programs {
 			if !(p.Pc == uint32(s.pc) && p.BankLsb == uint32(s.bankLSB) && p.BankMsb == uint32(s.bankMSB)) {
@@ -286,147 +391,33 @@ func (ctrl *Controller) getInstrument(channel, note int) (*smaf.VM35VoicePC, boo
 			return p, true
 		}
 	}
-	fmt.Printf("voice not found: @%d-%d-%d note=%d\n", s.bankMSB, s.bankLSB, s.pc, note)
+	// fmt.Printf("voice not found: @%d-%d-%d note=%d\n", s.bankMSB, s.bankLSB, s.pc, note)
 
 	// TODO: Remove
 	if s.bankMSB == 125 && s.pc != 1 {
 		s.pc = 1
-		return ctrl.getInstrument(channel, note)
+		return ctrl.getInstrument(midich, note)
 	}
 
 	return ctrl.libraries[0].Programs[0], false
 }
 
-func (ctrl *Controller) ymfPitchWheel(channel, pitch int) {
-	pitch = int(float64(pitch-8192)*float64(ctrl.channelStates[channel].pitchSens)/(200*128) + 64)
-	ctrl.channelStates[channel].pitch = int8(pitch)
-	for i, slot := range ctrl.slots {
-		if slot.channel == channel {
-			slot.time = time.Now()
-			slot.pitch = slot.finetune + pitch
-			ctrl.writeFrequency(i, slot.realnote, slot.pitch, true)
-		}
+func (ctrl *Controller) resetMIDIChannel(midich int) {
+	ctrl.midiChannelStates[midich].volume = 100
+	ctrl.midiChannelStates[midich].expression = 127
+	ctrl.midiChannelStates[midich].sustain = 0
+	ctrl.midiChannelStates[midich].pitch = 64
+	ctrl.midiChannelStates[midich].rpn = 0x3fff
+	ctrl.midiChannelStates[midich].pitchSens = 200
+}
+
+func (ctrl *Controller) resetAllMIDIChannels() {
+	for i := range ctrl.midiChannelStates {
+		ctrl.resetMIDIChannel(i)
 	}
 }
 
-func (ctrl *Controller) ymfChangeControl(channel int, controller int, value int) {
-	switch controller {
-	case ccBankMSB:
-		ctrl.channelStates[channel].bankMSB = uint8(value)
-	case ccBankLSB:
-		ctrl.channelStates[channel].bankLSB = uint8(value)
-	case ccModulation:
-		ctrl.channelStates[channel].modulation = uint8(value)
-		for i, slot := range ctrl.slots {
-			if slot.channel == channel {
-				flags := slot.flags
-				slot.time = time.Now()
-				if modThresh <= value {
-					slot.flags |= flagVibrato
-					if slot.flags != flags {
-						ctrl.writeModulation(i, slot.instrument, true)
-					}
-				} else {
-					slot.flags &= ^flagVibrato
-					if slot.flags != flags {
-						ctrl.writeModulation(i, slot.instrument, false)
-					}
-				}
-			}
-		}
-
-	case ccVolume: // change volume
-		ctrl.channelStates[channel].volume = uint8(value)
-		for i, slot := range ctrl.slots {
-			if slot.channel == channel {
-				slot.time = time.Now()
-				ctrl.chip.WriteChannel(ymf.ChRegisters.VOLUME, i, value)
-			}
-		}
-
-	case ccExpression: // change expression
-		ctrl.channelStates[channel].expression = uint8(value)
-		for i, slot := range ctrl.slots {
-			if slot.channel == channel {
-				slot.time = time.Now()
-				ctrl.chip.WriteChannel(ymf.ChRegisters.EXPRESSION, i, value)
-			}
-		}
-
-	case ccPan: // change pan (balance)
-		ctrl.channelStates[channel].pan = uint8(value)
-		for i, slot := range ctrl.slots {
-			if slot.channel == channel {
-				slot.time = time.Now()
-				ctrl.chip.WriteChannel(ymf.ChRegisters.CHPAN, i, value)
-			}
-		}
-
-	case ccSustainPedal: // change sustain pedal (hold)
-		ctrl.channelStates[channel].sustain = uint8(value)
-		if value < 0x40 {
-			ctrl.releaseSustain(channel)
-		}
-
-	case ccNotesOff: // turn off all notes that are not sustained
-		for i, slot := range ctrl.slots {
-			if slot.channel == channel {
-				if ctrl.channelStates[channel].sustain < 0x40 {
-					ctrl.releaseSlot(i, false)
-				} else {
-					slot.flags |= flagSustain
-				}
-			}
-		}
-
-	case ccSoundsOff: // release all notes for this channel
-		for i, slot := range ctrl.slots {
-			if slot.channel == channel {
-				ctrl.releaseSlot(i, false)
-			}
-		}
-
-	case ccRPNHi:
-		ctrl.channelStates[channel].rpn = (ctrl.channelStates[channel].rpn & 0x007f) | (uint16(value) << 7)
-
-	case ccRPNLo:
-		ctrl.channelStates[channel].rpn = (ctrl.channelStates[channel].rpn & 0x3f80) | uint16(value)
-
-	case ccNRPNLo, ccNRPNHi:
-		ctrl.channelStates[channel].rpn = 0x3fff
-
-	case ccDataEntryHi:
-		if ctrl.channelStates[channel].rpn == 0 {
-			ctrl.channelStates[channel].pitchSens = uint16(value)*100 + (ctrl.channelStates[channel].pitchSens % 100)
-		}
-
-	case ccDataEntryLo:
-		if ctrl.channelStates[channel].rpn == 0 {
-			ctrl.channelStates[channel].pitchSens = uint16(value) + uint16(ctrl.channelStates[channel].pitchSens/100)*100
-		}
-	}
-}
-
-func (ctrl *Controller) ymfProgramChange(channel, value int) {
-	ctrl.channelStates[channel].pc = uint8(value)
-}
-
-func (ctrl *Controller) ymfResetControllers(channel int) {
-	ctrl.channelStates[channel].volume = 100
-	ctrl.channelStates[channel].expression = 127
-	ctrl.channelStates[channel].sustain = 0
-	ctrl.channelStates[channel].pitch = 64
-	ctrl.channelStates[channel].rpn = 0x3fff
-	ctrl.channelStates[channel].pitchSens = 200
-}
-
-func (ctrl *Controller) ymfPlayMusic() {
-	for i := range ctrl.slots {
-		ctrl.ymfResetControllers(i)
-	}
-}
-
-func (ctrl *Controller) ymfStopMusic() {
+func (ctrl *Controller) releaseAllSlots() {
 	for i := range ctrl.slots {
 		if ctrl.slots[i].flags&flagFree == 0 {
 			ctrl.releaseSlot(i, true)
@@ -435,17 +426,17 @@ func (ctrl *Controller) ymfStopMusic() {
 }
 
 func (ctrl *Controller) ymfWriteSlotAllOps(regbase ymf.OpRegister, slotID, data int) {
-	ctrl.chip.WriteOperator(regbase, slotID, 0, data)
-	ctrl.chip.WriteOperator(regbase, slotID, 1, data)
-	ctrl.chip.WriteOperator(regbase, slotID, 2, data)
-	ctrl.chip.WriteOperator(regbase, slotID, 3, data)
+	ctrl.registers.WriteOperator(slotID, 0, regbase, data)
+	ctrl.registers.WriteOperator(slotID, 1, regbase, data)
+	ctrl.registers.WriteOperator(slotID, 2, regbase, data)
+	ctrl.registers.WriteOperator(slotID, 3, regbase, data)
 }
 
 func (ctrl *Controller) ymfWriteSlotEachOps(regbase ymf.OpRegister, slotID, data1, data2, data3, data4 int) {
-	ctrl.chip.WriteOperator(regbase, slotID, 0, data1)
-	ctrl.chip.WriteOperator(regbase, slotID, 1, data2)
-	ctrl.chip.WriteOperator(regbase, slotID, 2, data3)
-	ctrl.chip.WriteOperator(regbase, slotID, 3, data4)
+	ctrl.registers.WriteOperator(slotID, 0, regbase, data1)
+	ctrl.registers.WriteOperator(slotID, 1, regbase, data2)
+	ctrl.registers.WriteOperator(slotID, 2, regbase, data3)
+	ctrl.registers.WriteOperator(slotID, 3, regbase, data4)
 }
 
 func (ctrl *Controller) writeFrequency(slotID, note, pitch int, keyon bool) {
@@ -472,13 +463,13 @@ func (ctrl *Controller) writeFrequency(slotID, note, pitch int, keyon bool) {
 		block = 7
 	}
 
-	ctrl.chip.WriteChannel(ymf.ChRegisters.FNUM, slotID, fnum)
-	ctrl.chip.WriteChannel(ymf.ChRegisters.BLOCK, slotID, block)
+	ctrl.registers.WriteChannel(slotID, ymf.FNUM, fnum)
+	ctrl.registers.WriteChannel(slotID, ymf.BLOCK, block)
 	k := 0
 	if keyon {
 		k = 1
 	}
-	ctrl.chip.WriteChannel(ymf.ChRegisters.KON, slotID, k)
+	ctrl.registers.WriteChannel(slotID, ymf.KON, k)
 }
 
 func ymfConvertVelocity(data, velocity int) int {
@@ -487,13 +478,10 @@ func ymfConvertVelocity(data, velocity int) int {
 }
 
 func (ctrl *Controller) ymfWriteVelocity(slotID, velocity int, instr *smaf.VM35VoicePC) {
-	ops := ctrl.chip.Channels[slotID].Operators
 	for i, op := range instr.FmVoice.Operators {
-		v := int(op.Tl)
-		if !ops[i].IsModulator {
-			v = ymfConvertVelocity(v, velocity)
-		}
-		ctrl.chip.WriteOperator(ymf.OpRegisters.TL, slotID, i, v)
+		tlModulator := int(op.Tl)
+		tlCarrier := ymfConvertVelocity(tlModulator, velocity)
+		ctrl.registers.WriteTL(slotID, i, tlCarrier, tlModulator)
 	}
 }
 
@@ -505,43 +493,43 @@ func bool2int(b bool) int {
 }
 
 func (ctrl *Controller) ymfWriteInstrument(slotID int, instr *smaf.VM35VoicePC) {
-	ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.TL, slotID, 0x3f) // no volume
+	ctrl.ymfWriteSlotAllOps(ymf.TL, slotID, 0x3f) // no volume
 
 	for i, op := range instr.FmVoice.Operators {
-		ctrl.chip.WriteOperator(ymf.OpRegisters.EAM, slotID, i, bool2int(op.Eam))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.EVB, slotID, i, bool2int(op.Evb))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.DAM, slotID, i, int(op.Dam))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.DVB, slotID, i, int(op.Dvb))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.DT, slotID, i, int(op.Dt))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.KSL, slotID, i, int(op.Ksl))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.KSR, slotID, i, bool2int(op.Ksr))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.WS, slotID, i, int(op.Ws))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.MULT, slotID, i, int(op.Multi))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.FB, slotID, i, int(op.Fb))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.AR, slotID, i, int(op.Ar))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.DR, slotID, i, int(op.Dr))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.SL, slotID, i, int(op.Sl))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.SR, slotID, i, int(op.Sr))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.RR, slotID, i, int(op.Rr))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.TL, slotID, i, int(op.Tl))
-		ctrl.chip.WriteOperator(ymf.OpRegisters.XOF, slotID, i, bool2int(op.Xof))
+		ctrl.registers.WriteOperator(slotID, i, ymf.EAM, bool2int(op.Eam))
+		ctrl.registers.WriteOperator(slotID, i, ymf.EVB, bool2int(op.Evb))
+		ctrl.registers.WriteOperator(slotID, i, ymf.DAM, int(op.Dam))
+		ctrl.registers.WriteOperator(slotID, i, ymf.DVB, int(op.Dvb))
+		ctrl.registers.WriteOperator(slotID, i, ymf.DT, int(op.Dt))
+		ctrl.registers.WriteOperator(slotID, i, ymf.KSL, int(op.Ksl))
+		ctrl.registers.WriteOperator(slotID, i, ymf.KSR, bool2int(op.Ksr))
+		ctrl.registers.WriteOperator(slotID, i, ymf.WS, int(op.Ws))
+		ctrl.registers.WriteOperator(slotID, i, ymf.MULT, int(op.Multi))
+		ctrl.registers.WriteOperator(slotID, i, ymf.FB, int(op.Fb))
+		ctrl.registers.WriteOperator(slotID, i, ymf.AR, int(op.Ar))
+		ctrl.registers.WriteOperator(slotID, i, ymf.DR, int(op.Dr))
+		ctrl.registers.WriteOperator(slotID, i, ymf.SL, int(op.Sl))
+		ctrl.registers.WriteOperator(slotID, i, ymf.SR, int(op.Sr))
+		ctrl.registers.WriteOperator(slotID, i, ymf.RR, int(op.Rr))
+		ctrl.registers.WriteOperator(slotID, i, ymf.TL, int(op.Tl))
+		ctrl.registers.WriteOperator(slotID, i, ymf.XOF, bool2int(op.Xof))
 	}
 
-	ctrl.chip.WriteChannel(ymf.ChRegisters.ALG, slotID, int(instr.FmVoice.Alg))
-	ctrl.chip.WriteChannel(ymf.ChRegisters.LFO, slotID, int(instr.FmVoice.Lfo))
-	ctrl.chip.WriteChannel(ymf.ChRegisters.PANPOT, slotID, int(instr.FmVoice.Panpot))
-	ctrl.chip.WriteChannel(ymf.ChRegisters.BO, slotID, int(instr.FmVoice.Bo))
+	ctrl.registers.WriteChannel(slotID, ymf.ALG, int(instr.FmVoice.Alg))
+	ctrl.registers.WriteChannel(slotID, ymf.LFO, int(instr.FmVoice.Lfo))
+	ctrl.registers.WriteChannel(slotID, ymf.PANPOT, int(instr.FmVoice.Panpot))
+	ctrl.registers.WriteChannel(slotID, ymf.BO, int(instr.FmVoice.Bo))
 }
 
 func (ctrl *Controller) ymfShutup() {
 	for i := range ctrl.slots {
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.KSL, i, 0)
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.TL, i, 0x3f) // turn off volume
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.AR, i, 15)   // the fastest attack,
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.DR, i, 15)   // decay
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.SL, i, 0)    //
-		ctrl.ymfWriteSlotAllOps(ymf.OpRegisters.RR, i, 15)   // ... and release
-		ctrl.chip.WriteChannel(ymf.ChRegisters.KON, i, 0)    // KEY-OFF
+		ctrl.ymfWriteSlotAllOps(ymf.KSL, i, 0)
+		ctrl.ymfWriteSlotAllOps(ymf.TL, i, 0x3f)   // turn off volume
+		ctrl.ymfWriteSlotAllOps(ymf.AR, i, 15)     // the fastest attack,
+		ctrl.ymfWriteSlotAllOps(ymf.DR, i, 15)     // decay
+		ctrl.ymfWriteSlotAllOps(ymf.SL, i, 0)      //
+		ctrl.ymfWriteSlotAllOps(ymf.RR, i, 15)     // ... and release
+		ctrl.registers.WriteChannel(i, ymf.KON, 0) // KEY-OFF
 	}
 }
 

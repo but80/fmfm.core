@@ -1,4 +1,4 @@
-package ymf
+package sim
 
 import (
 	"math"
@@ -18,9 +18,11 @@ const (
 
 const epsilon = 1.0 / 32768.0
 
-type EnvelopeGenerator struct {
+type envelopeGenerator struct {
 	stage stage
 
+	eam             bool
+	dam             int
 	actualAR        int
 	arDiffPerSample float64
 	drCoefPerSample float64
@@ -33,8 +35,8 @@ type EnvelopeGenerator struct {
 	currentLevel    float64
 }
 
-func newEnvelopeGenerator() *EnvelopeGenerator {
-	eg := &EnvelopeGenerator{
+func newEnvelopeGenerator() *envelopeGenerator {
+	eg := &envelopeGenerator{
 		stage:        stageOff,
 		currentLevel: 0,
 	}
@@ -43,7 +45,7 @@ func newEnvelopeGenerator() *EnvelopeGenerator {
 	return eg
 }
 
-func (eg *EnvelopeGenerator) setActualSustainLevel(sl int) {
+func (eg *envelopeGenerator) setActualSustainLevel(sl int) {
 	if sl == 0x0f {
 		eg.sustainLevel = 0
 	} else {
@@ -52,13 +54,13 @@ func (eg *EnvelopeGenerator) setActualSustainLevel(sl int) {
 	}
 }
 
-func (eg *EnvelopeGenerator) setTotalLevel(tl int) {
+func (eg *envelopeGenerator) setTotalLevel(tl int) {
 	tlDB := float64(tl) * -0.75
 	eg.tlCoef = math.Pow(10.0, tlDB/20.0)
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
-func (eg *EnvelopeGenerator) setKeyScalingLevel(fnum, block, ksl int) {
+func (eg *envelopeGenerator) setKeyScalingLevel(fnum, block, ksl int) {
 	hi4bits := fnum >> 6 & 0x0f
 	attenuation := .0
 	switch ksl {
@@ -78,7 +80,7 @@ func (eg *EnvelopeGenerator) setKeyScalingLevel(fnum, block, ksl int) {
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
-func (eg *EnvelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber int) {
+func (eg *envelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber int) {
 	eg.actualAR = calculateActualRate(attackRate, ksr, keyScaleNumber)
 	if eg.actualAR == 0 {
 		eg.arDiffPerSample = 0
@@ -88,7 +90,7 @@ func (eg *EnvelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber
 	}
 }
 
-func (eg *EnvelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
+func (eg *envelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
 	if dr == 0 {
 		eg.drCoefPerSample = 1.0
 	} else {
@@ -98,7 +100,7 @@ func (eg *EnvelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
 	}
 }
 
-func (eg *EnvelopeGenerator) setActualSR(sr, ksr, keyScaleNumber int) {
+func (eg *envelopeGenerator) setActualSR(sr, ksr, keyScaleNumber int) {
 	if sr == 0 {
 		eg.srCoefPerSample = 1.0
 	} else {
@@ -108,7 +110,7 @@ func (eg *EnvelopeGenerator) setActualSR(sr, ksr, keyScaleNumber int) {
 	}
 }
 
-func (eg *EnvelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
+func (eg *envelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
 	if rr == 0 {
 		eg.rrCoefPerSample = 1.0
 	} else {
@@ -127,7 +129,7 @@ func calculateActualRate(rate, ksr, keyScaleNumber int) int {
 	return actualRate
 }
 
-func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
+func (eg *envelopeGenerator) getEnvelope(tremoloIndex int) float64 {
 	switch eg.stage {
 
 	case stageAttack:
@@ -165,35 +167,23 @@ func (eg *EnvelopeGenerator) getEnvelope(eam, dam, tremoloIndex int) float64 {
 	}
 
 	result := eg.currentLevel
-	if eam != 0 {
-		result *= ymfdata.TremoloTable[dam][tremoloIndex]
+	if eg.eam {
+		result *= ymfdata.TremoloTable[eg.dam][tremoloIndex]
 	}
 	return result * eg.kslTlCoef
 }
 
-func (eg *EnvelopeGenerator) keyOn() {
+func (eg *envelopeGenerator) keyOn() {
 	eg.stage = stageAttack
 }
 
-func (eg *EnvelopeGenerator) keyOff() {
+func (eg *envelopeGenerator) keyOff() {
 	if eg.stage != stageOff {
 		eg.stage = stageRelease
 	}
 }
 
-func dbToX(dB float64) float64 {
-	return math.Log2(-dB)
-}
-
-func percentageToDB(percentage float64) float64 {
-	return math.Log10(percentage) * 10
-}
-
-func percentageToX(percentage float64) float64 {
-	return dbToX(percentageToDB(percentage))
-}
-
-// This table is indexed by the value of Operator.ksr
+// This table is indexed by the value of operator.ksr
 // and the value of ChannelRegister.keyScaleNumber.
 var rateOffset = [2][16]int{
 	{0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3},

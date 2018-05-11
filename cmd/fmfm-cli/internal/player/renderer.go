@@ -53,7 +53,7 @@ func NewRenderer() *Renderer {
 	// params := portaudio.StreamParameters{
 	// 	Output: portaudio.StreamDeviceParameters{
 	// 		Device: selectedDevinfo,
-	// 		Channels: selectedDevinfo.MaxOutputChannels,
+	// 		channels: selectedDevinfo.MaxOutputChannels,
 	// 		Latency: selectedDevinfo.DefaultHighOutputLatency,
 	// 	},
 	// 	SampleRate: sampleRate,

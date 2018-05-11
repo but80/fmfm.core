@@ -1,12 +1,12 @@
 package main
 
 import (
-	"strings"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/but80/fmfm/cmd/fmfm-cli/internal/player"
-	"github.com/but80/fmfm/ymf"
+	"github.com/but80/fmfm/sim"
 	"github.com/but80/smaf825/pb/smaf"
 	"github.com/golang/protobuf/proto"
 )
@@ -34,8 +34,9 @@ func main() {
 	}
 
 	renderer := player.NewRenderer()
-	chip := ymf.NewChip(renderer.Parameters.SampleRate, -12.0)
-	seq := player.NewSequencer(chip, libs)
+	chip := sim.NewChip(renderer.Parameters.SampleRate, -12.0)
+	regs := sim.NewRegisters(chip)
+	seq := player.NewSequencer(regs, libs)
 	seq.Reset()
 	renderer.Start(chip.Next)
 	time.Sleep(24 * time.Hour)
