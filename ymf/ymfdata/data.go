@@ -5,7 +5,7 @@ import (
 )
 
 // ChannelCount は、最大チャンネル数です。
-const ChannelCount = 8
+const ChannelCount = 16
 
 // SampleRate は、内部的なサンプルレート[Hz]です。
 const SampleRate = float64(48000)

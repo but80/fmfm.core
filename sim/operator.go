@@ -19,15 +19,13 @@ type operator struct {
 	xof            int
 	ws             int
 	feedbackCoef   float64
-	lfoFrequency   uint64
 	keyScaleNumber int
 	fnum           int
 	block          int
 	bo             int
 
-	envelope       float64
-	phaseFrac64    uint64
-	modIndexFrac64 uint64 // TODO: modulation reset timing
+	envelope    float64
+	phaseFrac64 uint64
 
 	envelopeGenerator *envelopeGenerator
 
@@ -128,19 +126,13 @@ func (op *operator) setFB(v int) {
 	op.feedbackCoef = ymfdata.FeedbackTable[v]
 }
 
-func (op *operator) setLFO(v int) {
-	op.lfoFrequency = ymfdata.LFOFrequency[v]
-}
-
-func (op *operator) getOperatorOutput(modulator float64) float64 {
+func (op *operator) next(modIndex int, modulator float64) float64 {
 	if op.envelopeGenerator.stage == stageOff {
 		return 0
 	}
 
-	modIndex := int(op.modIndexFrac64 >> ymfdata.ModTableIndexShift)
 	op.envelope = op.envelopeGenerator.getEnvelope(modIndex)
 	op.phaseFrac64 = op.phaseGenerator.getPhase(modIndex)
-	op.modIndexFrac64 += op.lfoFrequency
 
 	sampleIndex := op.phaseFrac64 >> ymfdata.WaveformIndexShift
 	sampleIndex += uint64((modulator + 1024.0) * ymfdata.WaveformLen)
@@ -151,7 +143,6 @@ func (op *operator) keyOn() {
 	if 0 < op.ar {
 		op.envelopeGenerator.keyOn()
 		op.phaseGenerator.keyOn()
-		// op.modIndexFrac64 = 0
 	} else {
 		op.envelopeGenerator.stage = stageOff
 	}
