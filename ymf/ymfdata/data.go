@@ -120,6 +120,25 @@ func calculateIncrement(begin, end, period float64) float64 {
 	return (end - begin) / SampleRate * (1 / period)
 }
 
+func triSin(phase float64) float64 {
+	phase *= 4.0
+	if phase < 1.0 {
+		return phase
+	}
+	if phase < 3.0 {
+		return 2.0 - phase
+	}
+	return phase - 4.0
+}
+
+func triCos(phase float64) float64 {
+	phase *= 4.0
+	if phase < 2.0 {
+		return 1.0 - phase
+	}
+	return phase - 3.0
+}
+
 func init() {
 	// generate volume table
 	for i := range VolumeTable {
@@ -140,7 +159,7 @@ func init() {
 	for dvb := 0; dvb < 4; dvb++ {
 		for i := 0; i < ModTableLen; i++ {
 			phase := float64(i) / float64(ModTableLen)
-			cent := math.Sin(2.0*math.Pi*phase) * vibratoDepth[dvb]
+			cent := triSin(phase) * vibratoDepth[dvb]
 			v := math.Pow(2.0, cent/1200)
 			VibratoTableInt32Frac32[dvb][i] = uint64(v * Pow32Of2)
 		}
@@ -152,7 +171,7 @@ func init() {
 	for dam := 0; dam < 4; dam++ {
 		for i := 0; i < ModTableLen; i++ {
 			phase := float64(i) / float64(ModTableLen)
-			v := (math.Cos(2.0*math.Pi*phase) - 1.0) * .5 * tremoloDepth[dam]
+			v := (triCos(phase) - 1.0) * .5 * tremoloDepth[dam]
 			TremoloTable[dam][i] = math.Pow(10.0, v/20.0)
 		}
 	}

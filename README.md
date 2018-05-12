@@ -36,6 +36,18 @@ go run cmd/fmfm-cli/main.go
 - The IAC virtual MIDI port named `IAC YAMAHA Virtual MIDI Device 0` must be created before running.
   fmFM receives the MIDI messages via this port.
 
+# Todo
+
+- Analyze ATS-MA5 output
+  - Waveform of DAM
+  - Waveform of DVB
+  - LPF character at feedback
+  - AR shifting by KSR
+  - Channel pan resolution
+  - Channel pan and voice pan blending
+  - MIDI vibrato resolution
+  - LFO reset timing
+
 # License
 
 GPL 3.0
