@@ -135,78 +135,25 @@ func init() {
 	}
 
 	// generate vibrato table
-	{
-		semitone := math.Pow(2, float64(1)/12)
-		cent := math.Pow(semitone, float64(1)/100)
-
-		// https://github.com/yamaha-webmusic/ymf825board/blob/991485a4cbbe07d84cca707701999875fbc17c74/manual/fbd_spec3.md#dam-eam-dvb-evb
-		vibratoDepth := [4]float64{
-			math.Pow(cent, 3.4),
-			math.Pow(cent, 6.7),
-			math.Pow(cent, 13.5),
-			math.Pow(cent, 26.8),
-		}
-		var vibratoTable [4][ModTableLen]float64
-		for dvb := 0; dvb < 4; dvb++ {
-			i := 0
-			for ; i < 1024; i++ {
-				vibratoTable[dvb][i] = 1
-			}
-			for ; i < 2048; i++ {
-				vibratoTable[dvb][i] = math.Sqrt(vibratoDepth[dvb])
-			}
-			for ; i < 3072; i++ {
-				vibratoTable[dvb][i] = vibratoDepth[dvb]
-			}
-			for ; i < 4096; i++ {
-				vibratoTable[dvb][i] = math.Sqrt(vibratoDepth[dvb])
-			}
-			for ; i < 5120; i++ {
-				vibratoTable[dvb][i] = 1
-			}
-			for ; i < 6144; i++ {
-				vibratoTable[dvb][i] = 1 / math.Sqrt(vibratoDepth[dvb])
-			}
-			for ; i < 7168; i++ {
-				vibratoTable[dvb][i] = 1 / vibratoDepth[dvb]
-			}
-			for ; i < 8192; i++ {
-				vibratoTable[dvb][i] = 1 / math.Sqrt(vibratoDepth[dvb])
-			}
-		}
-		for dvb := 0; dvb < 4; dvb++ {
-			for i := 0; i < ModTableLen; i++ {
-				VibratoTableInt32Frac32[dvb][i] = uint64(vibratoTable[dvb][i] * Pow32Of2)
-			}
+	// https://github.com/yamaha-webmusic/ymf825board/blob/991485a4cbbe07d84cca707701999875fbc17c74/manual/fbd_spec3.md#dam-eam-dvb-evb
+	vibratoDepth := [4]float64{3.4, 6.7, 13.5, 26.8}
+	for dvb := 0; dvb < 4; dvb++ {
+		for i := 0; i < ModTableLen; i++ {
+			phase := float64(i) / float64(ModTableLen)
+			cent := math.Sin(2.0*math.Pi*phase) * vibratoDepth[dvb]
+			v := math.Pow(2.0, cent/1200)
+			VibratoTableInt32Frac32[dvb][i] = uint64(v * Pow32Of2)
 		}
 	}
 
 	// generate tremolo table
-	{
-		tremoloFrequency := SampleRate / float64(ModTableLen)
-
-		// https://github.com/yamaha-webmusic/ymf825board/blob/991485a4cbbe07d84cca707701999875fbc17c74/manual/fbd_spec3.md#dam-eam-dvb-evb
-		tremoloDepth := [4]float64{-1.3, -2.8, -5.8, -11.8} // dB
-
-		for dam := 0; dam < 4; dam++ {
-			tremoloIncrement := calculateIncrement(tremoloDepth[dam], 0, 1/(2*tremoloFrequency))
-			TremoloTable[dam][0] = tremoloDepth[dam]
-			counter := 0
-			for TremoloTable[0][counter] < 0 {
-				counter++
-				TremoloTable[dam][counter] = TremoloTable[dam][counter-1] + tremoloIncrement
-			}
-			for tremoloDepth[0] < TremoloTable[0][counter] && counter < ModTableLen-1 {
-				counter++
-				TremoloTable[dam][counter] = TremoloTable[dam][counter-1] - tremoloIncrement
-			}
-		}
-
-		// convert dB -> coef
-		for dam := 0; dam < 4; dam++ {
-			for i := range TremoloTable[dam] {
-				TremoloTable[dam][i] = math.Pow(10.0, TremoloTable[dam][i]/20.0)
-			}
+	// https://github.com/yamaha-webmusic/ymf825board/blob/991485a4cbbe07d84cca707701999875fbc17c74/manual/fbd_spec3.md#dam-eam-dvb-evb
+	tremoloDepth := [4]float64{1.3, 2.8, 5.8, 11.8} // dB
+	for dam := 0; dam < 4; dam++ {
+		for i := 0; i < ModTableLen; i++ {
+			phase := float64(i) / float64(ModTableLen)
+			v := (math.Cos(2.0*math.Pi*phase) - 1.0) * .5 * tremoloDepth[dam]
+			TremoloTable[dam][i] = math.Pow(10.0, v/20.0)
 		}
 	}
 
