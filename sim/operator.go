@@ -41,8 +41,8 @@ func newOperator(channelID, operatorIndex int, chip *Chip) *operator {
 		chip:              chip,
 		channelID:         channelID,
 		operatorIndex:     operatorIndex,
-		phaseGenerator:    newPhaseGenerator(chip),
-		envelopeGenerator: newEnvelopeGenerator(),
+		phaseGenerator:    newPhaseGenerator(chip.sampleRate),
+		envelopeGenerator: newEnvelopeGenerator(chip.sampleRate),
 		isModulator:       false,
 		bo:                1,
 	}

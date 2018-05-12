@@ -19,8 +19,8 @@ const (
 const epsilon = 1.0 / 32768.0
 
 type envelopeGenerator struct {
-	stage stage
-
+	sampleRate      float64
+	stage           stage
 	eam             bool
 	dam             int
 	actualAR        int
@@ -35,8 +35,9 @@ type envelopeGenerator struct {
 	currentLevel    float64
 }
 
-func newEnvelopeGenerator() *envelopeGenerator {
+func newEnvelopeGenerator(sampleRate float64) *envelopeGenerator {
 	eg := &envelopeGenerator{
+		sampleRate:   sampleRate,
 		stage:        stageOff,
 		currentLevel: 0,
 	}
@@ -86,7 +87,7 @@ func (eg *envelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber
 		eg.arDiffPerSample = 0
 	} else {
 		sec := 1.75 * math.Pow(.5, float64(eg.actualAR)/4.0-1.0)
-		eg.arDiffPerSample = 1.0 / (sec * ymfdata.SampleRate)
+		eg.arDiffPerSample = 1.0 / (sec * eg.sampleRate)
 	}
 }
 
@@ -95,7 +96,7 @@ func (eg *envelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
 		eg.drCoefPerSample = 1.0
 	} else {
 		dbPerSecAt4 := decayDBPerSecAt4[ksr][keyScaleNumber] / 2.0
-		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(dr)) / 16.0 / ymfdata.SampleRate
+		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(dr)) / 16.0 / eg.sampleRate
 		eg.drCoefPerSample = math.Pow(10, -dbPerSample/10)
 	}
 }
@@ -105,7 +106,7 @@ func (eg *envelopeGenerator) setActualSR(sr, ksr, keyScaleNumber int) {
 		eg.srCoefPerSample = 1.0
 	} else {
 		dbPerSecAt4 := decayDBPerSecAt4[ksr][keyScaleNumber] / 2.0
-		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(sr)) / 16.0 / ymfdata.SampleRate
+		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(sr)) / 16.0 / eg.sampleRate
 		eg.srCoefPerSample = math.Pow(10, -dbPerSample/10)
 	}
 }
@@ -115,7 +116,7 @@ func (eg *envelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
 		eg.rrCoefPerSample = 1.0
 	} else {
 		dbPerSecAt4 := decayDBPerSecAt4[ksr][keyScaleNumber] / 2.0
-		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(rr)) / 16.0 / ymfdata.SampleRate
+		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(rr)) / 16.0 / eg.sampleRate
 		eg.rrCoefPerSample = math.Pow(10, -dbPerSample/10)
 	}
 }
