@@ -72,6 +72,10 @@ func (regs *Registers) WriteChannel(channel int, offset ymf.ChRegister, v int) {
 	switch offset {
 	case ymf.KON:
 		regs.chip.channels[channel].setKON(v)
+		// regs.chip.channels[channel].midiChannelID = midich
+		// if midich == 4 {
+		// 	fmt.Print(regs.chip.channels[channel].dump())
+		// }
 	case ymf.BLOCK:
 		regs.chip.channels[channel].setBLOCK(v)
 	case ymf.FNUM:

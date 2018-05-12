@@ -1,6 +1,8 @@
 package sim
 
 import (
+	"fmt"
+
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
 
@@ -24,7 +26,6 @@ type operator struct {
 	block          int
 	bo             int
 
-	envelope    float64
 	phaseFrac64 uint64
 
 	envelopeGenerator *envelopeGenerator
@@ -45,6 +46,58 @@ func newOperator(channelID, operatorIndex int, chip *Chip) *operator {
 		isModulator:       false,
 		bo:                1,
 	}
+}
+
+func (op *operator) dump() string {
+	eg := op.envelopeGenerator
+	pg := op.phaseGenerator
+	cm := "C"
+	if op.isModulator {
+		cm = "M"
+	}
+	am := "-"
+	if eg.eam {
+		am = fmt.Sprintf("%d", eg.dam)
+	}
+	vb := "-"
+	if pg.evb {
+		vb = fmt.Sprintf("%d", pg.dvb)
+	}
+	return fmt.Sprintf(
+		"%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f",
+		op.operatorIndex,
+		cm,
+		op.mult,
+		op.ws,
+		op.ar,
+		op.dr,
+		op.sl,
+		op.sr,
+		op.rr,
+		eg.tlCoef,
+		am,
+		vb,
+
+		// actualAR        ,
+		// arDiffPerSample ,
+		// drCoefPerSample ,
+		// srCoefPerSample ,
+		// rrCoefPerSample ,
+		// sustainLevel    ,
+		// currentLevel    ,
+
+		// op.phaseGenerator,
+		op.dt,
+		op.ksr,
+		op.feedbackCoef,
+		op.keyScaleNumber,
+		eg.kslCoef,
+		// op.fnum,
+		// op.block,
+		// op.bo,
+		// op.xof,
+		// op.phaseFrac64,
+	)
 }
 
 func (op *operator) setEAM(v int) {
@@ -131,12 +184,12 @@ func (op *operator) next(modIndex int, modulator float64) float64 {
 		return 0
 	}
 
-	op.envelope = op.envelopeGenerator.getEnvelope(modIndex)
+	envelope := op.envelopeGenerator.getEnvelope(modIndex)
 	op.phaseFrac64 = op.phaseGenerator.getPhase(modIndex)
 
 	sampleIndex := op.phaseFrac64 >> ymfdata.WaveformIndexShift
 	sampleIndex += uint64((modulator + 1024.0) * ymfdata.WaveformLen)
-	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * op.envelope
+	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * envelope
 }
 
 func (op *operator) keyOn() {
@@ -161,6 +214,7 @@ func (op *operator) setFrequency(fnum, blk, bo int) {
 	op.bo = bo
 	op.updateFrequency()
 	op.updateEnvelope()
+	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.ksl)
 }
 
 func (op *operator) updateFrequency() {

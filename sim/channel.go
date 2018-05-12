@@ -1,6 +1,8 @@
 package sim
 
 import (
+	"fmt"
+
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
 
@@ -95,7 +97,8 @@ CNT(Cn) = 1, CNT(Cn+3) = 1
 
 // Channel は、音源のチャンネルです。
 type Channel struct {
-	channelID int
+	channelID     int
+	midiChannelID int
 
 	chip       *Chip
 	fnum       int
@@ -127,8 +130,9 @@ type Channel struct {
 
 func newChannel4op(channelID int, chip *Chip) *Channel {
 	ch := &Channel{
-		chip:      chip,
-		channelID: channelID,
+		chip:          chip,
+		channelID:     channelID,
+		midiChannelID: -1,
 
 		fnum:       0,
 		kon:        0,
@@ -148,6 +152,32 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 	}
 	ch.updatePanCoef()
 	return ch
+}
+
+func (ch *Channel) dump() string {
+	result := fmt.Sprintf(
+		"[%02d] midi=%02d alg=%d pan=%03d+%03d vol=%03d exp=%03d vel=%03d freq=%03d+%d-%d modidx=%04d\n",
+		ch.channelID,
+		ch.midiChannelID,
+		ch.alg,
+		ch.panpot,
+		ch.chpan,
+		ch.volume,
+		ch.expression,
+		ch.velocity,
+		// ch.attenuationCoef,
+		ch.fnum,
+		ch.block,
+		ch.bo,
+		ch.modIndexFrac64>>ymfdata.ModTableIndexShift,
+		// ch.lfoFrequency,
+		// ch.panCoefL,
+		// ch.panCoefR,
+	)
+	for _, op := range ch.operators {
+		result += "  " + op.dump() + "\n"
+	}
+	return result
 }
 
 func (ch *Channel) setKON(v int) {
@@ -359,7 +389,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 		op3Output = op3.next(modIndex, op2Output*ch.toPhase)
 		op4Output = op4.next(modIndex, noModulator)
 
-		channelOutput = op1Output + op3Output + op4Output
+		channelOutput = op3Output // op1Output + op3Output + op4Output
 	}
 
 	if op1.feedbackCoef != .0 {
