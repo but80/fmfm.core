@@ -389,7 +389,7 @@ func (ch *Channel) getChannelOutput() (float64, float64) {
 		op3Output = op3.next(modIndex, op2Output*ch.toPhase)
 		op4Output = op4.next(modIndex, noModulator)
 
-		channelOutput = op3Output // op1Output + op3Output + op4Output
+		channelOutput = op1Output + op3Output + op4Output
 	}
 
 	if op1.feedbackCoef != .0 {
