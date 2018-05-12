@@ -34,7 +34,7 @@ func NewChip(sampleRate, totalLevel float64) *Chip {
 func (chip *Chip) Next() (float64, float64) {
 	var l, r float64
 	for _, channel := range chip.channels {
-		cl, cr := channel.getChannelOutput()
+		cl, cr := channel.next()
 		l += cl
 		r += cr
 	}
