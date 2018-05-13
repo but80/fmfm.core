@@ -62,22 +62,7 @@ func (eg *envelopeGenerator) setTotalLevel(tl int) {
 }
 
 func (eg *envelopeGenerator) setKeyScalingLevel(fnum, block, ksl int) {
-	hi4bits := fnum >> 6 & 0x0f
-	attenuation := .0
-	switch ksl {
-	case 0:
-		attenuation = .0
-	case 1:
-		// ~3 dB/Octave
-		attenuation = ymfdata.KSL3DBTable[hi4bits][block]
-	case 2:
-		// ~1.5 dB/Octave
-		attenuation = ymfdata.KSL3DBTable[hi4bits][block] / 2.0
-	case 3:
-		// ~6 dB/Octave
-		attenuation = ymfdata.KSL3DBTable[hi4bits][block] * 2.0
-	}
-	eg.kslCoef = math.Pow(10, attenuation/20.0)
+	eg.kslCoef = ymfdata.KSLTable[ksl][block][fnum>>5]
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
