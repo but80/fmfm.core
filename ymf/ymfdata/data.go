@@ -11,7 +11,7 @@ const ChannelCount = 16
 const SampleRate = float64(48000)
 
 // A3Note は、MIDIメッセージにおけるA3のノートナンバーです。
-const A3Note = 11 + 12*3 // TODO: A3=69のはず？
+const A3Note = 9 + 12*4
 
 // A3Freq は、A3の周波数[Hz]です。
 const A3Freq = float64(440.0)

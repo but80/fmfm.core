@@ -303,7 +303,6 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 		// 	note -= 12
 		// }
 	}
-	note += 2 - 12
 	chipState.realnote = note
 
 	ctrl.writeInstrument(chipch, midich, instr)
@@ -427,7 +426,7 @@ func (ctrl *Controller) writeFrequency(chipch, midich, note, pitch int, keyon bo
 		block = 7
 	}
 
-	fnum := int(freq*ymfdata.FNUMCoef) >> uint(block-1)
+	fnum := int(freq*ymfdata.FNUMCoef) << 1 >> uint(block)
 	if fnum < 0 {
 		fnum = 0
 	} else {
