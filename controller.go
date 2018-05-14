@@ -134,7 +134,7 @@ func (ctrl *Controller) NoteOff(ch, note int) {
 	for chipch, state := range ctrl.chipChannelStates {
 		if state.midiChannel == ch && state.note == note {
 			if sus < 0x40 {
-				ctrl.releaseChipChannel(chipch, false)
+				ctrl.keyOff(chipch)
 			} else {
 				state.flags |= flagSustain
 			}
@@ -194,7 +194,7 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 		for i, state := range ctrl.chipChannelStates {
 			if state.midiChannel == midich {
 				if ctrl.midiChannelStates[midich].sustain < 0x40 {
-					ctrl.releaseChipChannel(i, false)
+					ctrl.keyOff(i)
 				} else {
 					state.flags |= flagSustain
 				}
@@ -204,7 +204,7 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 	case ccSoundsOff: // release all notes for this channel
 		for i, state := range ctrl.chipChannelStates {
 			if state.midiChannel == midich {
-				ctrl.releaseChipChannel(i, false)
+				ctrl.keyOff(i)
 			}
 		}
 
@@ -249,7 +249,7 @@ func (ctrl *Controller) PitchBend(midich, l, h int) {
 		if state.midiChannel == midich {
 			state.time = time.Now()
 			state.pitch = state.finetune + pitch
-			ctrl.writeFrequency(i, midich, state.realnote, state.pitch, true)
+			ctrl.writeFrequency(i, state.realnote, state.pitch)
 		}
 	}
 }
@@ -260,7 +260,7 @@ func (ctrl *Controller) Reset() {
 	defer ctrl.mutex.Unlock()
 
 	for i := range ctrl.chipChannelStates {
-		ctrl.releaseChipChannel(i, true)
+		ctrl.resetChipChannel(i)
 	}
 	for i := range ctrl.midiChannelStates {
 		ctrl.resetMIDIChannel(i)
@@ -319,35 +319,32 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 	}
 	ctrl.registers.WriteChannel(chipch, ymf.EXPRESSION, int(ctrl.midiChannelStates[midich].expression))
 	ctrl.registers.WriteChannel(chipch, ymf.VELOCITY, velocity)
-	ctrl.writeFrequency(chipch, midich, note, chipState.pitch, true)
+	ctrl.writeFrequency(chipch, note, chipState.pitch)
+	ctrl.keyOn(chipch, midich)
 }
 
-func (ctrl *Controller) releaseChipChannel(chipch int, killed bool) {
+func (ctrl *Controller) resetChipChannel(chipch int) {
 	state := ctrl.chipChannelStates[chipch]
-	ctrl.writeFrequency(chipch, -1, state.realnote, state.pitch, false)
-	state.midiChannel = -1
 	state.time = time.Now()
-	state.flags = flagReleased
-	if killed {
-		ctrl.writeAllOperators(chipch, ymf.SL, 0)
-		ctrl.writeAllOperators(chipch, ymf.RR, 15) // release rate - fastest
-		ctrl.writeAllOperators(chipch, ymf.KSL, 0)
-		ctrl.writeAllOperators(chipch, ymf.TL, 0x3f) // no volume
-		// state.note = 0
-		// state.realnote = 0
-		// state.finetune = 0
-		// state.pitch = 0
-		state.minRR = 15
-		state.instrument = nil
-		state.flags |= flagFree
-	}
+	state.flags = flagReleased | flagFree
+	state.minRR = 15
+	state.instrument = nil
+	state.midiChannel = -1
+	// state.note = 0
+	// state.realnote = 0
+	// state.finetune = 0
+	// state.pitch = 0
+	ctrl.writeAllOperators(chipch, ymf.SL, 0)
+	ctrl.writeAllOperators(chipch, ymf.RR, 15) // release rate - fastest
+	ctrl.writeAllOperators(chipch, ymf.KSL, 0)
+	ctrl.writeAllOperators(chipch, ymf.TL, 0x3f) // no volume
 	ctrl.registers.WriteChannel(chipch, ymf.KON, 0)
 }
 
 func (ctrl *Controller) releaseSustain(midich int) {
 	for i, state := range ctrl.chipChannelStates {
 		if state.midiChannel == midich && state.flags&flagSustain != 0 {
-			ctrl.releaseChipChannel(i, false)
+			ctrl.keyOff(i)
 		}
 	}
 }
@@ -378,11 +375,11 @@ func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
 	}
 
 	if 0 <= foundReleased {
-		ctrl.releaseChipChannel(foundReleased, true)
+		ctrl.resetChipChannel(foundReleased)
 		return foundReleased
 	}
 	if 0 <= foundTotal {
-		ctrl.releaseChipChannel(foundTotal, true)
+		ctrl.resetChipChannel(foundTotal)
 		return foundTotal
 	}
 
@@ -435,7 +432,7 @@ func (ctrl *Controller) writeAllOperators(chipch int, regbase ymf.OpRegister, va
 	ctrl.registers.WriteOperator(chipch, 3, regbase, value)
 }
 
-func (ctrl *Controller) writeFrequency(chipch, midich, note, pitch int, keyon bool) {
+func (ctrl *Controller) writeFrequency(chipch, note, pitch int) {
 	n := float64(note-ymfdata.A3Note) + float64(pitch-64)/32.0
 	freq := ymfdata.A3Freq * math.Pow(2.0, n/12.0)
 
@@ -461,12 +458,18 @@ func (ctrl *Controller) writeFrequency(chipch, midich, note, pitch int, keyon bo
 
 	ctrl.registers.WriteChannel(chipch, ymf.FNUM, fnum)
 	ctrl.registers.WriteChannel(chipch, ymf.BLOCK, block)
-	k := 0
-	if keyon {
-		k = 1
-		ctrl.registers.DebugSetMIDIChannel(chipch, midich)
-	}
-	ctrl.registers.WriteChannel(chipch, ymf.KON, k)
+}
+
+func (ctrl *Controller) keyOn(chipch, midich int) {
+	ctrl.registers.DebugSetMIDIChannel(chipch, midich)
+	ctrl.registers.WriteChannel(chipch, ymf.KON, 1)
+}
+
+func (ctrl *Controller) keyOff(chipch int) {
+	state := ctrl.chipChannelStates[chipch]
+	state.time = time.Now()
+	state.flags = flagReleased
+	ctrl.registers.WriteChannel(chipch, ymf.KON, 0)
 }
 
 func bool2int(b bool) int {

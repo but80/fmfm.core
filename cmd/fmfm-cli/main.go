@@ -37,7 +37,7 @@ func main() {
 	chip := sim.NewChip(renderer.Parameters.SampleRate, -12.0)
 	regs := sim.NewRegisters(chip)
 	seq := player.NewSequencer(regs, libs)
-	seq.Reset()
+	defer seq.Close()
 	renderer.Start(chip.Next)
 	time.Sleep(24 * time.Hour)
 }

@@ -16,6 +16,7 @@ const defaultMIDIDeviceName = "IAC YAMAHA Virtual MIDI Device 0"
 // TODO: rename
 type Sequencer struct {
 	*fmfm.Controller
+	input *portmidi.Stream
 }
 
 var newSequencerOnce = sync.Once{}
@@ -39,18 +40,19 @@ func NewSequencer(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Seque
 		}
 	}
 
-	in, err := portmidi.NewInputStream(selectedMIDIDeviceID, 512, 0)
+	input, err := portmidi.NewInputStream(selectedMIDIDeviceID, 512, 0)
 	if err != nil {
 		panic(err)
 	}
-	// defer in.Close()
 
 	seq := &Sequencer{
 		Controller: fmfm.NewController(registers, libraries),
+		input:      input,
 	}
+	seq.Reset()
 
 	go func() {
-		for e := range in.Source() {
+		for e := range seq.input.Source() {
 			if e.Timestamp < 0 {
 				continue
 			}
@@ -75,4 +77,9 @@ func NewSequencer(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Seque
 	}()
 
 	return seq
+}
+
+// Close は、MIDIメッセージの受信を終了します。
+func (seq *Sequencer) Close() {
+	seq.input.Close()
 }
