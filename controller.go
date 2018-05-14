@@ -483,7 +483,6 @@ func bool2int(b bool) int {
 func (ctrl *Controller) writeInstrument(chipch, midich int, instr *smaf.VM35VoicePC) {
 	ctrl.writeAllOperators(ymf.TL, chipch, 0x3f) // no volume
 
-	isDrum := instr.DrumNote != 0
 	for i, op := range instr.FmVoice.Operators {
 		ctrl.registers.WriteOperator(chipch, i, ymf.EAM, bool2int(op.Eam))
 		ctrl.registers.WriteOperator(chipch, i, ymf.EVB, bool2int(op.Evb))
@@ -501,7 +500,7 @@ func (ctrl *Controller) writeInstrument(chipch, midich int, instr *smaf.VM35Voic
 		ctrl.registers.WriteOperator(chipch, i, ymf.SR, int(op.Sr))
 		ctrl.registers.WriteOperator(chipch, i, ymf.RR, int(op.Rr))
 		ctrl.registers.WriteOperator(chipch, i, ymf.TL, int(op.Tl))
-		ctrl.registers.WriteOperator(chipch, i, ymf.XOF, bool2int(op.Xof || isDrum))
+		ctrl.registers.WriteOperator(chipch, i, ymf.XOF, bool2int(op.Xof))
 	}
 
 	ctrl.registers.WriteChannel(chipch, ymf.ALG, int(instr.FmVoice.Alg))
