@@ -1,7 +1,6 @@
 package player
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/but80/fmfm.core"
@@ -57,20 +56,20 @@ func NewSequencer(opts *fmfm.ControllerOpts) *Sequencer {
 			msg := portmidi.Message(e.Message)
 			status := int(msg.Status())
 			channel := int(status & 15)
+			var typ fmfm.MIDIMessage
 			switch status & 0xf0 {
 			case 0x90:
-				seq.NoteOn(channel, int(msg.Data1()), int(msg.Data2()))
+				typ = fmfm.MIDINoteOn
 			case 0x80:
-				seq.NoteOff(channel, int(msg.Data1()))
+				typ = fmfm.MIDINoteOff
 			case 0xb0:
-				seq.ControlChange(channel, int(msg.Data1()), int(msg.Data2()))
+				typ = fmfm.MIDIControlChange
 			case 0xc0:
-				seq.ProgramChange(channel, int(msg.Data1()))
+				typ = fmfm.MIDIProgramChange
 			case 0xe0:
-				seq.PitchBend(channel, int(msg.Data1()), int(msg.Data2()))
-			default:
-				fmt.Printf("%x\n", status)
+				typ = fmfm.MIDIPitchBend
 			}
+			seq.PushMIDIMessage(typ, int(e.Timestamp), channel, int(msg.Data1()), int(msg.Data2()))
 		}
 	}()
 

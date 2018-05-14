@@ -77,7 +77,7 @@ func main() {
 		}
 		seq := player.NewSequencer(opts)
 		defer seq.Close()
-		renderer.Start(chip.Next)
+		renderer.Start(chip.Next, seq.FlushMIDIMessages)
 		time.Sleep(24 * time.Hour)
 		return nil
 	}

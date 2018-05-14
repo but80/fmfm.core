@@ -11,6 +11,25 @@ import (
 	"github.com/but80/smaf825/pb/smaf"
 )
 
+// MIDIMessage は、MIDIメッセージの種類を表す列挙子型です。
+type MIDIMessage int
+
+const (
+	MIDINoteOn MIDIMessage = iota + 1
+	MIDINoteOff
+	MIDIControlChange
+	MIDIProgramChange
+	MIDIPitchBend
+)
+
+type midiMessage struct {
+	typ         MIDIMessage
+	timestamp   int
+	midiChannel int
+	data1       int
+	data2       int
+}
+
 type flag int
 
 const (
@@ -85,6 +104,7 @@ type Controller struct {
 	registers          ymf.Registers
 	libraries          []*smaf.VM5VoiceLib
 	ignoreMIDIChannels map[int]struct{}
+	midiMessages       []*midiMessage
 
 	midiChannelStates [16]*midiChannelState
 	chipChannelStates [ymfdata.ChannelCount]*chipChannelState
@@ -96,6 +116,7 @@ func NewController(opts *ControllerOpts) *Controller {
 		registers:          opts.Registers,
 		libraries:          opts.Libraries,
 		ignoreMIDIChannels: map[int]struct{}{},
+		midiMessages:       []*midiMessage{},
 	}
 	for _, ch := range opts.IgnoreMIDIChannels {
 		ctrl.ignoreMIDIChannels[ch] = struct{}{}
@@ -109,18 +130,57 @@ func NewController(opts *ControllerOpts) *Controller {
 	return ctrl
 }
 
-// NoteOn は、MIDIノートオン受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) NoteOn(midich, note, velocity int) {
+// PushMIDIMessage は、処理すべきMIDIメッセージを追加します。
+func (ctrl *Controller) PushMIDIMessage(typ MIDIMessage, timestamp, midich, data1, data2 int) {
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
+	ctrl.midiMessages = append(ctrl.midiMessages, &midiMessage{
+		typ:         typ,
+		timestamp:   timestamp,
+		midiChannel: midich,
+		data1:       data1,
+		data2:       data2,
+	})
+}
+
+// FlushMIDIMessages は、蓄積されたMIDIメッセージを処理します。
+func (ctrl *Controller) FlushMIDIMessages(until int) {
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
+	rest := []*midiMessage{}
+	for _, msg := range ctrl.midiMessages {
+		if until < msg.timestamp {
+			rest = append(rest, msg)
+			continue
+		}
+		// fmt.Printf("%02d: %d\n", msg.midiChannel, until - msg.timestamp)
+		switch msg.typ {
+		case MIDINoteOn:
+			ctrl.noteOn(msg.midiChannel, msg.data1, msg.data2)
+		case MIDINoteOff:
+			ctrl.noteOff(msg.midiChannel, msg.data1)
+		case MIDIControlChange:
+			ctrl.controlChange(msg.midiChannel, msg.data1, msg.data2)
+		case MIDIProgramChange:
+			ctrl.programChange(msg.midiChannel, msg.data1)
+		case MIDIPitchBend:
+			ctrl.pitchBend(msg.midiChannel, msg.data1, msg.data2)
+		}
+	}
+	ctrl.midiMessages = rest
+}
+
+// noteOn は、MIDIノートオン受信時の音源の振る舞いを再現します。
+func (ctrl *Controller) noteOn(midich, note, velocity int) {
 	if velocity == 0 {
-		ctrl.NoteOff(midich, note)
+		ctrl.noteOff(midich, note)
 		return
 	}
 	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
 		return
 	}
-
-	ctrl.mutex.Lock()
-	defer ctrl.mutex.Unlock()
 
 	instr, ok := ctrl.getInstrument(midich, note)
 	if !ok {
@@ -147,13 +207,11 @@ func (ctrl *Controller) NoteOn(midich, note, velocity int) {
 	}
 }
 
-// NoteOff は、MIDIノートオフ受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) NoteOff(midich, note int) {
+// noteOff は、MIDIノートオフ受信時の音源の振る舞いを再現します。
+func (ctrl *Controller) noteOff(midich, note int) {
 	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
 		return
 	}
-	ctrl.mutex.Lock()
-	defer ctrl.mutex.Unlock()
 
 	sus := ctrl.midiChannelStates[midich].sustain
 	for chipch, state := range ctrl.chipChannelStates {
@@ -167,13 +225,11 @@ func (ctrl *Controller) NoteOff(midich, note int) {
 	}
 }
 
-// ControlChange は、MIDIコントロールチェンジ受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) ControlChange(midich, cc, value int) {
+// controlChange は、MIDIコントロールチェンジ受信時の音源の振る舞いを再現します。
+func (ctrl *Controller) controlChange(midich, cc, value int) {
 	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
 		return
 	}
-	ctrl.mutex.Lock()
-	defer ctrl.mutex.Unlock()
 	channel := ctrl.midiChannelStates[midich]
 
 	switch cc {
@@ -264,24 +320,19 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 	}
 }
 
-// ProgramChange は、MIDIプログラムチェンジ受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) ProgramChange(midich, pc int) {
+// programChange は、MIDIプログラムチェンジ受信時の音源の振る舞いを再現します。
+func (ctrl *Controller) programChange(midich, pc int) {
 	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
 		return
 	}
-	ctrl.mutex.Lock()
-	defer ctrl.mutex.Unlock()
-
 	ctrl.midiChannelStates[midich].pc = uint8(pc)
 }
 
-// PitchBend は、MIDIピッチベンド受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) PitchBend(midich, l, h int) {
+// pitchBend は、MIDIピッチベンド受信時の音源の振る舞いを再現します。
+func (ctrl *Controller) pitchBend(midich, l, h int) {
 	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
 		return
 	}
-	ctrl.mutex.Lock()
-	defer ctrl.mutex.Unlock()
 
 	pitch := h*128 + l - 8192
 	pitch = int(float64(pitch)*float64(ctrl.midiChannelStates[midich].pitchSens)/(200*128) + 64)

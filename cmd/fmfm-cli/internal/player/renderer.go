@@ -3,6 +3,7 @@ package player
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gordonklaus/portaudio"
 	"github.com/xlab/closer"
@@ -65,10 +66,19 @@ func NewRenderer() *Renderer {
 }
 
 // Start は、processor によって生成される波形のオーディオデバイスへの出力を開始します。
-func (renderer *Renderer) Start(processor func() (float64, float64)) {
+func (renderer *Renderer) Start(processor func() (float64, float64), controller func(int)) {
+	startTime := time.Now()
+
 	var err error
 	renderer.stream, err = portaudio.OpenStream(renderer.Parameters, func(out [][]float32) {
+		// midiLatency := float64(renderer.stream.Info().OutputLatency) / float64(time.Millisecond)
+		sampleLen := 1000.0 / renderer.Parameters.SampleRate
+		midiLatency := float64(len(out[0])) * sampleLen
+		now := float64(time.Since(startTime)) / float64(time.Millisecond)
 		for i := range out[0] {
+			now += sampleLen
+			controller(int(now - midiLatency))
+
 			l, r := processor()
 			out[0][i] = float32(l)
 			out[1][i] = float32(r)
