@@ -41,8 +41,8 @@ const (
 	ccRPNHi     = 101
 	ccSoundsOff = 120
 	ccNotesOff  = 123
-	// ccMono         = 126
-	// ccPoly         = 127
+	ccMono      = 126
+	ccPoly      = 127
 )
 
 type chipChannelState struct {
@@ -69,6 +69,7 @@ type midiChannelState struct {
 	modulation uint8
 	pitchSens  uint16
 	rpn        uint16
+	mono       bool
 }
 
 // Controller は、MIDIに類似するインタフェースで Chip のレジスタをコントロールします。
@@ -117,7 +118,13 @@ func (ctrl *Controller) NoteOn(midich, note, velocity int) {
 		return
 	}
 
-	chipch := ctrl.findFreeChipChannel(midich, note)
+	var chipch = -1
+	if ctrl.midiChannelStates[midich].mono {
+		chipch = ctrl.findLastUsedChipChannel(midich, note)
+	}
+	if chipch < 0 {
+		chipch = ctrl.findFreeChipChannel(midich, note)
+	}
 	if 0 <= chipch {
 		ctrl.occupyChipChannel(chipch, midich, note, velocity, instr)
 	} else {
@@ -146,14 +153,15 @@ func (ctrl *Controller) NoteOff(ch, note int) {
 func (ctrl *Controller) ControlChange(midich, cc, value int) {
 	ctrl.mutex.Lock()
 	defer ctrl.mutex.Unlock()
+	channel := ctrl.midiChannelStates[midich]
 
 	switch cc {
 	case ccBankMSB:
-		ctrl.midiChannelStates[midich].bankMSB = uint8(value)
+		channel.bankMSB = uint8(value)
 	case ccBankLSB:
-		ctrl.midiChannelStates[midich].bankLSB = uint8(value)
+		channel.bankLSB = uint8(value)
 	case ccModulation:
-		ctrl.midiChannelStates[midich].modulation = uint8(value)
+		channel.modulation = uint8(value)
 		for i, state := range ctrl.chipChannelStates {
 			if state.midiChannel == midich {
 				flags := state.flags
@@ -173,27 +181,33 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 		}
 
 	case ccVolume: // change volume
-		ctrl.midiChannelStates[midich].volume = uint8(value)
+		channel.volume = uint8(value)
 		ctrl.writeChannelsUsingMIDIChannel(midich, ymf.VOLUME, value)
 
 	case ccExpression: // change expression
-		ctrl.midiChannelStates[midich].expression = uint8(value)
+		channel.expression = uint8(value)
 		ctrl.writeChannelsUsingMIDIChannel(midich, ymf.EXPRESSION, value)
 
 	case ccPan: // change pan (balance)
-		ctrl.midiChannelStates[midich].pan = uint8(value)
+		channel.pan = uint8(value)
 		ctrl.writeChannelsUsingMIDIChannel(midich, ymf.CHPAN, value)
 
 	case ccSustainPedal: // change sustain pedal (hold)
-		ctrl.midiChannelStates[midich].sustain = uint8(value)
+		channel.sustain = uint8(value)
 		if value < 0x40 {
 			ctrl.releaseSustain(midich)
 		}
 
+	case ccMono:
+		channel.mono = true
+
+	case ccPoly:
+		channel.mono = false
+
 	case ccNotesOff: // turn off all notes that are not sustained
 		for i, state := range ctrl.chipChannelStates {
 			if state.midiChannel == midich {
-				if ctrl.midiChannelStates[midich].sustain < 0x40 {
+				if channel.sustain < 0x40 {
 					ctrl.keyOff(i)
 				} else {
 					state.flags |= flagSustain
@@ -209,22 +223,22 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 		}
 
 	case ccRPNHi:
-		ctrl.midiChannelStates[midich].rpn = (ctrl.midiChannelStates[midich].rpn & 0x007f) | (uint16(value) << 7)
+		channel.rpn = (channel.rpn & 0x007f) | (uint16(value) << 7)
 
 	case ccRPNLo:
-		ctrl.midiChannelStates[midich].rpn = (ctrl.midiChannelStates[midich].rpn & 0x3f80) | uint16(value)
+		channel.rpn = (channel.rpn & 0x3f80) | uint16(value)
 
 	case ccNRPNLo, ccNRPNHi:
-		ctrl.midiChannelStates[midich].rpn = 0x3fff
+		channel.rpn = 0x3fff
 
 	case ccDataEntryHi:
-		if ctrl.midiChannelStates[midich].rpn == 0 {
-			ctrl.midiChannelStates[midich].pitchSens = uint16(value)*100 + (ctrl.midiChannelStates[midich].pitchSens % 100)
+		if channel.rpn == 0 {
+			channel.pitchSens = uint16(value)*100 + (channel.pitchSens % 100)
 		}
 
 	case ccDataEntryLo:
-		if ctrl.midiChannelStates[midich].rpn == 0 {
-			ctrl.midiChannelStates[midich].pitchSens = uint16(value) + uint16(ctrl.midiChannelStates[midich].pitchSens/100)*100
+		if channel.rpn == 0 {
+			channel.pitchSens = uint16(value) + uint16(channel.pitchSens/100)*100
 		}
 	}
 }
@@ -349,7 +363,42 @@ func (ctrl *Controller) releaseSustain(midich int) {
 	}
 }
 
+// findLastUsedChipChannel は、指定MIDIチャンネルの指定ノートを発音するとき、
+// MONOモード時に収容先となるチップのチャンネルを選択します。
+func (ctrl *Controller) findLastUsedChipChannel(midich, note int) int {
+	now := time.Now()
+	found := -1
+	minDelta := math.MaxInt64
+	for i, state := range ctrl.chipChannelStates {
+		if state.midiChannel != midich {
+			continue
+		}
+		if state.note == note {
+			return i
+		}
+		delta := int(now.Sub(state.time)) * state.minRR
+		if delta < minDelta {
+			minDelta = delta
+			found = i
+		}
+	}
+	if 0 <= found {
+		return found
+	}
+	return -1
+}
+
+// findLastUsedChipChannel は、指定MIDIチャンネルの指定ノートを発音するとき、
+// POLYモード時に収容先となるチップのチャンネルを選択します。
 func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
+	// 同じノートで発音済みのチャンネルがあれば最優先で選択
+	for i, state := range ctrl.chipChannelStates {
+		if state.midiChannel == midich && state.note == note {
+			return i
+		}
+	}
+
+	// 無音のチャンネルがあれば選択
 	for i, state := range ctrl.chipChannelStates {
 		if state.flags&flagFree != 0 {
 			return i
@@ -357,33 +406,35 @@ func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
 	}
 
 	now := time.Now()
-	foundReleased := -1
 	foundTotal := -1
-	maxDeltaReleased := -1
+	foundReleased := -1
 	maxDeltaTotal := -1
-
+	maxDeltaReleased := -1
 	for i, state := range ctrl.chipChannelStates {
-		delta := int(now.Sub(state.time)) * state.minRR
-		if maxDeltaReleased < delta && state.flags&flagReleased != 0 {
-			maxDeltaReleased = delta
-			foundReleased = i
-		}
+		delta := int(now.Sub(state.time))
 		if maxDeltaTotal < delta {
 			maxDeltaTotal = delta
 			foundTotal = i
 		}
+		delta *= state.minRR
+		if maxDeltaReleased < delta && state.flags&flagReleased != 0 {
+			maxDeltaReleased = delta
+			foundReleased = i
+		}
 	}
 
+	// リリース後に最も減衰していると思われるチャンネルを選択
 	if 0 <= foundReleased {
 		ctrl.resetChipChannel(foundReleased)
 		return foundReleased
 	}
+	// 未リリースだが最も古くなったと思われるチャンネルを選択
 	if 0 <= foundTotal {
 		ctrl.resetChipChannel(foundTotal)
 		return foundTotal
 	}
 
-	// can't find any free channel
+	// 収容先がない
 	return -1
 }
 
