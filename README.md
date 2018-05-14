@@ -50,4 +50,4 @@ go run cmd/fmfm-cli/main.go
 
 # License
 
-GPL 3.0
+MIT License
