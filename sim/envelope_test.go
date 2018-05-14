@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/but80/fmfm/ymf/ymfdata"
+	"github.com/but80/fmfm.core/ymf/ymfdata"
 	"github.com/stretchr/testify/assert"
 )
 

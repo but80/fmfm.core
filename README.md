@@ -1,8 +1,8 @@
 # fmFM
 
-[![Build Status](https://travis-ci.org/but80/fmfm.svg?branch=master)](https://travis-ci.org/but80/fmfm)
-[![Go Report Card](https://goreportcard.com/badge/github.com/but80/fmfm)](https://goreportcard.com/report/github.com/but80/fmfm)
-[![Godoc](https://godoc.org/github.com/but80/fmfm?status.svg)](http://godoc.org/github.com/but80/fmfm)
+[![Build Status](https://travis-ci.org/but80/fmfm.core.svg?branch=master)](https://travis-ci.org/but80/fmfm.core)
+[![Go Report Card](https://goreportcard.com/badge/github.com/but80/fmfm.core)](https://goreportcard.com/report/github.com/but80/fmfm.core)
+[![Godoc](https://godoc.org/github.com/but80/fmfm.core?status.svg)](http://godoc.org/github.com/but80/fmfm.core)
 
 **WORK IN PROGRESS**
 

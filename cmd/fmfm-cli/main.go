@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/but80/fmfm/cmd/fmfm-cli/internal/player"
-	"github.com/but80/fmfm/sim"
+	"github.com/but80/fmfm.core/cmd/fmfm-cli/internal/player"
+	"github.com/but80/fmfm.core/sim"
 	"github.com/but80/smaf825/pb/smaf"
 	"github.com/golang/protobuf/proto"
 )

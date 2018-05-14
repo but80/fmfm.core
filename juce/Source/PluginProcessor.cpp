@@ -40,8 +40,8 @@ FmfmAudioProcessor::FmfmAudioProcessor()
                        )
 #endif
 {
-    static const char* voicePathRel = "/go/src/github.com/but80/fmfm/voice/default.vm5";
-    static const char* modulePathRel = "/go/src/github.com/but80/fmfm/build/fmfm-module/fmfm.so";
+    static const char* voicePathRel = "/go/src/github.com/but80/fmfm.core/voice/default.vm5";
+    static const char* modulePathRel = "/go/src/github.com/but80/fmfm.core/build/fmfm-module/fmfm.so";
     char modulePath[1024];
 
     char* home = getenv("HOME");

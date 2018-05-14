@@ -3,7 +3,7 @@ package sim
 import (
 	"math"
 
-	"github.com/but80/fmfm/ymf/ymfdata"
+	"github.com/but80/fmfm.core/ymf/ymfdata"
 )
 
 type stage int
