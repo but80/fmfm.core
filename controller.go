@@ -13,9 +13,10 @@ import (
 type flag int
 
 const (
-	flagSustain flag = 0x02
-	flagVibrato flag = 0x04
-	flagFree    flag = 0x80
+	flagSustain  flag = 0x02
+	flagVibrato  flag = 0x04
+	flagReleased flag = 0x40
+	flagFree     flag = 0x80
 )
 
 const modThresh = 40
@@ -52,6 +53,7 @@ type chipChannelState struct {
 	pitch       int
 	instrument  *smaf.VM35VoicePC
 	time        time.Time
+	minRR       int
 }
 
 type midiChannelState struct {
@@ -261,6 +263,7 @@ func (ctrl *Controller) Reset() {
 		state.pitch = 0
 		state.instrument = nil
 		state.time = time.Time{}
+		state.minRR = 15
 	}
 	for _, state := range ctrl.midiChannelStates {
 		state.volume = 100
@@ -305,6 +308,14 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 	}
 	chipState.realnote = note
 
+	chipState.minRR = 15
+	for i, op := range instr.FmVoice.Operators {
+		isCarrier := ymfdata.CarrierMatrix[instr.FmVoice.Alg][i]
+		if isCarrier && int(op.Rr) < chipState.minRR {
+			chipState.minRR = int(op.Rr)
+		}
+	}
+
 	ctrl.writeInstrument(chipch, midich, instr)
 	ctrl.writeModulation(chipch, instr, chipState.flags&flagVibrato != 0)
 	ctrl.registers.WriteChannel(chipch, ymf.CHPAN, int(ctrl.midiChannelStates[midich].pan))
@@ -322,13 +333,15 @@ func (ctrl *Controller) releaseChipChannel(chipch int, killed bool) {
 	ctrl.writeFrequency(chipch, -1, state.realnote, state.pitch, false)
 	state.midiChannel = -1
 	state.time = time.Now()
-	state.flags = flagFree
+	state.flags = flagReleased
 	if killed {
 		ctrl.writeAllOperators(ymf.SL, chipch, 0)
 		ctrl.writeAllOperators(ymf.RR, chipch, 15) // release rate - fastest
 		ctrl.writeAllOperators(ymf.KSL, chipch, 0)
 		ctrl.writeAllOperators(ymf.TL, chipch, 0x3f) // no volume
+		state.flags |= flagFree
 	}
+	ctrl.registers.WriteChannel(chipch, ymf.KON, 0)
 }
 
 func (ctrl *Controller) releaseSustain(midich int) {
@@ -340,27 +353,37 @@ func (ctrl *Controller) releaseSustain(midich int) {
 }
 
 func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
-	for i := 0; i < len(ctrl.chipChannelStates); i++ {
-		if ctrl.chipChannelStates[i].flags&flagFree != 0 {
+	for i, state := range ctrl.chipChannelStates {
+		if state.flags&flagFree != 0 {
 			return i
 		}
 	}
 
-	oldest := -1
-	oldesttime := time.Now()
+	now := time.Now()
+	foundReleased := -1
+	foundTotal := -1
+	maxDeltaReleased := -1
+	maxDeltaTotal := -1
 
-	// find some 2nd-voice channel and determine the oldest
-	for i := 0; i < len(ctrl.chipChannelStates); i++ {
-		if ctrl.chipChannelStates[i].time.Before(oldesttime) {
-			oldesttime = ctrl.chipChannelStates[i].time
-			oldest = i
+	for i, state := range ctrl.chipChannelStates {
+		delta := int(now.Sub(state.time)) * state.minRR
+		if maxDeltaReleased < delta && state.flags&flagReleased != 0 {
+			maxDeltaReleased = delta
+			foundReleased = i
+		}
+		if maxDeltaTotal < delta {
+			maxDeltaTotal = delta
+			foundTotal = i
 		}
 	}
 
-	// if possible, kill the oldest channel
-	if 0 <= oldest {
-		ctrl.releaseChipChannel(oldest, true)
-		return oldest
+	if 0 <= foundReleased {
+		ctrl.releaseChipChannel(foundReleased, true)
+		return foundReleased
+	}
+	if 0 <= foundTotal {
+		ctrl.releaseChipChannel(foundTotal, true)
+		return foundTotal
 	}
 
 	// can't find any free channel

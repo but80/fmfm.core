@@ -37,6 +37,6 @@ func (pg *phaseGenerator) getPhase(vibratoIndex int) uint64 {
 	return pg.phaseFrac64
 }
 
-func (pg *phaseGenerator) keyOn() {
+func (pg *phaseGenerator) resetPhase() {
 	pg.phaseFrac64 = 0
 }

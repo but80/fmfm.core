@@ -28,6 +28,30 @@ var Pow63Of2 = float64(1 << 63)
 // Pow64Of2 は、2の64乗です。
 var Pow64Of2 = Pow63Of2 * 2.0
 
+// ModulatorMatrix は、各 ALG でモジュレータとして使用されるオペレータを表すマトリクスです。
+var ModulatorMatrix = [8][4]bool{
+	{true, false, false, false},
+	{false, false, false, false},
+	{false, false, false, false},
+	{true, true, true, false},
+	{true, true, true, false},
+	{true, false, true, false},
+	{false, true, true, false},
+	{false, true, false, false},
+}
+
+// CarrierMatrix は、各 ALG でキャリアとして使用されるオペレータを表すマトリクスです。
+var CarrierMatrix = [8][4]bool{
+	{false, true, false, false},
+	{true, true, false, false},
+	{true, true, true, true},
+	{false, false, false, true},
+	{false, false, false, true},
+	{false, true, false, true},
+	{true, false, false, true},
+	{true, false, true, true},
+}
+
 // VolumeTable は、MIDIメッセージのボリュームやエクスプレッションによって振幅にかかる係数のテーブルです。
 var VolumeTable = [...]float64{
 	1e30, 47.9, 42.6, 37.2, 33.1, 29.8, 27.0, 24.6,

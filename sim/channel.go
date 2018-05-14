@@ -8,17 +8,6 @@ import (
 
 const noModulator = 0
 
-var isModulatorMatrix = [8][4]bool{
-	{true, false, false, false},
-	{false, false, false, false},
-	{false, false, false, false},
-	{true, true, true, false},
-	{true, true, true, false},
-	{true, false, true, false},
-	{false, true, true, false},
-	{false, true, false, false},
-}
-
 /*
 
 ==================================================
@@ -209,7 +198,7 @@ func (ch *Channel) setALG(v int) {
 	ch.feedback3Prev = 0
 	ch.feedback3Curr = 0
 	for i, op := range ch.operators {
-		op.isModulator = isModulatorMatrix[ch.alg][i]
+		op.isModulator = ymfdata.ModulatorMatrix[ch.alg][i]
 	}
 }
 
