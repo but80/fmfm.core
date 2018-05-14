@@ -427,7 +427,8 @@ func (ch *Channel) next() (float64, float64) {
 }
 
 func (ch *Channel) resetPhase() {
-	ch.modIndexFrac64 = 0
+	// TODO: modulation reset timing
+	// ch.modIndexFrac64 = 0
 	for _, op := range ch.operators {
 		op.phaseGenerator.resetPhase()
 		if op.envelopeGenerator.tlCoef < epsilon {
@@ -444,8 +445,6 @@ func (ch *Channel) keyOn() {
 	ch.feedback1Curr = 0
 	ch.feedback3Prev = 0
 	ch.feedback3Curr = 0
-	// TODO: modulation reset timing
-	// op.modIndexFrac64 = 0
 }
 
 func (ch *Channel) keyOff() {
