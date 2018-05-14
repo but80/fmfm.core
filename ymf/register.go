@@ -76,4 +76,6 @@ type Registers interface {
 	WriteTL(channel, operatorIndex int, tlCarrier, tlModulator int)
 	// WriteChannel は、チャンネルレジスタに値を書き込みます。
 	WriteChannel(channel int, offset ChRegister, v int)
+	// DebugSetMIDIChannel は、チャンネルを使用しているMIDIチャンネル番号をデバッグ用にセットします。
+	DebugSetMIDIChannel(channel, midiChannel int)
 }

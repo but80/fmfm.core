@@ -4,6 +4,12 @@ import (
 	"math"
 )
 
+// DebugDumpMIDIChannel は、デバッグとしてダンプ表示を行う対象のMIDIチャンネルです。未使用時は -1 を指定します。
+const DebugDumpMIDIChannel = -1
+
+// DebugDumpFPS は、デバッグとしてダンプ表示を行う頻度 [FPS] です。
+const DebugDumpFPS = 30
+
 // ChannelCount は、最大チャンネル数です。
 const ChannelCount = 16
 

@@ -20,6 +20,8 @@ func NewRegisters(chip *Chip) *Registers {
 
 // WriteOperator は、オペレータレジスタに値を書き込みます。
 func (regs *Registers) WriteOperator(channel, operatorIndex int, offset ymf.OpRegister, v int) {
+	regs.chip.Mutex.Lock()
+	defer regs.chip.Mutex.Unlock()
 	switch offset {
 	case ymf.EAM:
 		regs.chip.channels[channel].operators[operatorIndex].setEAM(v)
@@ -60,6 +62,8 @@ func (regs *Registers) WriteOperator(channel, operatorIndex int, offset ymf.OpRe
 
 // WriteTL は、TLレジスタに値を書き込みます。
 func (regs *Registers) WriteTL(channel, operatorIndex int, tlCarrier, tlModulator int) {
+	regs.chip.Mutex.Lock()
+	defer regs.chip.Mutex.Unlock()
 	if regs.chip.channels[channel].operators[operatorIndex].isModulator {
 		regs.WriteOperator(channel, operatorIndex, ymf.TL, tlModulator)
 	} else {
@@ -67,15 +71,20 @@ func (regs *Registers) WriteTL(channel, operatorIndex int, tlCarrier, tlModulato
 	}
 }
 
+// DebugSetMIDIChannel は、チャンネルを使用しているMIDIチャンネル番号をデバッグ用にセットします。
+func (regs *Registers) DebugSetMIDIChannel(channel, midiChannel int) {
+	regs.chip.Mutex.Lock()
+	defer regs.chip.Mutex.Unlock()
+	regs.chip.channels[channel].midiChannelID = midiChannel
+}
+
 // WriteChannel は、チャンネルレジスタに値を書き込みます。
 func (regs *Registers) WriteChannel(channel int, offset ymf.ChRegister, v int) {
+	regs.chip.Mutex.Lock()
+	defer regs.chip.Mutex.Unlock()
 	switch offset {
 	case ymf.KON:
 		regs.chip.channels[channel].setKON(v)
-		// regs.chip.channels[channel].midiChannelID = midich
-		// if midich == 4 {
-		// 	fmt.Print(regs.chip.channels[channel].dump())
-		// }
 	case ymf.BLOCK:
 		regs.chip.channels[channel].setBLOCK(v)
 	case ymf.FNUM:

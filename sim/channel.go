@@ -2,6 +2,8 @@ package sim
 
 import (
 	"fmt"
+	"math"
+	"strings"
 
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
@@ -154,9 +156,21 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 	return ch
 }
 
+func (ch *Channel) currentLevel() float64 {
+	var result float64
+	for i, op := range ch.operators {
+		if ymfdata.CarrierMatrix[ch.alg][i] {
+			result = math.Max(result, op.envelopeGenerator.currentLevel)
+		}
+	}
+	return result
+}
+
 func (ch *Channel) dump() string {
+	lv := int((96.0 + math.Log10(ch.currentLevel())*20.0) / 8.0)
+	lvstr := strings.Repeat("|", lv)
 	result := fmt.Sprintf(
-		"[%02d] midi=%02d alg=%d pan=%03d+%03d vol=%03d exp=%03d vel=%03d freq=%03d+%d-%d modidx=%04d\n",
+		"[%02d] midi=%02d alg=%d pan=%03d+%03d vol=%03d exp=%03d vel=%03d freq=%03d+%d-%d modidx=%04d %s\n",
 		ch.channelID,
 		ch.midiChannelID,
 		ch.alg,
@@ -173,6 +187,7 @@ func (ch *Channel) dump() string {
 		// ch.lfoFrequency,
 		// ch.panCoefL,
 		// ch.panCoefR,
+		lvstr,
 	)
 	for _, op := range ch.operators {
 		result += "  " + op.dump() + "\n"
@@ -181,6 +196,9 @@ func (ch *Channel) dump() string {
 }
 
 func (ch *Channel) setKON(v int) {
+	if v != 0 {
+		ch.resetPhase()
+	}
 	if v == ch.kon {
 		return
 	}
@@ -406,6 +424,12 @@ func (ch *Channel) next() (float64, float64) {
 
 	result *= ch.attenuationCoef
 	return result * ch.panCoefL, result * ch.panCoefR
+}
+
+func (ch *Channel) resetPhase() {
+	for _, op := range ch.operators {
+		op.phaseGenerator.resetPhase()
+	}
 }
 
 func (ch *Channel) keyOn() {

@@ -2,6 +2,8 @@ package sim
 
 import (
 	"fmt"
+	"math"
+	"strings"
 
 	"github.com/but80/fmfm/ymf/ymfdata"
 )
@@ -26,8 +28,6 @@ type operator struct {
 	block          int
 	bo             int
 
-	phaseFrac64 uint64
-
 	envelopeGenerator *envelopeGenerator
 
 	chip           *Chip
@@ -51,6 +51,10 @@ func newOperator(channelID, operatorIndex int, chip *Chip) *operator {
 func (op *operator) dump() string {
 	eg := op.envelopeGenerator
 	pg := op.phaseGenerator
+
+	lv := int((96.0 + math.Log10(eg.currentLevel)*20.0) / 8.0)
+	lvstr := strings.Repeat("|", lv)
+
 	cm := "C"
 	if op.isModulator {
 		cm = "M"
@@ -63,8 +67,11 @@ func (op *operator) dump() string {
 	if pg.evb {
 		vb = fmt.Sprintf("%d", pg.dvb)
 	}
+	phase := pg.phaseFrac64 >> ymfdata.WaveformIndexShift
+	phstr := []byte("        ")
+	phstr[phase>>(ymfdata.WaveformLenBits-3)] = '|'
 	return fmt.Sprintf(
-		"%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f",
+		"%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f st=%s ph=%s lv=%s",
 		op.operatorIndex,
 		cm,
 		op.mult,
@@ -96,7 +103,9 @@ func (op *operator) dump() string {
 		// op.block,
 		// op.bo,
 		// op.xof,
-		// op.phaseFrac64,
+		eg.stage.String(),
+		string(phstr),
+		lvstr,
 	)
 }
 
@@ -180,14 +189,13 @@ func (op *operator) setFB(v int) {
 }
 
 func (op *operator) next(modIndex int, modulator float64) float64 {
+	phaseFrac64 := op.phaseGenerator.getPhase(modIndex)
 	if op.envelopeGenerator.stage == stageOff {
 		return 0
 	}
-
 	envelope := op.envelopeGenerator.getEnvelope(modIndex)
-	op.phaseFrac64 = op.phaseGenerator.getPhase(modIndex)
 
-	sampleIndex := op.phaseFrac64 >> ymfdata.WaveformIndexShift
+	sampleIndex := phaseFrac64 >> ymfdata.WaveformIndexShift
 	sampleIndex += uint64((modulator + 1024.0) * ymfdata.WaveformLen)
 	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * envelope
 }

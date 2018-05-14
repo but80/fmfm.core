@@ -16,6 +16,23 @@ const (
 	stageRelease
 )
 
+func (s stage) String() string {
+	switch s {
+	case stageOff:
+		return "-"
+	case stageAttack:
+		return "A"
+	case stageDecay:
+		return "D"
+	case stageSustain:
+		return "S"
+	case stageRelease:
+		return "R"
+	default:
+		return "?"
+	}
+}
+
 const epsilon = 1.0 / 32768.0
 
 type envelopeGenerator struct {

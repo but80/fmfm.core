@@ -3,6 +3,7 @@ package fmfm
 import (
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/but80/fmfm/ymf"
@@ -72,6 +73,7 @@ type midiChannelState struct {
 
 // Controller は、MIDIに類似するインタフェースで Chip のレジスタをコントロールします。
 type Controller struct {
+	mutex     sync.Mutex
 	registers ymf.Registers
 	libraries []*smaf.VM5VoiceLib
 
@@ -101,6 +103,9 @@ func (ctrl *Controller) NoteOn(midich, note, velocity int) {
 		return
 	}
 
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
 	instr, ok := ctrl.getInstrument(midich, note)
 	if !ok {
 		// TODO: warning
@@ -122,6 +127,9 @@ func (ctrl *Controller) NoteOn(midich, note, velocity int) {
 
 // NoteOff は、MIDIノートオフ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) NoteOff(ch, note int) {
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
 	sus := ctrl.midiChannelStates[ch].sustain
 	for chipch, state := range ctrl.chipChannelStates {
 		if state.midiChannel == ch && state.note == note {
@@ -136,6 +144,9 @@ func (ctrl *Controller) NoteOff(ch, note int) {
 
 // ControlChange は、MIDIコントロールチェンジ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) ControlChange(midich, cc, value int) {
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
 	switch cc {
 	case ccBankMSB:
 		ctrl.midiChannelStates[midich].bankMSB = uint8(value)
@@ -235,11 +246,17 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 
 // ProgramChange は、MIDIプログラムチェンジ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) ProgramChange(midich, pc int) {
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
 	ctrl.midiChannelStates[midich].pc = uint8(pc)
 }
 
 // PitchBend は、MIDIピッチベンド受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) PitchBend(midich, l, h int) {
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
 	pitch := h*128 + l - 8192
 	pitch = int(float64(pitch)*float64(ctrl.midiChannelStates[midich].pitchSens)/(200*128) + 64)
 	ctrl.midiChannelStates[midich].pitch = int8(pitch)
@@ -254,24 +271,15 @@ func (ctrl *Controller) PitchBend(midich, l, h int) {
 
 // Reset は、音源の状態をリセットします。
 func (ctrl *Controller) Reset() {
-	for _, state := range ctrl.chipChannelStates {
-		state.midiChannel = -1
-		state.note = 0
-		state.flags = 0
-		state.realnote = 0
-		state.finetune = 0
-		state.pitch = 0
-		state.instrument = nil
-		state.time = time.Time{}
-		state.minRR = 15
+	ctrl.mutex.Lock()
+	defer ctrl.mutex.Unlock()
+
+	for i := range ctrl.chipChannelStates {
+		ctrl.releaseChipChannel(i, true)
 	}
-	for _, state := range ctrl.midiChannelStates {
-		state.volume = 100
-		state.pan = 64
+	for i := range ctrl.midiChannelStates {
+		ctrl.resetMIDIChannel(i)
 	}
-	ctrl.muteAllChipChannels()
-	ctrl.releaseAllChipChannels()
-	ctrl.resetAllMIDIChannels()
 }
 
 func (ctrl *Controller) writeModulation(chipch int, instr *smaf.VM35VoicePC, state bool) {
@@ -319,10 +327,11 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 	ctrl.writeInstrument(chipch, midich, instr)
 	ctrl.writeModulation(chipch, instr, chipState.flags&flagVibrato != 0)
 	ctrl.registers.WriteChannel(chipch, ymf.CHPAN, int(ctrl.midiChannelStates[midich].pan))
-	ctrl.registers.WriteChannel(chipch, ymf.VOLUME, int(ctrl.midiChannelStates[midich].volume))
-	// if midich != 4 {
-	// 	ctrl.registers.WriteChannel(chipch, ymf.VOLUME, 0)
-	// }
+	if 0 <= ymfdata.DebugDumpMIDIChannel && midich != ymfdata.DebugDumpMIDIChannel {
+		ctrl.registers.WriteChannel(chipch, ymf.VOLUME, 0)
+	} else {
+		ctrl.registers.WriteChannel(chipch, ymf.VOLUME, int(ctrl.midiChannelStates[midich].volume))
+	}
 	ctrl.registers.WriteChannel(chipch, ymf.EXPRESSION, int(ctrl.midiChannelStates[midich].expression))
 	ctrl.registers.WriteChannel(chipch, ymf.VELOCITY, velocity)
 	ctrl.writeFrequency(chipch, midich, note, chipState.pitch, true)
@@ -339,6 +348,12 @@ func (ctrl *Controller) releaseChipChannel(chipch int, killed bool) {
 		ctrl.writeAllOperators(ymf.RR, chipch, 15) // release rate - fastest
 		ctrl.writeAllOperators(ymf.KSL, chipch, 0)
 		ctrl.writeAllOperators(ymf.TL, chipch, 0x3f) // no volume
+		// state.note = 0
+		// state.realnote = 0
+		// state.finetune = 0
+		// state.pitch = 0
+		state.minRR = 15
+		state.instrument = nil
 		state.flags |= flagFree
 	}
 	ctrl.registers.WriteChannel(chipch, ymf.KON, 0)
@@ -419,20 +434,6 @@ func (ctrl *Controller) resetMIDIChannel(midich int) {
 	ctrl.midiChannelStates[midich].pitchSens = 200
 }
 
-func (ctrl *Controller) resetAllMIDIChannels() {
-	for i := range ctrl.midiChannelStates {
-		ctrl.resetMIDIChannel(i)
-	}
-}
-
-func (ctrl *Controller) releaseAllChipChannels() {
-	for i := range ctrl.chipChannelStates {
-		if ctrl.chipChannelStates[i].flags&flagFree == 0 {
-			ctrl.releaseChipChannel(i, true)
-		}
-	}
-}
-
 func (ctrl *Controller) writeAllOperators(regbase ymf.OpRegister, chipch, data int) {
 	ctrl.registers.WriteOperator(chipch, 0, regbase, data)
 	ctrl.registers.WriteOperator(chipch, 1, regbase, data)
@@ -469,6 +470,7 @@ func (ctrl *Controller) writeFrequency(chipch, midich, note, pitch int, keyon bo
 	k := 0
 	if keyon {
 		k = 1
+		ctrl.registers.DebugSetMIDIChannel(chipch, midich)
 	}
 	ctrl.registers.WriteChannel(chipch, ymf.KON, k)
 }
@@ -507,16 +509,4 @@ func (ctrl *Controller) writeInstrument(chipch, midich int, instr *smaf.VM35Voic
 	ctrl.registers.WriteChannel(chipch, ymf.LFO, int(instr.FmVoice.Lfo))
 	ctrl.registers.WriteChannel(chipch, ymf.PANPOT, int(instr.FmVoice.Panpot))
 	ctrl.registers.WriteChannel(chipch, ymf.BO, int(instr.FmVoice.Bo))
-}
-
-func (ctrl *Controller) muteAllChipChannels() {
-	for i := range ctrl.chipChannelStates {
-		ctrl.writeAllOperators(ymf.KSL, i, 0)
-		ctrl.writeAllOperators(ymf.TL, i, 0x3f)    // turn off volume
-		ctrl.writeAllOperators(ymf.AR, i, 15)      // the fastest attack,
-		ctrl.writeAllOperators(ymf.DR, i, 15)      // decay
-		ctrl.writeAllOperators(ymf.SL, i, 0)       //
-		ctrl.writeAllOperators(ymf.RR, i, 15)      // ... and release
-		ctrl.registers.WriteChannel(i, ymf.KON, 0) // KEY-OFF
-	}
 }
