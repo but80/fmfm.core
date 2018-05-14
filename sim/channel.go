@@ -101,18 +101,20 @@ type Channel struct {
 	velocity   int
 	bo         int
 
-	feedback1Prev   float64
-	feedback1Curr   float64
-	feedback3Prev   float64
-	feedback3Curr   float64
-	feedbackOut1    float64
-	feedbackOut3    float64
-	toPhase         float64
-	attenuationCoef float64
-	modIndexFrac64  uint64
-	lfoFrequency    uint64
-	panCoefL        float64
-	panCoefR        float64
+	feedbackBlendPrev float64
+	feedbackBlendCurr float64
+	feedback1Prev     float64
+	feedback1Curr     float64
+	feedback3Prev     float64
+	feedback3Curr     float64
+	feedbackOut1      float64
+	feedbackOut3      float64
+	toPhase           float64
+	attenuationCoef   float64
+	modIndexFrac64    uint64
+	lfoFrequency      uint64
+	panCoefL          float64
+	panCoefR          float64
 
 	operators [4]*operator
 }
@@ -136,6 +138,15 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 
 		toPhase: 4,
 	}
+
+	// 48000Hz:     |prev|curr|
+	// 44100Hz: | prev | curr |
+	ch.feedbackBlendCurr = .5 * ymfdata.SampleRate / chip.sampleRate
+	if 1.0 < ch.feedbackBlendCurr {
+		ch.feedbackBlendCurr = 1.0
+	}
+	ch.feedbackBlendPrev = 1.0 - ch.feedbackBlendCurr
+
 	for i := range ch.operators {
 		ch.operators[i] = newOperator(channelID, i, chip)
 	}
@@ -384,13 +395,13 @@ func (ch *Channel) next() (float64, float64) {
 	if op1.feedbackCoef != .0 {
 		ch.feedback1Prev = ch.feedback1Curr
 		ch.feedback1Curr = op1out * op1.feedbackCoef
-		ch.feedbackOut1 = (ch.feedback1Prev + ch.feedback1Curr) / 2.0
+		ch.feedbackOut1 = ch.feedback1Prev*ch.feedbackBlendPrev + ch.feedback1Curr*ch.feedbackBlendCurr
 	}
 
 	if op3.feedbackCoef != .0 {
 		ch.feedback3Prev = ch.feedback3Curr
 		ch.feedback3Curr = op3out * op3.feedbackCoef
-		ch.feedbackOut3 = (ch.feedback3Prev + ch.feedback3Curr) / 2.0
+		ch.feedbackOut3 = ch.feedback3Prev*ch.feedbackBlendPrev + ch.feedback3Curr*ch.feedbackBlendCurr
 	}
 
 	result *= ch.attenuationCoef
