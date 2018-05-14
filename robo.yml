@@ -1,7 +1,7 @@
 run:
   summary: 'Run program'
   command: |
-    go run cmd/fmfm-cli/main.go
+    go run cmd/fmfm-cli/main.go $*
 
 prof:
   summary: 'Run program with profiling'

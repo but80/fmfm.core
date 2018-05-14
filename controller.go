@@ -72,21 +72,33 @@ type midiChannelState struct {
 	mono       bool
 }
 
+// ControllerOpts は、 NewController のオプションです。
+type ControllerOpts struct {
+	Registers          ymf.Registers
+	Libraries          []*smaf.VM5VoiceLib
+	IgnoreMIDIChannels []int
+}
+
 // Controller は、MIDIに類似するインタフェースで Chip のレジスタをコントロールします。
 type Controller struct {
-	mutex     sync.Mutex
-	registers ymf.Registers
-	libraries []*smaf.VM5VoiceLib
+	mutex              sync.Mutex
+	registers          ymf.Registers
+	libraries          []*smaf.VM5VoiceLib
+	ignoreMIDIChannels map[int]struct{}
 
 	midiChannelStates [16]*midiChannelState
 	chipChannelStates [ymfdata.ChannelCount]*chipChannelState
 }
 
 // NewController は、新しい Controller を作成します。
-func NewController(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Controller {
+func NewController(opts *ControllerOpts) *Controller {
 	ctrl := &Controller{
-		registers: registers,
-		libraries: libraries,
+		registers:          opts.Registers,
+		libraries:          opts.Libraries,
+		ignoreMIDIChannels: map[int]struct{}{},
+	}
+	for _, ch := range opts.IgnoreMIDIChannels {
+		ctrl.ignoreMIDIChannels[ch] = struct{}{}
 	}
 	for i := range ctrl.chipChannelStates {
 		ctrl.chipChannelStates[i] = &chipChannelState{}
@@ -101,6 +113,9 @@ func NewController(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Cont
 func (ctrl *Controller) NoteOn(midich, note, velocity int) {
 	if velocity == 0 {
 		ctrl.NoteOff(midich, note)
+		return
+	}
+	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
 		return
 	}
 
@@ -133,13 +148,16 @@ func (ctrl *Controller) NoteOn(midich, note, velocity int) {
 }
 
 // NoteOff は、MIDIノートオフ受信時の音源の振る舞いを再現します。
-func (ctrl *Controller) NoteOff(ch, note int) {
+func (ctrl *Controller) NoteOff(midich, note int) {
+	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
+		return
+	}
 	ctrl.mutex.Lock()
 	defer ctrl.mutex.Unlock()
 
-	sus := ctrl.midiChannelStates[ch].sustain
+	sus := ctrl.midiChannelStates[midich].sustain
 	for chipch, state := range ctrl.chipChannelStates {
-		if state.midiChannel == ch && state.note == note {
+		if state.midiChannel == midich && state.note == note {
 			if sus < 0x40 {
 				ctrl.keyOff(chipch)
 			} else {
@@ -151,6 +169,9 @@ func (ctrl *Controller) NoteOff(ch, note int) {
 
 // ControlChange は、MIDIコントロールチェンジ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) ControlChange(midich, cc, value int) {
+	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
+		return
+	}
 	ctrl.mutex.Lock()
 	defer ctrl.mutex.Unlock()
 	channel := ctrl.midiChannelStates[midich]
@@ -245,6 +266,9 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 
 // ProgramChange は、MIDIプログラムチェンジ受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) ProgramChange(midich, pc int) {
+	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
+		return
+	}
 	ctrl.mutex.Lock()
 	defer ctrl.mutex.Unlock()
 
@@ -253,6 +277,9 @@ func (ctrl *Controller) ProgramChange(midich, pc int) {
 
 // PitchBend は、MIDIピッチベンド受信時の音源の振る舞いを再現します。
 func (ctrl *Controller) PitchBend(midich, l, h int) {
+	if _, ok := ctrl.ignoreMIDIChannels[midich]; ok {
+		return
+	}
 	ctrl.mutex.Lock()
 	defer ctrl.mutex.Unlock()
 

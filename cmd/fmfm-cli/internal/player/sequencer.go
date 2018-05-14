@@ -5,8 +5,6 @@ import (
 	"sync"
 
 	"github.com/but80/fmfm.core"
-	"github.com/but80/fmfm.core/ymf"
-	"github.com/but80/smaf825/pb/smaf"
 	"github.com/xlab/portmidi"
 )
 
@@ -22,7 +20,7 @@ type Sequencer struct {
 var newSequencerOnce = sync.Once{}
 
 // NewSequencer は、新しい Sequencer を作成します。
-func NewSequencer(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Sequencer {
+func NewSequencer(opts *fmfm.ControllerOpts) *Sequencer {
 	newSequencerOnce.Do(func() {
 		portmidi.Initialize()
 		if portmidi.CountDevices() < 1 {
@@ -46,7 +44,7 @@ func NewSequencer(registers ymf.Registers, libraries []*smaf.VM5VoiceLib) *Seque
 	}
 
 	seq := &Sequencer{
-		Controller: fmfm.NewController(registers, libraries),
+		Controller: fmfm.NewController(opts),
 		input:      input,
 	}
 	seq.Reset()
