@@ -427,8 +427,12 @@ func (ch *Channel) next() (float64, float64) {
 }
 
 func (ch *Channel) resetPhase() {
+	ch.modIndexFrac64 = 0
 	for _, op := range ch.operators {
 		op.phaseGenerator.resetPhase()
+		if op.envelopeGenerator.tlCoef < epsilon {
+			op.envelopeGenerator.stage = stageOff
+		}
 	}
 }
 

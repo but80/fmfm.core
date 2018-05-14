@@ -32,17 +32,17 @@ const (
 	ccBankLSB      = 32
 	ccDataEntryLo  = 38
 	ccSustainPedal = 64
-	ccSoftPedal    = 67
-	ccReverb       = 91
-	ccChorus       = 93
-	ccNRPNLo       = 98
-	ccNRPNHi       = 99
-	ccRPNLo        = 100
-	ccRPNHi        = 101
-	ccSoundsOff    = 120
-	ccNotesOff     = 123
-	ccMono         = 126
-	ccPoly         = 127
+	// ccSoftPedal    = 67
+	// ccReverb       = 91
+	// ccChorus       = 93
+	ccNRPNLo    = 98
+	ccNRPNHi    = 99
+	ccRPNLo     = 100
+	ccRPNHi     = 101
+	ccSoundsOff = 120
+	ccNotesOff  = 123
+	// ccMono         = 126
+	// ccPoly         = 127
 )
 
 type chipChannelState struct {
@@ -174,30 +174,15 @@ func (ctrl *Controller) ControlChange(midich, cc, value int) {
 
 	case ccVolume: // change volume
 		ctrl.midiChannelStates[midich].volume = uint8(value)
-		for i, state := range ctrl.chipChannelStates {
-			if state.midiChannel == midich {
-				state.time = time.Now()
-				ctrl.registers.WriteChannel(i, ymf.VOLUME, value)
-			}
-		}
+		ctrl.writeChannelsUsingMIDIChannel(midich, ymf.VOLUME, value)
 
 	case ccExpression: // change expression
 		ctrl.midiChannelStates[midich].expression = uint8(value)
-		for i, state := range ctrl.chipChannelStates {
-			if state.midiChannel == midich {
-				state.time = time.Now()
-				ctrl.registers.WriteChannel(i, ymf.EXPRESSION, value)
-			}
-		}
+		ctrl.writeChannelsUsingMIDIChannel(midich, ymf.EXPRESSION, value)
 
 	case ccPan: // change pan (balance)
 		ctrl.midiChannelStates[midich].pan = uint8(value)
-		for i, state := range ctrl.chipChannelStates {
-			if state.midiChannel == midich {
-				state.time = time.Now()
-				ctrl.registers.WriteChannel(i, ymf.CHPAN, value)
-			}
-		}
+		ctrl.writeChannelsUsingMIDIChannel(midich, ymf.CHPAN, value)
 
 	case ccSustainPedal: // change sustain pedal (hold)
 		ctrl.midiChannelStates[midich].sustain = uint8(value)
@@ -344,10 +329,10 @@ func (ctrl *Controller) releaseChipChannel(chipch int, killed bool) {
 	state.time = time.Now()
 	state.flags = flagReleased
 	if killed {
-		ctrl.writeAllOperators(ymf.SL, chipch, 0)
-		ctrl.writeAllOperators(ymf.RR, chipch, 15) // release rate - fastest
-		ctrl.writeAllOperators(ymf.KSL, chipch, 0)
-		ctrl.writeAllOperators(ymf.TL, chipch, 0x3f) // no volume
+		ctrl.writeAllOperators(chipch, ymf.SL, 0)
+		ctrl.writeAllOperators(chipch, ymf.RR, 15) // release rate - fastest
+		ctrl.writeAllOperators(chipch, ymf.KSL, 0)
+		ctrl.writeAllOperators(chipch, ymf.TL, 0x3f) // no volume
 		// state.note = 0
 		// state.realnote = 0
 		// state.finetune = 0
@@ -434,11 +419,20 @@ func (ctrl *Controller) resetMIDIChannel(midich int) {
 	ctrl.midiChannelStates[midich].pitchSens = 200
 }
 
-func (ctrl *Controller) writeAllOperators(regbase ymf.OpRegister, chipch, data int) {
-	ctrl.registers.WriteOperator(chipch, 0, regbase, data)
-	ctrl.registers.WriteOperator(chipch, 1, regbase, data)
-	ctrl.registers.WriteOperator(chipch, 2, regbase, data)
-	ctrl.registers.WriteOperator(chipch, 3, regbase, data)
+func (ctrl *Controller) writeChannelsUsingMIDIChannel(midich int, regbase ymf.ChRegister, value int) {
+	for i, state := range ctrl.chipChannelStates {
+		if state.midiChannel == midich {
+			state.time = time.Now()
+			ctrl.registers.WriteChannel(i, regbase, value)
+		}
+	}
+}
+
+func (ctrl *Controller) writeAllOperators(chipch int, regbase ymf.OpRegister, value int) {
+	ctrl.registers.WriteOperator(chipch, 0, regbase, value)
+	ctrl.registers.WriteOperator(chipch, 1, regbase, value)
+	ctrl.registers.WriteOperator(chipch, 2, regbase, value)
+	ctrl.registers.WriteOperator(chipch, 3, regbase, value)
 }
 
 func (ctrl *Controller) writeFrequency(chipch, midich, note, pitch int, keyon bool) {
@@ -483,7 +477,7 @@ func bool2int(b bool) int {
 }
 
 func (ctrl *Controller) writeInstrument(chipch, midich int, instr *smaf.VM35VoicePC) {
-	ctrl.writeAllOperators(ymf.TL, chipch, 0x3f) // no volume
+	ctrl.writeAllOperators(chipch, ymf.TL, 0x3f) // no volume
 
 	for i, op := range instr.FmVoice.Operators {
 		ctrl.registers.WriteOperator(chipch, i, ymf.EAM, bool2int(op.Eam))
