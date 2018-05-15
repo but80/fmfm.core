@@ -33,6 +33,10 @@ func main() {
 			Name:  "ignore, n",
 			Usage: `Ignore MIDI channel`,
 		},
+		cli.IntFlag{
+			Name:  "dump, d",
+			Usage: `Dump MIDI channel`,
+		},
 	}
 	app.Authors = []cli.Author{
 		{
@@ -64,13 +68,19 @@ func main() {
 			libs = append(libs, &lib)
 		}
 
+		dumpMIDIChannel := -1
+		if 0 < ctx.Int("dump") {
+			dumpMIDIChannel = ctx.Int("dump") - 1
+		}
+
 		renderer := player.NewRenderer()
-		chip := sim.NewChip(renderer.Parameters.SampleRate, -12.0)
+		chip := sim.NewChip(renderer.Parameters.SampleRate, -15.0, dumpMIDIChannel)
 		regs := sim.NewRegisters(chip)
 		opts := &fmfm.ControllerOpts{
 			Registers:          regs,
 			Libraries:          libs,
 			IgnoreMIDIChannels: []int{},
+			SoloMIDIChannel:    dumpMIDIChannel,
 		}
 		if 0 < ctx.Int("ignore") {
 			opts.IgnoreMIDIChannels = append(opts.IgnoreMIDIChannels, ctx.Int("ignore")-1)

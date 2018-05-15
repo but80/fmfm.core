@@ -96,6 +96,7 @@ type ControllerOpts struct {
 	Registers          ymf.Registers
 	Libraries          []*smaf.VM5VoiceLib
 	IgnoreMIDIChannels []int
+	SoloMIDIChannel    int
 }
 
 // Controller は、MIDIに類似するインタフェースで Chip のレジスタをコントロールします。
@@ -104,6 +105,7 @@ type Controller struct {
 	registers          ymf.Registers
 	libraries          []*smaf.VM5VoiceLib
 	ignoreMIDIChannels map[int]struct{}
+	soloMIDIChannel    int
 	midiMessages       []*midiMessage
 
 	midiChannelStates [16]*midiChannelState
@@ -116,6 +118,7 @@ func NewController(opts *ControllerOpts) *Controller {
 		registers:          opts.Registers,
 		libraries:          opts.Libraries,
 		ignoreMIDIChannels: map[int]struct{}{},
+		soloMIDIChannel:    opts.SoloMIDIChannel,
 		midiMessages:       []*midiMessage{},
 	}
 	for _, ch := range opts.IgnoreMIDIChannels {
@@ -259,7 +262,9 @@ func (ctrl *Controller) controlChange(midich, cc, value int) {
 
 	case ccVolume: // change volume
 		channel.volume = uint8(value)
-		ctrl.writeChannelsUsingMIDIChannel(midich, ymf.VOLUME, value)
+		if ctrl.soloMIDIChannel < 0 || midich == ctrl.soloMIDIChannel {
+			ctrl.writeChannelsUsingMIDIChannel(midich, ymf.VOLUME, value)
+		}
 
 	case ccExpression: // change expression
 		channel.expression = uint8(value)
@@ -404,10 +409,10 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 	ctrl.writeInstrument(chipch, midich, instr)
 	ctrl.writeModulation(chipch, instr, chipState.flags&flagVibrato != 0)
 	ctrl.registers.WriteChannel(chipch, ymf.CHPAN, int(ctrl.midiChannelStates[midich].pan))
-	if 0 <= ymfdata.DebugDumpMIDIChannel && midich != ymfdata.DebugDumpMIDIChannel {
-		ctrl.registers.WriteChannel(chipch, ymf.VOLUME, 0)
-	} else {
+	if ctrl.soloMIDIChannel < 0 || midich == ctrl.soloMIDIChannel {
 		ctrl.registers.WriteChannel(chipch, ymf.VOLUME, int(ctrl.midiChannelStates[midich].volume))
+	} else {
+		ctrl.registers.WriteChannel(chipch, ymf.VOLUME, 0)
 	}
 	ctrl.registers.WriteChannel(chipch, ymf.EXPRESSION, int(ctrl.midiChannelStates[midich].expression))
 	ctrl.registers.WriteChannel(chipch, ymf.VELOCITY, velocity)

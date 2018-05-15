@@ -16,6 +16,8 @@ type Chip struct {
 	sampleRate float64
 	// totalLevel は、出力のトータルな音量[dB]です。
 	totalLevel float64
+	// dumpMIDIChannel は、ダンプ表示対象のMIDIチャンネルです。未使用時は -1 です。
+	dumpMIDIChannel int
 	// channels は、このチップが備える全チャンネルです。
 	channels []*Channel
 
@@ -23,10 +25,11 @@ type Chip struct {
 }
 
 // NewChip は、新しい Chip を作成します。
-func NewChip(sampleRate, totalLevel float64) *Chip {
+func NewChip(sampleRate, totalLevel float64, dumpMIDIChannel int) *Chip {
 	chip := &Chip{
 		sampleRate:    sampleRate,
 		totalLevel:    totalLevel,
+		dumpMIDIChannel: dumpMIDIChannel,
 		channels:      make([]*Channel, ymfdata.ChannelCount),
 		currentOutput: make([]float64, 2),
 	}
@@ -48,13 +51,13 @@ func (chip *Chip) Next() (float64, float64) {
 	}
 	v := math.Pow(10, chip.totalLevel/20)
 
-	if 0 <= ymfdata.DebugDumpMIDIChannel {
+	if 0 <= chip.dumpMIDIChannel {
 		debugDumpCount++
 		if int(chip.sampleRate/ymfdata.DebugDumpFPS) <= debugDumpCount {
 			debugDumpCount = 0
 			toDump := []*Channel{}
 			for _, ch := range chip.channels {
-				if ch.midiChannelID == ymfdata.DebugDumpMIDIChannel && .0 < ch.currentLevel() {
+				if ch.midiChannelID == chip.dumpMIDIChannel && .0 < ch.currentLevel() {
 					toDump = append(toDump, ch)
 				}
 			}

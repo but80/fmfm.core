@@ -156,6 +156,10 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 	return ch
 }
 
+func (ch *Channel) isOff() bool {
+	return ch.currentLevel() < epsilon
+}
+
 func (ch *Channel) currentLevel() float64 {
 	var result float64
 	for i, op := range ch.operators {
@@ -196,7 +200,7 @@ func (ch *Channel) dump() string {
 }
 
 func (ch *Channel) setKON(v int) {
-	if v != 0 {
+	if v != 0 && ch.isOff() {
 		ch.resetPhase()
 	}
 	if v == ch.kon {
@@ -441,10 +445,10 @@ func (ch *Channel) keyOn() {
 	for _, op := range ch.operators {
 		op.keyOn()
 	}
-	ch.feedback1Prev = 0
-	ch.feedback1Curr = 0
-	ch.feedback3Prev = 0
-	ch.feedback3Curr = 0
+	// ch.feedback1Prev = 0
+	// ch.feedback1Curr = 0
+	// ch.feedback3Prev = 0
+	// ch.feedback3Curr = 0
 }
 
 func (ch *Channel) keyOff() {
