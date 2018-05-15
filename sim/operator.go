@@ -52,7 +52,11 @@ func (op *operator) dump() string {
 	eg := op.envelopeGenerator
 	pg := op.phaseGenerator
 
-	lv := int((96.0 + math.Log10(eg.currentLevel)*20.0) / 8.0)
+	lvdb := math.Log10(eg.currentLevel) * 20.0
+	lv := int((96.0 + lvdb) / 8.0)
+	if lv < 0 {
+		lv = 0
+	}
 	lvstr := strings.Repeat("|", lv)
 
 	cm := "C"
@@ -71,7 +75,7 @@ func (op *operator) dump() string {
 	phstr := []byte("        ")
 	phstr[phase>>(ymfdata.WaveformLenBits-3)] = '|'
 	return fmt.Sprintf(
-		"%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f st=%s ph=%s lv=%s",
+		"%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f st=%s ph=%s lv=%-03d %s",
 		op.operatorIndex,
 		cm,
 		op.mult,
@@ -105,6 +109,7 @@ func (op *operator) dump() string {
 		// op.xof,
 		eg.stage.String(),
 		string(phstr),
+		int(math.Floor(lvdb)),
 		lvstr,
 	)
 }

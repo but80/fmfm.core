@@ -57,7 +57,7 @@ func (chip *Chip) Next() (float64, float64) {
 			debugDumpCount = 0
 			toDump := []*Channel{}
 			for _, ch := range chip.channels {
-				if ch.midiChannelID == chip.dumpMIDIChannel && .0 < ch.currentLevel() {
+				if ch.midiChannelID == chip.dumpMIDIChannel && epsilon < ch.currentLevel() {
 					toDump = append(toDump, ch)
 				}
 			}

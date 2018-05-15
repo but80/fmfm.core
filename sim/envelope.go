@@ -164,6 +164,7 @@ func (eg *envelopeGenerator) getEnvelope(tremoloIndex int) float64 {
 		if epsilon < eg.currentLevel {
 			eg.currentLevel *= eg.rrCoefPerSample
 		} else {
+			eg.currentLevel = .0
 			eg.stage = stageOff
 		}
 		break
