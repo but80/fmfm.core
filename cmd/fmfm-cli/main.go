@@ -29,6 +29,10 @@ func main() {
 	app.Version = version
 	app.Description = "YAMAHA MA-5/YMF825 clone synthesizer"
 	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "mono, m",
+			Usage: `Force mono mode in all MIDI channel except drum note`,
+		},
 		cli.IntFlag{
 			Name:  "ignore, n",
 			Usage: `Ignore MIDI channel`,
@@ -79,6 +83,7 @@ func main() {
 		opts := &fmfm.ControllerOpts{
 			Registers:          regs,
 			Libraries:          libs,
+			ForceMono:          ctx.Bool("mono"),
 			IgnoreMIDIChannels: []int{},
 			SoloMIDIChannel:    dumpMIDIChannel,
 		}

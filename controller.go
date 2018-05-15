@@ -95,6 +95,7 @@ type midiChannelState struct {
 type ControllerOpts struct {
 	Registers          ymf.Registers
 	Libraries          []*smaf.VM5VoiceLib
+	ForceMono          bool
 	IgnoreMIDIChannels []int
 	SoloMIDIChannel    int
 }
@@ -104,6 +105,7 @@ type Controller struct {
 	mutex              sync.Mutex
 	registers          ymf.Registers
 	libraries          []*smaf.VM5VoiceLib
+	forceMono          bool
 	ignoreMIDIChannels map[int]struct{}
 	soloMIDIChannel    int
 	midiMessages       []*midiMessage
@@ -117,6 +119,7 @@ func NewController(opts *ControllerOpts) *Controller {
 	ctrl := &Controller{
 		registers:          opts.Registers,
 		libraries:          opts.Libraries,
+		forceMono:          opts.ForceMono,
 		ignoreMIDIChannels: map[int]struct{}{},
 		soloMIDIChannel:    opts.SoloMIDIChannel,
 		midiMessages:       []*midiMessage{},
@@ -197,7 +200,7 @@ func (ctrl *Controller) noteOn(midich, note, velocity int) {
 	}
 
 	var chipch = -1
-	if ctrl.midiChannelStates[midich].mono {
+	if ctrl.midiChannelStates[midich].mono || ctrl.forceMono && instr.DrumNote == 0 {
 		chipch = ctrl.findLastUsedChipChannel(midich, note)
 	}
 	if chipch < 0 {
