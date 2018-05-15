@@ -27,11 +27,11 @@ type Chip struct {
 // NewChip は、新しい Chip を作成します。
 func NewChip(sampleRate, totalLevel float64, dumpMIDIChannel int) *Chip {
 	chip := &Chip{
-		sampleRate:    sampleRate,
-		totalLevel:    totalLevel,
+		sampleRate:      sampleRate,
+		totalLevel:      totalLevel,
 		dumpMIDIChannel: dumpMIDIChannel,
-		channels:      make([]*Channel, ymfdata.ChannelCount),
-		currentOutput: make([]float64, 2),
+		channels:        make([]*Channel, ymfdata.ChannelCount),
+		currentOutput:   make([]float64, 2),
 	}
 	chip.initChannels()
 	return chip
