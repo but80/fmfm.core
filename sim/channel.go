@@ -164,7 +164,8 @@ func (ch *Channel) currentLevel() float64 {
 	var result float64
 	for i, op := range ch.operators {
 		if ymfdata.CarrierMatrix[ch.alg][i] {
-			result = math.Max(result, op.envelopeGenerator.currentLevel)
+			eg := op.envelopeGenerator
+			result = math.Max(result, eg.currentLevel*eg.tlCoef)
 		}
 	}
 	return result
@@ -200,7 +201,7 @@ func (ch *Channel) dump() string {
 }
 
 func (ch *Channel) setKON(v int) {
-	if v != 0 && ch.isOff() {
+	if ch.isOff() {
 		ch.resetPhase()
 	}
 	if v == ch.kon {

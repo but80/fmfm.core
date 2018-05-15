@@ -201,7 +201,6 @@ func (op *operator) next(modIndex int, modulator float64) float64 {
 }
 
 func (op *operator) keyOn() {
-	op.phaseGenerator.resetPhase()
 	if 0 < op.ar {
 		op.envelopeGenerator.keyOn()
 	} else {
