@@ -23,9 +23,12 @@ func (pg *phaseGenerator) setFrequency(fnum, block, bo, mult, dt int) {
 
 	ksn := block<<1 | fnum>>9
 	operatorFrequency := baseFrequency + ymfdata.DTCoef[dt][ksn]
-	operatorFrequency *= ymfdata.MultTable[mult]
 
 	pg.phaseIncrementFrac64 = uint64(operatorFrequency / pg.sampleRate * ymfdata.Pow64Of2)
+
+	// 端数切り捨て後に掛けないとオペレータ間でズレる
+	pg.phaseIncrementFrac64 *= ymfdata.MultTable2[mult]
+	pg.phaseIncrementFrac64 >>= 1
 }
 
 func (pg *phaseGenerator) getPhase(vibratoIndex int) uint64 {

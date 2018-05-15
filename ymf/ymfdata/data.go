@@ -103,8 +103,8 @@ var TremoloTable [4][ModTableLen]float64
 // FeedbackTable は、FBパラメータによってフィードバックされる信号の振幅にかかる係数のテーブルです。
 var FeedbackTable = [8]float64{0, 1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2}
 
-// MultTable は、MULTパラメータによって周波数にかかる係数のテーブルです。
-var MultTable = [16]float64{0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12, 12, 15, 15}
+// MultTable2 は、MULTパラメータによって周波数にかかる係数のテーブルです。2で割って使用します。
+var MultTable2 = [16]uint64{1, 1*2, 2*2, 3*2, 4*2, 5*2, 6*2, 7*2, 8*2, 9*2, 10*2, 10*2, 12*2, 12*2, 15*2, 15*2}
 
 // KSLTable は、KSLパラメータによる振幅の減衰量のテーブルです。
 // 添字は順に KSL, BLOCK, FNUM上位5bit です。
