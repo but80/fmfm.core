@@ -40,7 +40,6 @@ type envelopeGenerator struct {
 	stage           stage
 	eam             bool
 	dam             int
-	actualAR        int
 	arDiffPerSample float64
 	drCoefPerSample float64
 	srCoefPerSample float64
@@ -90,13 +89,13 @@ func (eg *envelopeGenerator) setKeyScalingLevel(fnum, block, bo, ksl int) {
 }
 
 func (eg *envelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber int) {
-	eg.actualAR = calculateActualRate(attackRate, ksr, keyScaleNumber)
-	if eg.actualAR == 0 {
-		eg.arDiffPerSample = 0
-	} else {
-		sec := 1.75 * math.Pow(.5, float64(eg.actualAR)/4.0-1.0)
-		eg.arDiffPerSample = 1.0 / (sec * eg.sampleRate)
+	if attackRate == 0 {
+		eg.arDiffPerSample = .0
+		return
 	}
+	ksn := (keyScaleNumber >> 1) + (keyScaleNumber & 1)
+	sec := attackTimeSecAt1[ksr][ksn] / float64(uint(1)<<uint(attackRate-1))
+	eg.arDiffPerSample = 1.0 / (sec * eg.sampleRate)
 }
 
 func (eg *envelopeGenerator) setActualDR(dr, ksr, keyScaleNumber int) {
@@ -127,15 +126,6 @@ func (eg *envelopeGenerator) setActualRR(rr, ksr, keyScaleNumber int) {
 		dbPerSample := dbPerSecAt4 * float64(uint(1)<<uint(rr)) / 16.0 / eg.sampleRate
 		eg.rrCoefPerSample = math.Pow(10, -dbPerSample/10)
 	}
-}
-
-func calculateActualRate(rate, ksr, keyScaleNumber int) int {
-	rof := rateOffset[ksr][keyScaleNumber]
-	actualRate := rate*4 + rof
-	if 63 < actualRate {
-		actualRate = 63
-	}
-	return actualRate
 }
 
 func (eg *envelopeGenerator) getEnvelope(tremoloIndex int) float64 {
@@ -193,14 +183,6 @@ func (eg *envelopeGenerator) keyOff() {
 	}
 }
 
-// This table is indexed by the value of operator.ksr
-// and the value of ChannelRegister.keyScaleNumber.
-// TODO: ARのKSR影響の検証
-var rateOffset = [2][16]int{
-	{0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3},
-	{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-}
-
 // DR/SR/RR=4 における共通の減衰速度 [振幅dB/sec]
 // ・使用時は2で割ってエネルギーdBに変換
 // ・DR/SR/RR が1増えると速度は2倍になる
@@ -208,4 +190,9 @@ var decayDBPerSecAt4 = [2][16]float64{
 	// 添字は keyScaleNumber (0..15)
 	{17.9342, 17.9342, 17.9342, 17.9342, 17.9342, 22.4116, 22.4116, 22.4116, 22.4116, 26.9076, 26.9076, 26.9076, 26.9076, 31.3661, 31.3661, 31.3661},      // KSR=0
 	{17.9465, 22.4376, 22.4376, 31.4026, 31.4026, 44.8696, 44.8696, 62.7959, 62.7959, 89.6707, 89.6707, 125.5546, 125.5546, 179.2684, 179.2684, 250.9128}, // KSR=1
+}
+
+var attackTimeSecAt1 = [2][9]float64{
+	{3.07068, 3.07068, 3.07068, 2.45670, 2.45670, 2.04699, 2.04699, 1.75471, 1.75471},
+	{3.07082, 2.45660, 1.75489, 1.22816, 0.87737, 0.61414, 0.43876, 0.30714, 0.21935},
 }
