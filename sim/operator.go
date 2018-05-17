@@ -149,7 +149,7 @@ func (op *operator) setMULT(v int) {
 func (op *operator) setKSL(v int) {
 	// TODO: BOの影響は受けるのか？
 	op.ksl = v
-	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.ksl)
+	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.bo, op.ksl)
 }
 
 func (op *operator) setTL(v int) {
@@ -220,13 +220,19 @@ func (op *operator) keyOff() {
 }
 
 func (op *operator) setFrequency(fnum, blk, bo int) {
-	op.keyScaleNumber = blk*2 + (fnum >> 9)
+	op.keyScaleNumber = (blk+1-bo)*2 + (fnum >> 9)
+	// TODO: BOの影響は受けるのか？
+	if op.keyScaleNumber < 0 {
+		op.keyScaleNumber = 0
+	} else if 31 < op.keyScaleNumber {
+		op.keyScaleNumber = 31
+	}
 	op.fnum = fnum
 	op.block = blk
 	op.bo = bo
 	op.updateFrequency()
 	op.updateEnvelope()
-	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.ksl)
+	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.bo, op.ksl)
 }
 
 func (op *operator) updateFrequency() {

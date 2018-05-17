@@ -59,7 +59,7 @@ func newEnvelopeGenerator(sampleRate float64) *envelopeGenerator {
 		currentLevel: 0,
 	}
 	eg.setTotalLevel(0)
-	eg.setKeyScalingLevel(0, 0, 0)
+	eg.setKeyScalingLevel(0, 0, 1, 0)
 	return eg
 }
 
@@ -78,8 +78,14 @@ func (eg *envelopeGenerator) setTotalLevel(tl int) {
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
-func (eg *envelopeGenerator) setKeyScalingLevel(fnum, block, ksl int) {
-	eg.kslCoef = ymfdata.KSLTable[ksl][block][fnum>>5]
+func (eg *envelopeGenerator) setKeyScalingLevel(fnum, block, bo, ksl int) {
+	blkbo := block + 1 - bo
+	if blkbo < 0 {
+		blkbo = 0
+	} else if 7 < blkbo {
+		blkbo = 7
+	}
+	eg.kslCoef = ymfdata.KSLTable[ksl][blkbo][fnum>>5]
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
