@@ -191,7 +191,11 @@ func init() {
 	for ksl := 0; ksl < 4; ksl++ {
 		for block := 0; block < 8; block++ {
 			for fnum5 := 0; fnum5 < 32; fnum5++ {
-				v := kslBases[ksl] - kslBlockCoefs[ksl]*float64(block-2) - kslFnum5Coefs[ksl]*float64(fnum5-7)
+				fnum5lim := fnum5
+				if 15 < fnum5lim {
+					fnum5lim = 15
+				}
+				v := kslBases[ksl] - kslBlockCoefs[ksl]*float64(block-2) - kslFnum5Coefs[ksl]*float64(fnum5lim-7)
 				if block < 2 || .0 <= v {
 					v = 0
 				}
