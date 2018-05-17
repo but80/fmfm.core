@@ -158,7 +158,7 @@ func (op *operator) setTL(v int) {
 
 func (op *operator) setAR(v int) {
 	op.ar = v
-	op.envelopeGenerator.setActualAttackRate(op.ar, op.ksr, op.keyScaleNumber)
+	op.envelopeGenerator.setActualAR(op.ar, op.ksr, op.keyScaleNumber)
 }
 
 func (op *operator) setDR(v int) {
@@ -240,7 +240,7 @@ func (op *operator) updateFrequency() {
 }
 
 func (op *operator) updateEnvelope() {
-	op.envelopeGenerator.setActualAttackRate(op.ar, op.ksr, op.keyScaleNumber)
+	op.envelopeGenerator.setActualAR(op.ar, op.ksr, op.keyScaleNumber)
 	op.envelopeGenerator.setActualDR(op.dr, op.ksr, op.keyScaleNumber)
 	op.envelopeGenerator.setActualSR(op.sr, op.ksr, op.keyScaleNumber)
 	op.envelopeGenerator.setActualRR(op.rr, op.ksr, op.keyScaleNumber)

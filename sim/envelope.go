@@ -88,7 +88,7 @@ func (eg *envelopeGenerator) setKeyScalingLevel(fnum, block, bo, ksl int) {
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef
 }
 
-func (eg *envelopeGenerator) setActualAttackRate(attackRate, ksr, keyScaleNumber int) {
+func (eg *envelopeGenerator) setActualAR(attackRate, ksr, keyScaleNumber int) {
 	if attackRate == 0 {
 		eg.arDiffPerSample = .0
 		return

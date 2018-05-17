@@ -27,8 +27,8 @@ func TestEnvelopeGenerator(t *testing.T) {
 			fnum := (ksn & 1) * 256
 			block := ksn >> 1
 			gen.setTotalLevel(0)
-			gen.setKeyScalingLevel(fnum, block, ksl)
-			gen.setActualAttackRate(ar, ksr, ksn)
+			gen.setKeyScalingLevel(fnum, block, 1, ksl)
+			gen.setActualAR(ar, ksr, ksn)
 			gen.setActualDR(dr, ksr, ksn)
 			gen.setActualSustainLevel(sl)
 			gen.setActualSR(sr, ksr, ksn)
