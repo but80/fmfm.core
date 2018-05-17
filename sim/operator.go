@@ -224,8 +224,8 @@ func (op *operator) setFrequency(fnum, blk, bo int) {
 	// TODO: BOの影響は受けるのか？
 	if op.keyScaleNumber < 0 {
 		op.keyScaleNumber = 0
-	} else if 31 < op.keyScaleNumber {
-		op.keyScaleNumber = 31
+	} else if 15 < op.keyScaleNumber {
+		op.keyScaleNumber = 15
 	}
 	op.fnum = fnum
 	op.block = blk
