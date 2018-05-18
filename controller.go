@@ -567,6 +567,7 @@ func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool
 func (ctrl *Controller) resetMIDIChannel(midich int) {
 	ctrl.midiChannelStates[midich].volume = 100
 	ctrl.midiChannelStates[midich].expression = 127
+	ctrl.midiChannelStates[midich].pan = 64
 	ctrl.midiChannelStates[midich].sustain = 0
 	ctrl.midiChannelStates[midich].pitch = 64
 	ctrl.midiChannelStates[midich].rpn = 0x3fff
