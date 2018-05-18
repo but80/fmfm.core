@@ -20,7 +20,7 @@ var defaultPC = &smaf.VM35VoicePC{
 		Bo:     1,
 		Alg:    1,
 		Operators: []*smaf.VM35FMOperator{
-			{Multi: 1, Ar: 15, Dr: 0, Sr: 0, Rr: 15},
+			{},
 			{},
 		},
 	},
