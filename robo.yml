@@ -22,7 +22,7 @@ build:
 test:
   summary: 'Run test'
   command: |
-    go test ./ymf/...
+    go test ./...
 
 lint:
   summary: 'Check coding style'

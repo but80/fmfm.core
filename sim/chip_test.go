@@ -39,11 +39,15 @@ func TestNewChip(t *testing.T) {
 
 			seq.PushMIDIMessage(fmfm.MIDINoteOn, 0, 0, 60, 0)
 			seq.FlushMIDIMessages(0)
-			chip.Next()
+			for j := 0; j < 1000; j++ {
+				chip.Next()
+			}
 
-			seq.PushMIDIMessage(fmfm.MIDINoteOn, 0, 0, 60, 0)
+			seq.PushMIDIMessage(fmfm.MIDINoteOff, 0, 0, 60, 0)
 			seq.FlushMIDIMessages(0)
-			chip.Next()
+			for j := 0; j < 1000; j++ {
+				chip.Next()
+			}
 		}()
 	}
 }
