@@ -46,7 +46,6 @@ func NewSequencer(opts *fmfm.ControllerOpts) *Sequencer {
 		Controller: fmfm.NewController(opts),
 		input:      input,
 	}
-	seq.Reset()
 
 	go func() {
 		for e := range seq.input.Source() {

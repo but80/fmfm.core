@@ -12,8 +12,6 @@ func TestEnvelopeGenerator(t *testing.T) {
 	threshDB := -30.0
 	thresh := math.Pow(10.0, threshDB/20.0)
 	gen := newEnvelopeGenerator(ymfdata.SampleRate)
-	eam := 0
-	dam := 0
 	ar := 15
 	dr := 15
 	sl := 0
@@ -41,7 +39,7 @@ func TestEnvelopeGenerator(t *testing.T) {
 				} else if i == n {
 					gen.keyOff()
 				}
-				v := gen.getEnvelope(eam, dam, 0)
+				v := gen.getEnvelope(0)
 				if n < i && v <= thresh {
 					break
 				}

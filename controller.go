@@ -11,6 +11,21 @@ import (
 	"github.com/but80/smaf825/pb/smaf"
 )
 
+var defaultPC = &smaf.VM35VoicePC{
+	Version:   smaf.VM35FMVoiceVersion_VM5,
+	Name:      "default",
+	VoiceType: smaf.VoiceType_FM,
+	FmVoice: &smaf.VM35FMVoice{
+		Panpot: 15,
+		Bo:     1,
+		Alg:    1,
+		Operators: []*smaf.VM35FMOperator{
+			{Multi: 1, Ar: 15, Dr: 0, Sr: 0, Rr: 15},
+			{},
+		},
+	},
+}
+
 // MIDIMessage は、MIDIメッセージの種類を表す列挙子型です。
 type MIDIMessage int
 
@@ -133,6 +148,7 @@ func NewController(opts *ControllerOpts) *Controller {
 	for i := range ctrl.midiChannelStates {
 		ctrl.midiChannelStates[i] = &midiChannelState{}
 	}
+	ctrl.Reset()
 	return ctrl
 }
 
@@ -190,8 +206,8 @@ func (ctrl *Controller) noteOn(midich, note, velocity int) {
 
 	instr, ok := ctrl.getInstrument(midich, note)
 	if !ok {
-		// TODO: warning
-		return
+		// TODO: warning or ignore by option
+		// return
 	}
 
 	if instr.VoiceType != smaf.VoiceType_FM {
@@ -525,6 +541,10 @@ func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
 }
 
 func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool) {
+	if ctrl.libraries == nil {
+		return defaultPC, false
+	}
+
 	// TODO: smaf825側で検索
 	// TODO: ドラム音色
 	s := ctrl.midiChannelStates[midich]
@@ -541,7 +561,7 @@ func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool
 	}
 	// fmt.Printf("voice not found: @%d-%d-%d note=%d\n", s.bankMSB, s.bankLSB, s.pc, note)
 
-	return ctrl.libraries[0].Programs[0], false
+	return defaultPC, false
 }
 
 func (ctrl *Controller) resetMIDIChannel(midich int) {
@@ -573,12 +593,16 @@ func (ctrl *Controller) writeFrequency(chipch, note, pitch int) {
 	n := float64(note-ymfdata.A3Note) + float64(pitch-64)/32.0
 	freq := ymfdata.A3Freq * math.Pow(2.0, n/12.0)
 
-	block := note / 12
-	if 7 < block {
+	block := (note + 3 - 12) / 12
+	if block < 0 {
+		block = 0
+	} else if 7 < block {
 		block = 7
 	}
 
-	fnum := int(freq*ymfdata.FNUMCoef) << 1 >> uint(block)
+	fnumF64 := freq * ymfdata.FNUMCoef
+	blockUint := uint(block)
+	fnum := int(fnumF64*2.0+float64(uint(1)<<blockUint>>1)) >> blockUint
 	if fnum < 0 {
 		fnum = 0
 	} else {
