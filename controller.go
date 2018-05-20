@@ -97,18 +97,19 @@ type chipChannelState struct {
 }
 
 type midiChannelState struct {
-	bankLSB    uint8
-	bankMSB    uint8
-	pc         uint8
-	volume     uint8
-	expression uint8
-	pan        uint8
-	pitch      int8
-	sustain    uint8
-	modulation uint8
-	pitchSens  uint16
-	rpn        uint16
-	mono       bool
+	bankLSB             uint8
+	bankMSB             uint8
+	pc                  uint8
+	volume              uint8
+	expression          uint8
+	pan                 uint8
+	pitch               int8
+	sustain             uint8
+	modulation          uint8
+	pitchSens           uint16
+	rpn                 uint16
+	mono                bool
+	debugLastInstrument *smaf.VM35VoicePC
 }
 
 // ControllerOpts は、 NewController のオプションです。
@@ -116,6 +117,7 @@ type ControllerOpts struct {
 	Registers          ymf.Registers
 	Libraries          []*smaf.VM5VoiceLib
 	ForceMono          bool
+	PrintStatus        bool
 	IgnoreMIDIChannels []int
 	SoloMIDIChannel    int
 }
@@ -126,6 +128,7 @@ type Controller struct {
 	registers          ymf.Registers
 	libraries          []*smaf.VM5VoiceLib
 	forceMono          bool
+	debugPrintStatus   bool
 	ignoreMIDIChannels map[int]struct{}
 	soloMIDIChannel    int
 	midiMessages       []*midiMessage
@@ -140,6 +143,7 @@ func NewController(opts *ControllerOpts) *Controller {
 		registers:          opts.Registers,
 		libraries:          opts.Libraries,
 		forceMono:          opts.ForceMono,
+		debugPrintStatus:   opts.PrintStatus,
 		ignoreMIDIChannels: map[int]struct{}{},
 		soloMIDIChannel:    opts.SoloMIDIChannel,
 		midiMessages:       []*midiMessage{},
@@ -171,6 +175,8 @@ func (ctrl *Controller) PushMIDIMessage(typ MIDIMessage, timestamp, midich, data
 	})
 }
 
+var lastPrintedAt = time.Time{}
+
 // FlushMIDIMessages は、蓄積されたMIDIメッセージを処理します。
 func (ctrl *Controller) FlushMIDIMessages(until int) {
 	ctrl.mutex.Lock()
@@ -197,6 +203,66 @@ func (ctrl *Controller) FlushMIDIMessages(until int) {
 		}
 	}
 	ctrl.midiMessages = rest
+
+	if ctrl.debugPrintStatus {
+		now := time.Now()
+		if time.Millisecond*10 <= now.Sub(lastPrintedAt) {
+			ctrl.printStatus()
+			lastPrintedAt = now
+		}
+	}
+}
+
+var notes = []string{"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+
+func (ctrl *Controller) printStatus() {
+	fmt.Println("")
+	fmt.Println("Ch MSB-LSB-@PC Instrument       P Vol Exp Pan Vo Note")
+	for i, ms := range ctrl.midiChannelStates {
+		cs := &chipChannelState{}
+		voices := 0
+		lastTime := time.Time{}
+		for _, s := range ctrl.chipChannelStates {
+			if s.midiChannel == i {
+				voices++
+				if s.time.After(lastTime) {
+					cs = s
+					lastTime = s.time
+				}
+			}
+		}
+
+		monopoly := "-"
+		note := ""
+		instr := ms.debugLastInstrument
+		pc := "-----------"
+		if instr == nil || instr == defaultPC {
+			instr = &smaf.VM35VoicePC{}
+		} else {
+			if ms.mono {
+				monopoly = "M"
+			} else {
+				monopoly = "P"
+			}
+			pc = fmt.Sprintf("%03d-%03d-%03d", ms.bankMSB, ms.bankLSB, ms.pc)
+			note = fmt.Sprintf("%s%d", notes[cs.note%12], cs.note/12-2)
+		}
+		if voices == 0 {
+			note = ""
+		}
+		fmt.Printf(
+			"%2d %s %-16s %s %3d %3d %3d %2d %-4s\n",
+			i+1,
+			pc,
+			instr.Name,
+			monopoly,
+			ms.volume,
+			ms.expression,
+			ms.pan,
+			voices,
+			note,
+		)
+	}
 }
 
 // noteOn は、MIDIノートオン受信時の音源の振る舞いを再現します。
@@ -412,6 +478,7 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 	}
 	chipState.pitch = chipState.finetune + int(midiState.pitch)
 	chipState.instrument = instr
+	midiState.debugLastInstrument = instr
 	chipState.realnote = note
 
 	chipState.minRR = 15

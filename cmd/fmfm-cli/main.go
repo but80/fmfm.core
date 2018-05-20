@@ -45,6 +45,10 @@ func main() {
 			Name:  "dump, d",
 			Usage: `Dump MIDI channel`,
 		},
+		cli.BoolFlag{
+			Name:  "print, p",
+			Usage: `Print status`,
+		},
 	}
 	app.Authors = []cli.Author{
 		{
@@ -88,6 +92,7 @@ func main() {
 			Registers:          regs,
 			Libraries:          libs,
 			ForceMono:          ctx.Bool("mono"),
+			PrintStatus:        ctx.Bool("print"),
 			IgnoreMIDIChannels: []int{},
 			SoloMIDIChannel:    dumpMIDIChannel,
 		}
