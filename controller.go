@@ -412,14 +412,6 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 	}
 	chipState.pitch = chipState.finetune + int(midiState.pitch)
 	chipState.instrument = instr
-	if instr.DrumNote == 0 {
-		// for note < 0 {
-		// 	note += 12
-		// }
-		// for 127 < note {
-		// 	note -= 12
-		// }
-	}
 	chipState.realnote = note
 
 	chipState.minRR = 15
@@ -430,7 +422,7 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 		}
 	}
 
-	ctrl.writeInstrument(chipch, midich, instr)
+	ctrl.writeInstrument(chipch, instr)
 	ctrl.writeModulation(chipch, instr, chipState.flags&flagVibrato != 0)
 	ctrl.registers.WriteChannel(chipch, ymf.CHPAN, int(ctrl.midiChannelStates[midich].pan))
 	if ctrl.soloMIDIChannel < 0 || midich == ctrl.soloMIDIChannel {
@@ -646,7 +638,7 @@ func bool2int(b bool) int {
 	return 0
 }
 
-func (ctrl *Controller) writeInstrument(chipch, midich int, instr *smaf.VM35VoicePC) {
+func (ctrl *Controller) writeInstrument(chipch int, instr *smaf.VM35VoicePC) {
 	ctrl.writeAllOperators(chipch, ymf.TL, 0x3f) // no volume
 
 	for i, op := range instr.FmVoice.Operators {
