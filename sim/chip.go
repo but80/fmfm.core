@@ -37,9 +37,9 @@ func NewChip(sampleRate, totalLevel float64, dumpMIDIChannel int) *Chip {
 	return chip
 }
 
-// Next は、次のサンプルを生成し、その左右それぞれの振幅を返します。
 var debugDumpCount = 0
 
+// Next は、次のサンプルを生成し、その左右それぞれの振幅を返します。
 func (chip *Chip) Next() (float64, float64) {
 	var l, r float64
 	for _, channel := range chip.channels {

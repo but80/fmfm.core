@@ -30,10 +30,15 @@ var defaultPC = &smaf.VM35VoicePC{
 type MIDIMessage int
 
 const (
+	// MIDINoteOn は、MIDIメッセージの種類 NoteOn を表す列挙子です。
 	MIDINoteOn MIDIMessage = iota + 1
+	// MIDINoteOff は、MIDIメッセージの種類 NoteOff を表す列挙子です。
 	MIDINoteOff
+	// MIDIControlChange は、MIDIメッセージの種類 ControlChange を表す列挙子です。
 	MIDIControlChange
+	// MIDIProgramChange は、MIDIメッセージの種類 ProgramChange を表す列挙子です。
 	MIDIProgramChange
+	// MIDIPitchBend は、MIDIメッセージの種類 PitchBend を表す列挙子です。
 	MIDIPitchBend
 )
 
