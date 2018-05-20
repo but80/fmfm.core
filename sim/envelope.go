@@ -52,14 +52,16 @@ type envelopeGenerator struct {
 }
 
 func newEnvelopeGenerator(sampleRate float64) *envelopeGenerator {
-	eg := &envelopeGenerator{
-		sampleRate:   sampleRate,
-		stage:        stageOff,
-		currentLevel: 0,
-	}
+	eg := &envelopeGenerator{sampleRate: sampleRate}
 	eg.setTotalLevel(0)
 	eg.setKeyScalingLevel(0, 0, 1, 0)
+	eg.reset()
 	return eg
+}
+
+func (eg *envelopeGenerator) reset() {
+	eg.currentLevel = .0
+	eg.stage = stageOff
 }
 
 func (eg *envelopeGenerator) setActualSustainLevel(sl int) {
@@ -72,6 +74,11 @@ func (eg *envelopeGenerator) setActualSustainLevel(sl int) {
 }
 
 func (eg *envelopeGenerator) setTotalLevel(tl int) {
+	if 63 <= tl {
+		eg.tlCoef = .0
+		eg.kslTlCoef = .0
+		return
+	}
 	tlDB := float64(tl) * -0.75
 	eg.tlCoef = math.Pow(10.0, tlDB/20.0)
 	eg.kslTlCoef = eg.kslCoef * eg.tlCoef

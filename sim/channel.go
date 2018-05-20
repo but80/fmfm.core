@@ -202,17 +202,33 @@ func (ch *Channel) dump() string {
 
 func (ch *Channel) setKON(v int) {
 	if ch.isOff() {
-		ch.resetPhase()
+		ch.reset()
 	}
-	if v == ch.kon {
-		return
-	}
-	ch.kon = v
 	if v == 0 {
 		ch.keyOff()
 	} else {
 		ch.keyOn()
 	}
+}
+
+func (ch *Channel) keyOn() {
+	if ch.kon != 0 {
+		return
+	}
+	for _, op := range ch.operators {
+		op.keyOn()
+	}
+	ch.kon = 1
+}
+
+func (ch *Channel) keyOff() {
+	if ch.kon == 0 {
+		return
+	}
+	for _, op := range ch.operators {
+		op.keyOff()
+	}
+	ch.kon = 0
 }
 
 func (ch *Channel) setBLOCK(v int) {
@@ -226,6 +242,9 @@ func (ch *Channel) setFNUM(v int) {
 }
 
 func (ch *Channel) setALG(v int) {
+	if ch.alg != v {
+		ch.reset()
+	}
 	ch.alg = v
 	ch.feedback1Prev = 0
 	ch.feedback1Curr = 0
@@ -431,30 +450,16 @@ func (ch *Channel) next() (float64, float64) {
 	return result * ch.panCoefL, result * ch.panCoefR
 }
 
-func (ch *Channel) resetPhase() {
+func (ch *Channel) reset() {
 	// TODO: modulation reset timing
 	// ch.modIndexFrac64 = 0
+	ch.feedback1Prev = .0
+	ch.feedback1Curr = .0
+	ch.feedback3Prev = .0
+	ch.feedback3Curr = .0
 	for _, op := range ch.operators {
-		op.phaseGenerator.resetPhase()
-		if op.envelopeGenerator.tlCoef < epsilon {
-			op.envelopeGenerator.stage = stageOff
-		}
-	}
-}
-
-func (ch *Channel) keyOn() {
-	for _, op := range ch.operators {
-		op.keyOn()
-	}
-	// ch.feedback1Prev = 0
-	// ch.feedback1Curr = 0
-	// ch.feedback3Prev = 0
-	// ch.feedback3Curr = 0
-}
-
-func (ch *Channel) keyOff() {
-	for _, op := range ch.operators {
-		op.keyOff()
+		op.phaseGenerator.reset()
+		op.envelopeGenerator.reset()
 	}
 }
 

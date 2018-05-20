@@ -13,9 +13,13 @@ type phaseGenerator struct {
 }
 
 func newPhaseGenerator(sampleRate float64) *phaseGenerator {
-	return &phaseGenerator{
-		sampleRate: sampleRate,
-	}
+	pg := &phaseGenerator{sampleRate: sampleRate}
+	pg.reset()
+	return pg
+}
+
+func (pg *phaseGenerator) reset() {
+	pg.phaseFrac64 = 0
 }
 
 func (pg *phaseGenerator) setFrequency(fnum, block, bo, mult, dt int) {
@@ -38,8 +42,4 @@ func (pg *phaseGenerator) getPhase(vibratoIndex int) uint64 {
 		pg.phaseFrac64 += pg.phaseIncrementFrac64
 	}
 	return pg.phaseFrac64
-}
-
-func (pg *phaseGenerator) resetPhase() {
-	pg.phaseFrac64 = 0
 }
