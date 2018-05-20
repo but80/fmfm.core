@@ -53,15 +53,22 @@ type envelopeGenerator struct {
 
 func newEnvelopeGenerator(sampleRate float64) *envelopeGenerator {
 	eg := &envelopeGenerator{sampleRate: sampleRate}
-	eg.setTotalLevel(0)
-	eg.setKeyScalingLevel(0, 0, 1, 0)
-	eg.reset()
+	eg.resetAll()
 	return eg
 }
 
 func (eg *envelopeGenerator) reset() {
 	eg.currentLevel = .0
 	eg.stage = stageOff
+}
+
+func (eg *envelopeGenerator) resetAll() {
+	eg.eam = false
+	eg.dam = 0
+	eg.sustainLevel = .0
+	eg.setTotalLevel(63)
+	eg.setKeyScalingLevel(0, 0, 1, 0)
+	eg.reset()
 }
 
 func (eg *envelopeGenerator) setActualSustainLevel(sl int) {

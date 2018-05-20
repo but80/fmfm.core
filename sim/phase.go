@@ -22,6 +22,13 @@ func (pg *phaseGenerator) reset() {
 	pg.phaseFrac64 = 0
 }
 
+func (pg *phaseGenerator) resetAll() {
+	pg.evb = false
+	pg.dvb = 0
+	pg.phaseIncrementFrac64 = 0
+	pg.reset()
+}
+
 func (pg *phaseGenerator) setFrequency(fnum, block, bo, mult, dt int) {
 	baseFrequency := float64(fnum<<uint(block+3-bo)) / (16.0 * ymfdata.FNUMCoef)
 

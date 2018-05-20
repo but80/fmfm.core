@@ -48,6 +48,17 @@ func newOperator(channelID, operatorIndex int, chip *Chip) *operator {
 	}
 }
 
+func (op *operator) reset() {
+	op.phaseGenerator.reset()
+	op.envelopeGenerator.reset()
+}
+
+func (op *operator) resetAll() {
+	op.bo = 1
+	op.phaseGenerator.resetAll()
+	op.envelopeGenerator.resetAll()
+}
+
 func (op *operator) dump() string {
 	eg := op.envelopeGenerator
 	pg := op.phaseGenerator

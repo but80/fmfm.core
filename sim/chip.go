@@ -79,6 +79,6 @@ func (chip *Chip) Next() (float64, float64) {
 func (chip *Chip) initChannels() {
 	chip.channels = make([]*Channel, ymfdata.ChannelCount)
 	for i := range chip.channels {
-		chip.channels[i] = newChannel4op(i, chip)
+		chip.channels[i] = newChannel(i, chip)
 	}
 }

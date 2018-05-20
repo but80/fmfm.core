@@ -121,24 +121,11 @@ type Channel struct {
 	operators [4]*operator
 }
 
-func newChannel4op(channelID int, chip *Chip) *Channel {
+func newChannel(channelID int, chip *Chip) *Channel {
 	ch := &Channel{
-		chip:          chip,
-		channelID:     channelID,
-		midiChannelID: -1,
-
-		fnum:       0,
-		kon:        0,
-		block:      0,
-		alg:        0,
-		panpot:     15,
-		chpan:      64,
-		volume:     100,
-		expression: 127,
-		velocity:   0,
-		bo:         1,
-
-		toPhase: 4,
+		chip:      chip,
+		channelID: channelID,
+		toPhase:   4,
 	}
 
 	// 48000Hz:     |prev|curr|
@@ -152,12 +139,56 @@ func newChannel4op(channelID int, chip *Chip) *Channel {
 	for i := range ch.operators {
 		ch.operators[i] = newOperator(channelID, i, chip)
 	}
-	ch.updatePanCoef()
+
+	ch.resetAll()
 	return ch
 }
 
+func (ch *Channel) reset() {
+	// TODO: モジュレーションは発音ごとにリセットされるのか？
+	ch.modIndexFrac64 = 0
+	ch.feedback1Prev = .0
+	ch.feedback1Curr = .0
+	ch.feedback3Prev = .0
+	ch.feedback3Curr = .0
+	ch.feedbackOut1 = .0
+	ch.feedbackOut3 = .0
+	for _, op := range ch.operators {
+		op.phaseGenerator.reset()
+		op.envelopeGenerator.reset()
+	}
+}
+
+func (ch *Channel) resetAll() {
+	ch.midiChannelID = -1
+	ch.fnum = 0
+	ch.kon = 0
+	ch.block = 0
+	ch.alg = 0
+	ch.panpot = 15
+	ch.chpan = 64
+	ch.volume = 100
+	ch.expression = 127
+	ch.velocity = 0
+	ch.bo = 1
+	ch.setLFO(0)
+	ch.updatePanCoef()
+	ch.updateAttenuation()
+	for _, op := range ch.operators {
+		op.resetAll()
+	}
+}
+
 func (ch *Channel) isOff() bool {
-	return ch.currentLevel() < epsilon
+	for i, op := range ch.operators {
+		if !ymfdata.CarrierMatrix[ch.alg][i] {
+			continue
+		}
+		if op.envelopeGenerator.stage != stageOff {
+			return false
+		}
+	}
+	return true
 }
 
 func (ch *Channel) currentLevel() float64 {
@@ -165,7 +196,7 @@ func (ch *Channel) currentLevel() float64 {
 	for i, op := range ch.operators {
 		if ymfdata.CarrierMatrix[ch.alg][i] {
 			eg := op.envelopeGenerator
-			v := eg.currentLevel*eg.kslTlCoef
+			v := eg.currentLevel * eg.kslTlCoef
 			if result < v {
 				result = v
 			}
@@ -207,7 +238,7 @@ func (ch *Channel) setKON(v int) {
 	if v == 0 {
 		ch.keyOff()
 		if ch.isOff() {
-			ch.reset()
+			ch.resetAll()
 		}
 	} else {
 		ch.keyOn()
@@ -451,19 +482,6 @@ func (ch *Channel) next() (float64, float64) {
 
 	result *= ch.attenuationCoef
 	return result * ch.panCoefL, result * ch.panCoefR
-}
-
-func (ch *Channel) reset() {
-	// TODO: モジュレーションは発音ごとにリセットされるのか？
-	ch.modIndexFrac64 = 0
-	ch.feedback1Prev = .0
-	ch.feedback1Curr = .0
-	ch.feedback3Prev = .0
-	ch.feedback3Curr = .0
-	for _, op := range ch.operators {
-		op.phaseGenerator.reset()
-		op.envelopeGenerator.reset()
-	}
 }
 
 func (ch *Channel) updateFrequency() {
