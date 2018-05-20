@@ -161,11 +161,14 @@ func (ch *Channel) isOff() bool {
 }
 
 func (ch *Channel) currentLevel() float64 {
-	var result float64
+	result := .0
 	for i, op := range ch.operators {
 		if ymfdata.CarrierMatrix[ch.alg][i] {
 			eg := op.envelopeGenerator
-			result = math.Max(result, eg.currentLevel*eg.tlCoef)
+			v := eg.currentLevel*eg.kslTlCoef
+			if result < v {
+				result = v
+			}
 		}
 	}
 	return result
@@ -201,11 +204,11 @@ func (ch *Channel) dump() string {
 }
 
 func (ch *Channel) setKON(v int) {
-	if ch.isOff() {
-		ch.reset()
-	}
 	if v == 0 {
 		ch.keyOff()
+		if ch.isOff() {
+			ch.reset()
+		}
 	} else {
 		ch.keyOn()
 	}
@@ -451,8 +454,8 @@ func (ch *Channel) next() (float64, float64) {
 }
 
 func (ch *Channel) reset() {
-	// TODO: modulation reset timing
-	// ch.modIndexFrac64 = 0
+	// TODO: モジュレーションは発音ごとにリセットされるのか？
+	ch.modIndexFrac64 = 0
 	ch.feedback1Prev = .0
 	ch.feedback1Curr = .0
 	ch.feedback3Prev = .0

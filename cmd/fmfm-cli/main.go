@@ -38,6 +38,10 @@ func main() {
 			Usage: `Ignore MIDI channel`,
 		},
 		cli.IntFlag{
+			Name:  "solo, s",
+			Usage: `Play only specified MIDI channel`,
+		},
+		cli.IntFlag{
 			Name:  "dump, d",
 			Usage: `Dump MIDI channel`,
 		},
@@ -89,6 +93,14 @@ func main() {
 		}
 		if 0 < ctx.Int("ignore") {
 			opts.IgnoreMIDIChannels = append(opts.IgnoreMIDIChannels, ctx.Int("ignore")-1)
+		}
+		if 0 < ctx.Int("solo") {
+			for i := 0; i < 16; i++ {
+				if i == ctx.Int("solo")-1 {
+					continue
+				}
+				opts.IgnoreMIDIChannels = append(opts.IgnoreMIDIChannels, i)
+			}
 		}
 		seq := player.NewSequencer(opts)
 		defer seq.Close()

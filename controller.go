@@ -490,12 +490,12 @@ func (ctrl *Controller) findLastUsedChipChannel(midich, note int) int {
 // findLastUsedChipChannel は、指定MIDIチャンネルの指定ノートを発音するとき、
 // POLYモード時に収容先となるチップのチャンネルを選択します。
 func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
-	// 同じノートで発音済みのチャンネルがあれば最優先で選択
-	for i, state := range ctrl.chipChannelStates {
-		if state.midiChannel == midich && state.note == note {
-			return i
-		}
-	}
+	// // 同じノートで発音済みのチャンネルがあれば最優先で選択
+	// for i, state := range ctrl.chipChannelStates {
+	// 	if state.midiChannel == midich && state.note == note {
+	// 		return i
+	// 	}
+	// }
 
 	// 無音のチャンネルがあれば選択
 	for i, state := range ctrl.chipChannelStates {
