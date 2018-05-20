@@ -2,6 +2,7 @@ package player
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -68,6 +69,7 @@ func NewRenderer() *Renderer {
 // Start は、processor によって生成される波形のオーディオデバイスへの出力を開始します。
 func (renderer *Renderer) Start(processor func() (float64, float64), controller func(int)) {
 	startTime := time.Now()
+	maxLevel := 32766.0 / 32767.0
 
 	var err error
 	renderer.stream, err = portaudio.OpenStream(renderer.Parameters, func(out [][]float32) {
@@ -82,6 +84,16 @@ func (renderer *Renderer) Start(processor func() (float64, float64), controller 
 			l, r := processor()
 			out[0][i] = float32(l)
 			out[1][i] = float32(r)
+			if maxLevel < l || maxLevel < r {
+				if maxLevel < l {
+					maxLevel = l
+				}
+				if maxLevel < r {
+					maxLevel = r
+				}
+				db := math.Log10(maxLevel) * 20.0
+				fmt.Printf("Clipping occurred: %2.1f\n", db)
+			}
 		}
 	})
 	if err != nil {
