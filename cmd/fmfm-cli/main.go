@@ -9,7 +9,7 @@ import (
 	"github.com/but80/fmfm.core"
 	"github.com/but80/fmfm.core/cmd/fmfm-cli/internal/player"
 	"github.com/but80/fmfm.core/sim"
-	"github.com/but80/smaf825/pb/smaf"
+	"github.com/but80/go-smaf/pb/smaf"
 	"github.com/urfave/cli"
 )
 

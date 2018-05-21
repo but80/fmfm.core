@@ -8,7 +8,7 @@ import (
 
 	"github.com/but80/fmfm.core/ymf"
 	"github.com/but80/fmfm.core/ymf/ymfdata"
-	"github.com/but80/smaf825/pb/smaf"
+	"github.com/but80/go-smaf/pb/smaf"
 )
 
 // MIDIMessage は、MIDIメッセージの種類を表す列挙子型です。
