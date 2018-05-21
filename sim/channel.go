@@ -113,8 +113,8 @@ type Channel struct {
 	feedbackOut3      float64
 	toPhase           float64
 	attenuationCoef   float64
-	modIndexFrac64    uint64
-	lfoFrequency      uint64
+	modIndexFrac64    ymfdata.Frac64
+	lfoFrequency      ymfdata.Frac64
 	panCoefL          float64
 	panCoefR          float64
 

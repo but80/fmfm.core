@@ -4,6 +4,27 @@ import (
 	"math"
 )
 
+// Frac64 は、0 以上 1 未満の固定小数点数を符号なし64ビット整数で表現する型です。
+type Frac64 uint64
+
+// FloatToFrac64 は、float64 から Frac64 に値を変換します。
+func FloatToFrac64(v float64) Frac64 {
+	return Frac64(v * Pow64Of2)
+}
+
+// MulUint64 は、Frac64 に uint64 型の値を掛けた値を返します。
+func (v Frac64) MulUint64(rhs uint64) Frac64 {
+	return v * Frac64(rhs)
+}
+
+// MulInt32Frac32 は、Frac64 に Int32Frac32 型の値を掛けた値を返します。
+func (v Frac64) MulInt32Frac32(rhs Int32Frac32) Frac64 {
+	return (v >> 32) * Frac64(rhs)
+}
+
+// Int32Frac32 は、0 以上 2^32 未満の固定小数点数を符号なし64ビット整数で表現する型です。
+type Int32Frac32 uint64
+
 // DebugDumpFPS は、デバッグとしてダンプ表示を行う頻度 [FPS] です。
 const DebugDumpFPS = 30
 
@@ -80,7 +101,7 @@ var DTCoef = [8][16]float64{
 
 // LFOFrequency は、LFOパラメータによって決まるビブラートやトレモロの周波数のテーブルです。
 // 単位は、2の64乗を1周とする1サンプルあたりの増分です。
-var LFOFrequency = [4]uint64{}
+var LFOFrequency = [4]Frac64{}
 
 // ModTableLen は、モジュレーション（ビブラートやトレモロ）の振幅テーブルの長さです。
 const ModTableLen = 8192
@@ -95,7 +116,7 @@ const ModTableIndexShift = 64 - ModTableLenBits
 
 // VibratoTableInt32Frac32 は、ビブラート（DVB）によって周波数にかかる係数のテーブルです。
 // 整数部32bit・小数部32bitで表されます。
-var VibratoTableInt32Frac32 [4][ModTableLen]uint64
+var VibratoTableInt32Frac32 [4][ModTableLen]Int32Frac32
 
 // TremoloTable は、トレモロ（DAM）によって振幅にかかる係数のテーブルです。
 var TremoloTable [4][ModTableLen]float64
@@ -169,7 +190,7 @@ func init() {
 			phase := float64(i) / float64(ModTableLen)
 			cent := triSin(phase) * vibratoDepth[dvb]
 			v := math.Pow(2.0, cent/1200)
-			VibratoTableInt32Frac32[dvb][i] = uint64(v * Pow32Of2)
+			VibratoTableInt32Frac32[dvb][i] = Int32Frac32(v * Pow32Of2)
 		}
 	}
 
@@ -208,7 +229,7 @@ func init() {
 	{
 		lfoFreqHz := [4]float64{1.8, 4.0, 5.9, 7.0}
 		for i, hz := range lfoFreqHz {
-			LFOFrequency[i] = uint64(hz / SampleRate * Pow64Of2)
+			LFOFrequency[i] = Frac64(hz / SampleRate * Pow64Of2)
 		}
 	}
 

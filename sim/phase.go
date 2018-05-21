@@ -8,8 +8,8 @@ type phaseGenerator struct {
 	sampleRate           float64
 	evb                  bool
 	dvb                  int
-	phaseFrac64          uint64
-	phaseIncrementFrac64 uint64
+	phaseFrac64          ymfdata.Frac64
+	phaseIncrementFrac64 ymfdata.Frac64
 }
 
 func newPhaseGenerator(sampleRate float64) *phaseGenerator {
@@ -35,16 +35,16 @@ func (pg *phaseGenerator) setFrequency(fnum, block, bo, mult, dt int) {
 	ksn := block<<1 | fnum>>9
 	operatorFrequency := baseFrequency + ymfdata.DTCoef[dt][ksn]
 
-	pg.phaseIncrementFrac64 = uint64(operatorFrequency / pg.sampleRate * ymfdata.Pow64Of2)
+	pg.phaseIncrementFrac64 = ymfdata.FloatToFrac64(operatorFrequency / pg.sampleRate)
 
 	// 端数切り捨て後に掛けないとオペレータ間でズレる
-	pg.phaseIncrementFrac64 *= ymfdata.MultTable2[mult]
+	pg.phaseIncrementFrac64 = pg.phaseIncrementFrac64.MulUint64(ymfdata.MultTable2[mult])
 	pg.phaseIncrementFrac64 >>= 1
 }
 
-func (pg *phaseGenerator) getPhase(vibratoIndex int) uint64 {
+func (pg *phaseGenerator) getPhase(vibratoIndex int) ymfdata.Frac64 {
 	if pg.evb {
-		pg.phaseFrac64 += (pg.phaseIncrementFrac64 >> 32) * ymfdata.VibratoTableInt32Frac32[pg.dvb][vibratoIndex]
+		pg.phaseFrac64 += pg.phaseIncrementFrac64.MulInt32Frac32(ymfdata.VibratoTableInt32Frac32[pg.dvb][vibratoIndex])
 	} else {
 		pg.phaseFrac64 += pg.phaseIncrementFrac64
 	}

@@ -46,7 +46,7 @@ func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 		regs := sim.NewRegisters(chip)
 		opts := &fmfm.ControllerOpts{
 			Registers: regs,
-			Library:   lib,
+			Library:   &lib,
 		}
 		ctrl = fmfm.NewController(opts)
 		result = 1
@@ -55,6 +55,7 @@ func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 }
 
 // FMFMFlushMIDIMessages は、蓄積されたMIDIメッセージを処理します。
+//export FMFMFlushMIDIMessages
 func FMFMFlushMIDIMessages(until int) {
 	ctrl.FlushMIDIMessages(until)
 }

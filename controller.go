@@ -591,7 +591,7 @@ func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
 
 func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool) {
 	s := ctrl.midiChannelStates[midich]
-	return ctrl.library.Get(int(s.bankMSB), int(s.bankLSB), s.pc, note)
+	return ctrl.library.Get(int(s.bankMSB), int(s.bankLSB), int(s.pc), note)
 }
 
 func (ctrl *Controller) resetMIDIChannel(midich int) {
