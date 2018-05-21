@@ -103,8 +103,12 @@ func (eg *envelopeGenerator) setKeyScalingLevel(fnum, block, bo, ksl int) {
 }
 
 func (eg *envelopeGenerator) setActualAR(attackRate, ksr, keyScaleNumber int) {
-	if attackRate == 0 {
+	if attackRate <= 0 {
 		eg.arDiffPerSample = .0
+		return
+	}
+	if 15 <= attackRate {
+		eg.arDiffPerSample = 1.0
 		return
 	}
 	ksn := (keyScaleNumber >> 1) + (keyScaleNumber & 1)
