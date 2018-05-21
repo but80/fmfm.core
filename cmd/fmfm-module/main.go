@@ -11,6 +11,8 @@ import (
 import (
 	"io/ioutil"
 	"strings"
+
+	"github.com/gogo/protobuf/proto"
 )
 
 func main() {
@@ -31,22 +33,28 @@ func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 		if err != nil {
 			panic(err)
 		}
-		var lib smaf.VM5VoiceLib
+		libs := []*smaf.VM5VoiceLib{}
 		for _, i := range info {
 			if i.IsDir() || !strings.HasSuffix(i.Name(), ".vm5.pb") {
 				continue
 			}
-			err := lib.LoadFile("voice/" + i.Name())
+			b, err := ioutil.ReadFile("voice/" + i.Name())
 			if err != nil {
 				panic(err)
 			}
+			var lib smaf.VM5VoiceLib
+			err = proto.Unmarshal(b, &lib)
+			if err != nil {
+				panic(err)
+			}
+			libs = append(libs, &lib)
 		}
 
 		chip = sim.NewChip(float64(sampleRate), -15.0, -1)
 		regs := sim.NewRegisters(chip)
 		opts := &fmfm.ControllerOpts{
 			Registers: regs,
-			Library:   &lib,
+			Libraries: libs,
 		}
 		ctrl = fmfm.NewController(opts)
 		result = 1

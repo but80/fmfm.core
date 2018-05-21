@@ -11,6 +11,21 @@ import (
 	"github.com/but80/go-smaf/pb/smaf"
 )
 
+var defaultPC = &smaf.VM35VoicePC{
+	Version:   smaf.VM35FMVoiceVersion_VM5,
+	Name:      "default",
+	VoiceType: smaf.VoiceType_FM,
+	FmVoice: &smaf.VM35FMVoice{
+		Panpot: 15,
+		Bo:     1,
+		Alg:    1,
+		Operators: []*smaf.VM35FMOperator{
+			{},
+			{},
+		},
+	},
+}
+
 // MIDIMessage は、MIDIメッセージの種類を表す列挙子型です。
 type MIDIMessage int
 
@@ -100,7 +115,7 @@ type midiChannelState struct {
 // ControllerOpts は、 NewController のオプションです。
 type ControllerOpts struct {
 	Registers          ymf.Registers
-	Library            *smaf.VM5VoiceLib
+	Libraries          []*smaf.VM5VoiceLib
 	ForceMono          bool
 	PrintStatus        bool
 	IgnoreMIDIChannels []int
@@ -111,7 +126,7 @@ type ControllerOpts struct {
 type Controller struct {
 	mutex              sync.Mutex
 	registers          ymf.Registers
-	library            *smaf.VM5VoiceLib
+	libraries          []*smaf.VM5VoiceLib
 	forceMono          bool
 	debugPrintStatus   bool
 	ignoreMIDIChannels map[int]struct{}
@@ -126,7 +141,7 @@ type Controller struct {
 func NewController(opts *ControllerOpts) *Controller {
 	ctrl := &Controller{
 		registers:          opts.Registers,
-		library:            opts.Library,
+		libraries:          opts.Libraries,
 		forceMono:          opts.ForceMono,
 		debugPrintStatus:   opts.PrintStatus,
 		ignoreMIDIChannels: map[int]struct{}{},
@@ -221,7 +236,7 @@ func (ctrl *Controller) printStatus() {
 		note := ""
 		instr := ms.debugLastInstrument
 		pc := "-----------"
-		if instr == nil || instr == smaf.DefaultPC {
+		if instr == nil || instr == defaultPC {
 			instr = &smaf.VM35VoicePC{}
 		} else {
 			if ms.mono {
@@ -590,8 +605,27 @@ func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
 }
 
 func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool) {
+	if ctrl.libraries == nil {
+		return defaultPC, false
+	}
+
+	// TODO: smaf825側で検索
+	// TODO: ドラム音色
 	s := ctrl.midiChannelStates[midich]
-	return ctrl.library.Get(int(s.bankMSB), int(s.bankLSB), int(s.pc), note)
+	for _, lib := range ctrl.libraries {
+		for _, p := range lib.Programs {
+			if !(p.Pc == uint32(s.pc) && p.BankLsb == uint32(s.bankLSB) && p.BankMsb == uint32(s.bankMSB)) {
+				continue
+			}
+			if p.DrumNote != 0 && int(p.DrumNote) != note {
+				continue
+			}
+			return p, true
+		}
+	}
+	// fmt.Printf("voice not found: @%d-%d-%d note=%d\n", s.bankMSB, s.bankLSB, s.pc, note)
+
+	return defaultPC, false
 }
 
 func (ctrl *Controller) resetMIDIChannel(midich int) {
