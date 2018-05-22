@@ -6,7 +6,7 @@ import (
 
 	"github.com/but80/fmfm.core"
 	"github.com/but80/fmfm.core/sim"
-	"github.com/but80/go-smaf/pb/smaf"
+	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )
 import (
 	"io/ioutil"

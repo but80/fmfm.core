@@ -212,7 +212,7 @@ func (op *operator) next(modIndex int, modulator float64) float64 {
 	envelope := op.envelopeGenerator.getEnvelope(modIndex)
 
 	sampleIndex := uint64(phaseFrac64) >> ymfdata.WaveformIndexShift
-	sampleIndex += uint64((modulator + 1024.0) * ymfdata.WaveformLen)
+	sampleIndex += uint64((modulator + ymfdata.WaveformLen) * ymfdata.WaveformLen)
 	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * envelope
 }
 

@@ -9,8 +9,8 @@ import (
 	"github.com/but80/fmfm.core"
 	"github.com/but80/fmfm.core/cmd/fmfm-cli/internal/player"
 	"github.com/but80/fmfm.core/sim"
-	"github.com/but80/go-smaf/pb/smaf"
 	"github.com/urfave/cli"
+	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )
 
 var version string
