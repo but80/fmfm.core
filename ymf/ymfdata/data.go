@@ -29,7 +29,7 @@ type Int32Frac32 uint64
 const DebugDumpFPS = 30
 
 // ChannelCount は、最大チャンネル数です。
-const ChannelCount = 16
+const ChannelCount = 32
 
 // SampleRate は、内部的なサンプルレート[Hz]です。
 const SampleRate = float64(48000)
