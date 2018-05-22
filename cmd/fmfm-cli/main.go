@@ -10,7 +10,6 @@ import (
 	"github.com/but80/fmfm.core/cmd/fmfm-cli/internal/player"
 	"github.com/but80/fmfm.core/sim"
 	"github.com/but80/go-smaf/pb/smaf"
-	"github.com/golang/protobuf/proto"
 	"github.com/urfave/cli"
 )
 
@@ -63,21 +62,15 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		libs := []*smaf.VM5VoiceLib{}
+		var lib smaf.VM5VoiceLib
 		for _, i := range info {
 			if i.IsDir() || !strings.HasSuffix(i.Name(), ".vm5.pb") {
 				continue
 			}
-			b, err := ioutil.ReadFile("voice/" + i.Name())
+			err := lib.LoadFile(i.Name())
 			if err != nil {
 				panic(err)
 			}
-			var lib smaf.VM5VoiceLib
-			err = proto.Unmarshal(b, &lib)
-			if err != nil {
-				panic(err)
-			}
-			libs = append(libs, &lib)
 		}
 
 		dumpMIDIChannel := -1
@@ -90,7 +83,7 @@ func main() {
 		regs := sim.NewRegisters(chip)
 		opts := &fmfm.ControllerOpts{
 			Registers:          regs,
-			Libraries:          libs,
+			Library:            &lib,
 			ForceMono:          ctx.Bool("mono"),
 			PrintStatus:        ctx.Bool("print"),
 			IgnoreMIDIChannels: []int{},

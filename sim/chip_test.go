@@ -32,7 +32,7 @@ func TestNewChip(t *testing.T) {
 			regs := sim.NewRegisters(chip)
 			opts := &fmfm.ControllerOpts{
 				Registers: regs,
-				Libraries: []*smaf.VM5VoiceLib{lib},
+				Library:   lib,
 			}
 			seq := fmfm.NewController(opts)
 			chip.Next()
