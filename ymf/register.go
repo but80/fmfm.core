@@ -66,6 +66,8 @@ const (
 	VELOCITY
 	// BO は、BO レジスタです。
 	BO
+	// RESET は、RESET レジスタです。
+	RESET
 )
 
 // Registers は、音源チップのレジスタを抽象化したインタフェースです。

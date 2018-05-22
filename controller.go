@@ -512,11 +512,7 @@ func (ctrl *Controller) resetChipChannel(chipch int) {
 	// state.realnote = 0
 	// state.finetune = 0
 	// state.pitch = 0
-	ctrl.writeAllOperators(chipch, ymf.SL, 0)
-	ctrl.writeAllOperators(chipch, ymf.RR, 15) // release rate - fastest
-	ctrl.writeAllOperators(chipch, ymf.KSL, 0)
-	ctrl.writeAllOperators(chipch, ymf.TL, 0x3f) // no volume
-	ctrl.registers.WriteChannel(chipch, ymf.KON, 0)
+	ctrl.registers.WriteChannel(chipch, ymf.RESET, 1)
 }
 
 func (ctrl *Controller) releaseSustain(midich int) {

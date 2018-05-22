@@ -105,5 +105,9 @@ func (regs *Registers) WriteChannel(channel int, offset ymf.ChRegister, v int) {
 		regs.chip.channels[channel].setVELOCITY(v)
 	case ymf.BO:
 		regs.chip.channels[channel].setBO(v)
+	case ymf.RESET:
+		if v != 0 {
+			regs.chip.channels[channel].resetAll()
+		}
 	}
 }
