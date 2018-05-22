@@ -111,7 +111,6 @@ type Channel struct {
 	feedback3Curr     float64
 	feedbackOut1      float64
 	feedbackOut3      float64
-	toPhase           float64
 	attenuationCoef   float64
 	modIndexFrac64    ymfdata.Frac64
 	lfoFrequency      ymfdata.Frac64
@@ -125,7 +124,6 @@ func newChannel(channelID int, chip *Chip) *Channel {
 	ch := &Channel{
 		chip:      chip,
 		channelID: channelID,
-		toPhase:   4,
 	}
 
 	// 48000Hz:     |prev|curr|
@@ -363,7 +361,7 @@ func (ch *Channel) next() (float64, float64) {
 
 		op1out = op1.next(modIndex, ch.feedbackOut1)
 
-		result = op2.next(modIndex, op1out*ch.toPhase)
+		result = op2.next(modIndex, op1out*ymfdata.ModulatorMultiplier)
 
 	case 1:
 		// (FB)1 -> | -> OUT
@@ -405,9 +403,9 @@ func (ch *Channel) next() (float64, float64) {
 
 		op1out = op1.next(modIndex, ch.feedbackOut1)
 		op2out = op2.next(modIndex, noModulator)
-		op3out = op3.next(modIndex, op2out*ch.toPhase)
+		op3out = op3.next(modIndex, op2out*ymfdata.ModulatorMultiplier)
 
-		result = op4.next(modIndex, (op1out+op3out)*ch.toPhase)
+		result = op4.next(modIndex, (op1out+op3out)*ymfdata.ModulatorMultiplier)
 
 	case 4:
 		// (FB)OP1 -> OP2 -> OP3 -> OP4 -> OUT
@@ -416,10 +414,10 @@ func (ch *Channel) next() (float64, float64) {
 		}
 
 		op1out = op1.next(modIndex, ch.feedbackOut1)
-		op2out = op2.next(modIndex, op1out*ch.toPhase)
-		op3out = op3.next(modIndex, op2out*ch.toPhase)
+		op2out = op2.next(modIndex, op1out*ymfdata.ModulatorMultiplier)
+		op3out = op3.next(modIndex, op2out*ymfdata.ModulatorMultiplier)
 
-		result = op4.next(modIndex, op3out*ch.toPhase)
+		result = op4.next(modIndex, op3out*ymfdata.ModulatorMultiplier)
 
 	case 5:
 		// (FB)OP1 -> OP2 -> | -> OUT
@@ -429,10 +427,10 @@ func (ch *Channel) next() (float64, float64) {
 		}
 
 		op1out = op1.next(modIndex, ch.feedbackOut1)
-		op2out = op2.next(modIndex, op1out*ch.toPhase)
+		op2out = op2.next(modIndex, op1out*ymfdata.ModulatorMultiplier)
 
 		op3out = op3.next(modIndex, ch.feedbackOut3)
-		op4out = op4.next(modIndex, op3out*ch.toPhase)
+		op4out = op4.next(modIndex, op3out*ymfdata.ModulatorMultiplier)
 
 		result = op2out + op4out
 
@@ -445,8 +443,8 @@ func (ch *Channel) next() (float64, float64) {
 
 		op1out = op1.next(modIndex, ch.feedbackOut1)
 		op2out = op2.next(modIndex, noModulator)
-		op3out = op3.next(modIndex, op2out*ch.toPhase)
-		op4out = op4.next(modIndex, op3out*ch.toPhase)
+		op3out = op3.next(modIndex, op2out*ymfdata.ModulatorMultiplier)
+		op4out = op4.next(modIndex, op3out*ymfdata.ModulatorMultiplier)
 
 		result = op1out + op4out
 
@@ -462,7 +460,7 @@ func (ch *Channel) next() (float64, float64) {
 
 		op1out = op1.next(modIndex, ch.feedbackOut1)
 		op2out = op2.next(modIndex, noModulator)
-		op3out = op3.next(modIndex, op2out*ch.toPhase)
+		op3out = op3.next(modIndex, op2out*ymfdata.ModulatorMultiplier)
 		op4out = op4.next(modIndex, noModulator)
 
 		result = op1out + op3out + op4out

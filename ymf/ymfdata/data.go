@@ -52,6 +52,9 @@ var Pow63Of2 = float64(1 << 63)
 // Pow64Of2 は、2の64乗です。
 var Pow64Of2 = Pow63Of2 * 2.0
 
+// ModulatorMultiplier は、モジュレータの出力を他のオペレータに入力する際の増幅率です。
+const ModulatorMultiplier = 4.0
+
 // ModulatorMatrix は、各 ALG でモジュレータとして使用されるオペレータを表すマトリクスです。
 var ModulatorMatrix = [8][4]bool{
 	{true, false, false, false},
