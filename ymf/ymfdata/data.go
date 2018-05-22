@@ -125,7 +125,7 @@ var VibratoTableInt32Frac32 [4][ModTableLen]Int32Frac32
 var TremoloTable [4][ModTableLen]float64
 
 // FeedbackTable は、FBパラメータによってフィードバックされる信号の振幅にかかる係数のテーブルです。
-var FeedbackTable = [8]float64{0, 1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2}
+var FeedbackTable = [8]float64{0, 1.0 / 32.0, 1.0 / 16.0, 1.0 / 8.0, 1.0 / 4.0, 1.0 / 2.0, 1.0, 2.0}
 
 // MultTable2 は、MULTパラメータによって周波数にかかる係数のテーブルです。2で割って使用します。
 var MultTable2 = [16]uint64{1, 1 * 2, 2 * 2, 3 * 2, 4 * 2, 5 * 2, 6 * 2, 7 * 2, 8 * 2, 9 * 2, 10 * 2, 10 * 2, 12 * 2, 12 * 2, 15 * 2, 15 * 2}
@@ -149,7 +149,7 @@ const WaveformIndexShift = 64 - WaveformLenBits
 var Waveforms [32][]float64
 
 func calculateIncrement(begin, end, period float64) float64 {
-	return (end - begin) / SampleRate * (1 / period)
+	return (end - begin) / SampleRate * (1.0 / period)
 }
 
 func triSin(phase float64) float64 {
@@ -174,13 +174,13 @@ func triCos(phase float64) float64 {
 func init() {
 	// generate volume table
 	for i := range VolumeTable {
-		VolumeTable[i] = math.Pow(10, -VolumeTable[i]/20)
+		VolumeTable[i] = math.Pow(10.0, -VolumeTable[i]/20.0)
 	}
-	VolumeTable[0] = 0
+	VolumeTable[0] = .0
 
 	// generate pan table
 	for i := 0; i < 128; i++ {
-		a := math.Pi * .5 * float64(i) / 127
+		a := math.Pi * .5 * float64(i) / 127.0
 		PanTable[i][0] = math.Cos(a)
 		PanTable[i][1] = math.Sin(a)
 	}
@@ -192,7 +192,7 @@ func init() {
 		for i := 0; i < ModTableLen; i++ {
 			phase := float64(i) / float64(ModTableLen)
 			cent := triSin(phase) * vibratoDepth[dvb]
-			v := math.Pow(2.0, cent/1200)
+			v := math.Pow(2.0, cent/1200.0)
 			VibratoTableInt32Frac32[dvb][i] = Int32Frac32(v * Pow32Of2)
 		}
 	}
@@ -221,7 +221,7 @@ func init() {
 				}
 				v := kslBases[ksl] - kslBlockCoefs[ksl]*float64(block-2) - kslFnum5Coefs[ksl]*float64(fnum5lim-7)
 				if block < 2 || .0 <= v {
-					v = 0
+					v = .0
 				}
 				KSLTable[ksl][block][fnum5] = math.Pow(10.0, v/20.0)
 			}
@@ -291,9 +291,9 @@ func init() {
 			dst := make([]float64, WaveformLen)
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i]
-				dst[256+i] = 0
+				dst[256+i] = .0
 				dst[512+i] = src[i]
-				dst[768+i] = 0
+				dst[768+i] = .0
 			}
 			return dst
 		}
@@ -303,7 +303,7 @@ func init() {
 			dst := make([]float64, WaveformLen)
 			for i := 0; i < 512; i++ {
 				dst[i] = src[i*2]
-				dst[512+i] = 0
+				dst[512+i] = .0
 			}
 			return dst
 		}
@@ -314,8 +314,8 @@ func init() {
 			for i := 0; i < 256; i++ {
 				dst[i] = src[i*2]
 				dst[256+i] = src[i*2]
-				dst[512+i] = 0
-				dst[768+i] = 0
+				dst[512+i] = .0
+				dst[768+i] = .0
 			}
 			return dst
 		}
@@ -338,8 +338,8 @@ func init() {
 		// ==================================================
 		// square wave
 		for i := 0; i < 512; i++ {
-			Waveforms[6][i] = 1
-			Waveforms[6][512+i] = -1
+			Waveforms[6][i] = 1.0
+			Waveforms[6][512+i] = -1.0
 		}
 		squareTable := Waveforms[6]
 
@@ -352,16 +352,16 @@ func init() {
 		// ==================================================
 		// exponential
 		for i := 0; i < 512; i++ {
-			x := float64(i) * 16 / 256
-			Waveforms[7][i] = math.Pow(2, -x)
-			Waveforms[7][1023-i] = -math.Pow(2, -(x + 1/16))
+			x := float64(i) * 16.0 / 256.0
+			Waveforms[7][i] = math.Pow(2.0, -x)
+			Waveforms[7][1023-i] = -math.Pow(2.0, -(x + 1.0/16.0))
 		}
 
 		// ==================================================
 		// clipped sinewave
 		for i := 0; i < WaveformLen; i++ {
 			theta := 2 * math.Pi * float64(i) / WaveformLen
-			Waveforms[8][i] = math.Max(-1, math.Min(math.Sin(theta)*math.Sqrt2, 1))
+			Waveforms[8][i] = math.Max(-1.0, math.Min(math.Sin(theta)*math.Sqrt2, 1.0))
 		}
 		csineTable := Waveforms[8]
 
@@ -376,10 +376,10 @@ func init() {
 		// ==================================================
 		// triangle wave
 		for i := 0; i < 256; i++ {
-			Waveforms[16][i] = float64(i) / 256
-			Waveforms[16][256+i] = (256 - float64(i)) / 256
-			Waveforms[16][512+i] = -float64(i) / 256
-			Waveforms[16][768+i] = -(256 - float64(i)) / 256
+			Waveforms[16][i] = float64(i) / 256.0
+			Waveforms[16][256+i] = (256.0 - float64(i)) / 256.0
+			Waveforms[16][512+i] = -float64(i) / 256.0
+			Waveforms[16][768+i] = -(256.0 - float64(i)) / 256.0
 		}
 		triTable := Waveforms[16]
 
@@ -394,8 +394,8 @@ func init() {
 		// ==================================================
 		// saw wave
 		for i := 0; i < 512; i++ {
-			Waveforms[24][i] = float64(i) / 512
-			Waveforms[24][i+512] = float64(i)/512 - 1
+			Waveforms[24][i] = float64(i) / 512.0
+			Waveforms[24][i+512] = float64(i)/512.0 - 1.0
 		}
 		sawTable := Waveforms[24]
 
