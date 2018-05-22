@@ -335,7 +335,6 @@ func (ctrl *Controller) controlChange(midich, cc, value int) {
 		for i, state := range ctrl.chipChannelStates {
 			if state.midiChannel == midich {
 				flags := state.flags
-				state.time = time.Now()
 				if modThresh <= value {
 					state.flags |= flagVibrato
 					if state.flags != flags {
@@ -434,7 +433,6 @@ func (ctrl *Controller) pitchBend(midich, l, h int) {
 	ctrl.midiChannelStates[midich].pitch = int8(pitch)
 	for i, state := range ctrl.chipChannelStates {
 		if state.midiChannel == midich {
-			state.time = time.Now()
 			state.pitch = state.finetune + pitch
 			ctrl.writeFrequency(i, state.realnote, state.pitch)
 		}
@@ -505,7 +503,7 @@ func (ctrl *Controller) occupyChipChannel(chipch, midich, note, velocity int, in
 
 func (ctrl *Controller) resetChipChannel(chipch int) {
 	state := ctrl.chipChannelStates[chipch]
-	state.time = time.Now()
+	state.time = time.Time{}
 	state.flags = flagReleased | flagFree
 	state.minRR = 15
 	state.instrument = nil
@@ -575,16 +573,17 @@ func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
 	foundTotal := -1
 	foundReleased := -1
 	maxDeltaTotal := -1
-	maxDeltaReleased := -1
+	maxAttenuationReleased := -1
 	for i, state := range ctrl.chipChannelStates {
 		delta := int(now.Sub(state.time))
 		if maxDeltaTotal < delta {
 			maxDeltaTotal = delta
 			foundTotal = i
 		}
-		delta *= state.minRR
-		if maxDeltaReleased < delta && state.flags&flagReleased != 0 {
-			maxDeltaReleased = delta
+		// -dB ∝ 2^RR * time
+		attenuation := delta * int(1<<uint(state.minRR))
+		if maxAttenuationReleased < attenuation && state.flags&flagReleased != 0 {
+			maxAttenuationReleased = attenuation
 			foundReleased = i
 		}
 	}
@@ -641,7 +640,6 @@ func (ctrl *Controller) resetMIDIChannel(midich int) {
 func (ctrl *Controller) writeChannelsUsingMIDIChannel(midich int, regbase ymf.ChRegister, value int) {
 	for i, state := range ctrl.chipChannelStates {
 		if state.midiChannel == midich {
-			state.time = time.Now()
 			ctrl.registers.WriteChannel(i, regbase, value)
 		}
 	}
