@@ -1,3 +1,5 @@
+// +build prof
+
 package main
 
 import (

@@ -22,6 +22,15 @@ var MIDI = cli.Command{
 			Name:  "mono, m",
 			Usage: `Force mono mode in all MIDI channel except drum note`,
 		},
+		cli.BoolFlag{
+			Name:  "mute-nopc, M",
+			Usage: `Mute if program change is not found`,
+		},
+		cli.IntFlag{
+			Name:  "level, l",
+			Usage: `Total level in dB`,
+			Value: -12,
+		},
 		cli.IntFlag{
 			Name:  "ignore, n",
 			Usage: `Ignore MIDI channel`,
@@ -67,11 +76,16 @@ var MIDI = cli.Command{
 		}
 
 		renderer := player.NewRenderer()
-		chip := sim.NewChip(renderer.Parameters.SampleRate, -15.0, dumpMIDIChannel)
+		chip := sim.NewChip(
+			renderer.Parameters.SampleRate,
+			float64(ctx.Int("level")),
+			dumpMIDIChannel,
+		)
 		regs := sim.NewRegisters(chip)
 		opts := &fmfm.ControllerOpts{
 			Registers:          regs,
 			Library:            &lib,
+			MuteIfPCNotFound:   ctx.Bool("mute-nopc"),
 			ForceMono:          ctx.Bool("mono"),
 			PrintStatus:        ctx.Bool("print"),
 			IgnoreMIDIChannels: []int{},

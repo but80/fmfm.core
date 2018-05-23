@@ -34,7 +34,7 @@ func NewRenderer() *Renderer {
 		panic(err)
 	}
 	selectedDevinfo := h.DefaultOutputDevice
-	fmt.Printf("Device: %s\n", selectedDevinfo.Name)
+	fmt.Printf("Audio device: %s\n", selectedDevinfo.Name)
 
 	// var selectedDevinfo *portaudio.DeviceInfo
 	// devinfos, err := portaudio.Devices()

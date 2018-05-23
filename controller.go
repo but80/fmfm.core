@@ -11,6 +11,22 @@ import (
 	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )
 
+var defaultPC = &smaf.VM35VoicePC{
+	Version:   smaf.VM35FMVoiceVersion_VM5,
+	Name:      "default",
+	VoiceType: smaf.VoiceType_FM,
+	FmVoice: &smaf.VM35FMVoice{
+		Panpot: 15,
+		Bo:     1,
+		Alg:    0,
+		Lfo:    2,
+		Operators: []*smaf.VM35FMOperator{
+			{Multi: 1, Ar: 15, Dr: 4, Sl: 15, Rr: 12, Tl: 12, Ksl: 2, Dvb: 3},
+			{Multi: 1, Ar: 15, Rr: 12, Dvb: 3},
+		},
+	},
+}
+
 // MIDIMessage は、MIDIメッセージの種類を表す列挙子型です。
 type MIDIMessage int
 
@@ -101,6 +117,7 @@ type midiChannelState struct {
 type ControllerOpts struct {
 	Registers          ymf.Registers
 	Library            *smaf.VM5VoiceLib
+	MuteIfPCNotFound   bool
 	ForceMono          bool
 	PrintStatus        bool
 	IgnoreMIDIChannels []int
@@ -112,6 +129,7 @@ type Controller struct {
 	mutex              sync.Mutex
 	registers          ymf.Registers
 	library            *smaf.VM5VoiceLib
+	muteIfPCNotFound   bool
 	forceMono          bool
 	debugPrintStatus   bool
 	ignoreMIDIChannels map[int]struct{}
@@ -127,6 +145,7 @@ func NewController(opts *ControllerOpts) *Controller {
 	ctrl := &Controller{
 		registers:          opts.Registers,
 		library:            opts.Library,
+		muteIfPCNotFound:   opts.MuteIfPCNotFound,
 		forceMono:          opts.ForceMono,
 		debugPrintStatus:   opts.PrintStatus,
 		ignoreMIDIChannels: map[int]struct{}{},
@@ -586,7 +605,11 @@ func (ctrl *Controller) findFreeChipChannel(midich, note int) int {
 
 func (ctrl *Controller) getInstrument(midich, note int) (*smaf.VM35VoicePC, bool) {
 	s := ctrl.midiChannelStates[midich]
-	return ctrl.library.Get(int(s.bankMSB), int(s.bankLSB), int(s.pc), note)
+	result, ok := ctrl.library.Get(int(s.bankMSB), int(s.bankLSB), int(s.pc), note)
+	if !ok && !ctrl.muteIfPCNotFound {
+		result = defaultPC
+	}
+	return result, ok
 }
 
 func (ctrl *Controller) resetMIDIChannel(midich int) {
