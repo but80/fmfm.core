@@ -1,6 +1,7 @@
 package player
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/but80/fmfm.core"
@@ -19,7 +20,11 @@ type Sequencer struct {
 var newSequencerOnce = sync.Once{}
 
 // NewSequencer は、新しい Sequencer を作成します。
-func NewSequencer(opts *fmfm.ControllerOpts) *Sequencer {
+func NewSequencer(midiDevice string, opts *fmfm.ControllerOpts) *Sequencer {
+	if midiDevice == "@" {
+		midiDevice = defaultMIDIDeviceName
+	}
+
 	newSequencerOnce.Do(func() {
 		portmidi.Initialize()
 		if portmidi.CountDevices() < 1 {
@@ -27,15 +32,32 @@ func NewSequencer(opts *fmfm.ControllerOpts) *Sequencer {
 		}
 	})
 
-	selectedMIDIDeviceID, _ := portmidi.DefaultInputDeviceID()
+	var selectedMIDIDeviceID portmidi.DeviceID
 
-	for i := 0; i < portmidi.CountDevices(); i++ {
-		deviceID := portmidi.DeviceID(i)
-		info := portmidi.GetDeviceInfo(deviceID)
-		if info.IsInputAvailable && info.Name == defaultMIDIDeviceName {
-			selectedMIDIDeviceID = deviceID
+	if midiDevice == "" {
+		var found bool
+		selectedMIDIDeviceID, found = portmidi.DefaultInputDeviceID()
+		if !found {
+			panic("No default MIDI device found")
+		}
+	} else {
+		var found bool
+		for i := 0; i < portmidi.CountDevices(); i++ {
+			deviceID := portmidi.DeviceID(i)
+			info := portmidi.GetDeviceInfo(deviceID)
+			if info.IsInputAvailable && info.Name == midiDevice {
+				selectedMIDIDeviceID = deviceID
+				found = true
+				break
+			}
+		}
+		if !found {
+			panic("No such MIDI device found: " + midiDevice)
 		}
 	}
+
+	info := portmidi.GetDeviceInfo(selectedMIDIDeviceID)
+	fmt.Printf("MIDI device: %s > %s\n", info.Interface, info.Name)
 
 	input, err := portmidi.NewInputStream(selectedMIDIDeviceID, 512, 0)
 	if err != nil {
@@ -78,4 +100,17 @@ func NewSequencer(opts *fmfm.ControllerOpts) *Sequencer {
 // Close は、MIDIメッセージの受信を終了します。
 func (seq *Sequencer) Close() {
 	seq.input.Close()
+}
+
+// ListMIDIDeivces は、入力として選択可能なMIDIデバイスの一覧を取得します。
+func ListMIDIDeivces() []string {
+	result := []string{}
+	for i := 0; i < portmidi.CountDevices(); i++ {
+		deviceID := portmidi.DeviceID(i)
+		info := portmidi.GetDeviceInfo(deviceID)
+		if info.IsInputAvailable && info.Name != "" {
+			result = append(result, info.Name)
+		}
+	}
+	return result
 }
