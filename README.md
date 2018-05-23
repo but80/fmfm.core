@@ -13,27 +13,29 @@ Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
 # Requirements
 
 - macOS
-- [Go 1.9 or 1.10](https://golang.org/)
-
-  ```bash
-  brew install go
-  ```
+- [Go >= 1.9](https://golang.org/)
 - [PortMIDI](http://portmedia.sourceforge.net/portmidi/)
-
-  ```bash
-  brew install portmidi
-  ```
 - [PortAudio](http://www.portaudio.com/)
-
-  ```bash
-  brew install portaudio
-  ```
 
 # Installation
 
-```bash
-go get github.com/but80/fmfm.core/cmd/fmfm-cli
-```
+1. Install [Homebrew](https://brew.sh/)
+
+   ```bash
+   /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+   ```
+2. Install dependencies
+
+   ```bash
+   brew install go
+   brew install portmidi
+   brew install portaudio
+   ```
+3. Install fmfm-cli
+
+   ```bash
+   go get github.com/but80/fmfm.core/cmd/fmfm-cli
+   ```
 
 # Usage
 
@@ -70,12 +72,11 @@ OPTIONS:
 - Analyze ATS-MA5 output
   - Waveform of DAM
   - Waveform of DVB
-  - LPF character at feedback
-  - AR shifting by KSR
   - Channel pan resolution
   - Channel pan and voice pan blending
   - MIDI vibrato resolution
-  - LFO reset timing
+  - LFO reset timing in MONO mode
+- Reduce multiplications in envelope generator
 
 # License
 
