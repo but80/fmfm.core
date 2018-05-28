@@ -15,13 +15,16 @@ import (
 type Renderer struct {
 	Parameters portaudio.StreamParameters
 	stream     *portaudio.Stream
+	insertions []Insertion
 }
 
 var portautioInitOnce = sync.Once{}
 
 // NewRenderer は、新しいRendererを作成します。
 func NewRenderer() *Renderer {
-	renderer := &Renderer{}
+	renderer := &Renderer{
+		insertions: []Insertion{},
+	}
 	portautioInitOnce.Do(func() {
 		portaudio.Initialize()
 		closer.Bind(func() {
@@ -66,10 +69,17 @@ func NewRenderer() *Renderer {
 	return renderer
 }
 
+// Insert は、インサーションエフェクトを追加します。
+func (renderer *Renderer) Insert(insertion Insertion) {
+	renderer.insertions = append(renderer.insertions, insertion)
+}
+
 // Start は、processor によって生成される波形のオーディオデバイスへの出力を開始します。
 func (renderer *Renderer) Start(processor func() (float64, float64), controller func(int)) {
 	startTime := time.Now()
 	maxLevel := 32766.0 / 32767.0
+
+	fmt.Printf("insertion %#v\n", renderer.insertions)
 
 	var err error
 	renderer.stream, err = portaudio.OpenStream(renderer.Parameters, func(out [][]float32) {
@@ -82,8 +92,10 @@ func (renderer *Renderer) Start(processor func() (float64, float64), controller 
 			controller(int(now - midiLatency))
 
 			l, r := processor()
-			out[0][i] = float32(l)
-			out[1][i] = float32(r)
+			for _, insertion := range renderer.insertions {
+				l, r = insertion.Next(l, r)
+			}
+
 			if maxLevel < l || maxLevel < r {
 				if maxLevel < l {
 					maxLevel = l
@@ -94,6 +106,9 @@ func (renderer *Renderer) Start(processor func() (float64, float64), controller 
 				db := math.Log10(maxLevel) * 20.0
 				fmt.Printf("Clipping occurred: %2.1f\n", db)
 			}
+
+			out[0][i] = float32(l)
+			out[1][i] = float32(r)
 		}
 	})
 	if err != nil {

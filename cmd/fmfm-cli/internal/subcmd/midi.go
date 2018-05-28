@@ -20,24 +20,29 @@ var MIDI = cli.Command{
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "mono, m",
-			Usage: `Force mono mode in all MIDI channel except drum note`,
+			Usage: `Force mono mode in all MIDI channels except drum PC`,
 		},
 		cli.BoolFlag{
-			Name:  "mute-nopc, M",
+			Name:  "mute-nopc, z",
 			Usage: `Mute if program change is not found`,
 		},
-		cli.IntFlag{
+		cli.Float64Flag{
 			Name:  "level, l",
 			Usage: `Total level in dB`,
-			Value: -12,
+			Value: -12.0,
+		},
+		cli.Float64Flag{
+			Name:  "limiter, c",
+			Usage: `Limiter threshold in dB`,
+			Value: -3.0,
 		},
 		cli.IntFlag{
 			Name:  "ignore, n",
-			Usage: `Ignore MIDI channel`,
+			Usage: `Ignore specified MIDI channel`,
 		},
 		cli.IntFlag{
 			Name:  "solo, s",
-			Usage: `Play only specified MIDI channel`,
+			Usage: `Accept only specified MIDI channel`,
 		},
 		cli.IntFlag{
 			Name:  "dump, d",
@@ -76,9 +81,12 @@ var MIDI = cli.Command{
 		}
 
 		renderer := player.NewRenderer()
+		limiter := player.NewLimiter(renderer.Parameters.SampleRate)
+		limiter.SetThreshold(ctx.Float64("limiter"))
+		renderer.Insert(limiter)
 		chip := sim.NewChip(
 			renderer.Parameters.SampleRate,
-			float64(ctx.Int("level")),
+			ctx.Float64("level"),
 			dumpMIDIChannel,
 		)
 		regs := sim.NewRegisters(chip)

@@ -34,7 +34,7 @@ Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
 3. Install fmfm-cli
 
    ```bash
-   go get github.com/but80/fmfm.core/cmd/fmfm-cli
+   go get -u github.com/but80/fmfm.core/cmd/fmfm-cli
    ```
 
 # Usage
@@ -55,11 +55,11 @@ USAGE:
    fmfm-cli midi [command options] [<Input MIDI device>]
 
 OPTIONS:
-   --mono, -m                Force mono mode in all MIDI channel except drum note
-   --mute-nopc, -M           Mute if program change is not found
+   --mono, -m                Force mono mode in all MIDI channels except drum PC
+   --mute-nopc, -z           Mute if program change is not found
    --level value, -l value   Total level in dB (default: -12)
-   --ignore value, -n value  Ignore MIDI channel (default: 0)
-   --solo value, -s value    Play only specified MIDI channel (default: 0)
+   --ignore value, -n value  Ignore specified MIDI channel (default: 0)
+   --solo value, -s value    Accept only specified MIDI channel (default: 0)
    --dump value, -d value    Dump MIDI channel (default: 0)
    --print, -p               Print status
 ```
@@ -70,11 +70,10 @@ OPTIONS:
 # Todo
 
 - Analyze ATS-MA5 output
-  - Waveform of DAM
   - Waveform of DVB
+  - MIDI vibrato resolution
   - Channel pan resolution
   - Channel pan and voice pan blending
-  - MIDI vibrato resolution
   - LFO reset timing in MONO mode
 - Reduce multiplications in envelope generator
 
