@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/but80/fmfm.core"
-	"github.com/but80/fmfm.core/cmd/fmfm-cli/internal/player"
-	"github.com/but80/fmfm.core/sim"
+	fmfm "github.com/but80/fmfm.core"
 	"github.com/urfave/cli"
+	"gopkg.in/but80/fmfm.core.v1/cmd/fmfm-cli/internal/player"
+	"gopkg.in/but80/fmfm.core.v1/sim"
 	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )
 

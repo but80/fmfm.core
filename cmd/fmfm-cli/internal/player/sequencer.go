@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/but80/fmfm.core"
+	fmfm "github.com/but80/fmfm.core"
 	"github.com/xlab/portmidi"
 )
 

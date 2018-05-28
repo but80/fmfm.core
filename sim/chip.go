@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/but80/fmfm.core/ymf/ymfdata"
+	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
 )
 
 // Chip は、FM音源チップ全体を表す型です。

@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/but80/fmfm.core/ymf/ymfdata"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
 )
 
 func TestEnvelopeGenerator(t *testing.T) {

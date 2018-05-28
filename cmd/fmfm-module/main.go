@@ -4,13 +4,14 @@ import (
 	"C"
 	"sync"
 
-	"github.com/but80/fmfm.core"
-	"github.com/but80/fmfm.core/sim"
+	"gopkg.in/but80/fmfm.core.v1/sim"
 	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )
 import (
 	"io/ioutil"
 	"strings"
+
+	fmfm "github.com/but80/fmfm.core"
 )
 
 func main() {

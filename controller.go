@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/but80/fmfm.core/ymf"
-	"github.com/but80/fmfm.core/ymf/ymfdata"
+	"gopkg.in/but80/fmfm.core.v1/ymf"
+	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
 	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )
 

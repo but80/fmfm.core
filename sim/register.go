@@ -1,7 +1,7 @@
 package sim
 
 import (
-	"github.com/but80/fmfm.core/ymf"
+	"gopkg.in/but80/fmfm.core.v1/ymf"
 )
 
 // Registers は、全レジスタのコンテナです。

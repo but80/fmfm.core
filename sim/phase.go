@@ -1,7 +1,7 @@
 package sim
 
 import (
-	"github.com/but80/fmfm.core/ymf/ymfdata"
+	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
 )
 
 type phaseGenerator struct {

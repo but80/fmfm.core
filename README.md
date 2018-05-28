@@ -1,8 +1,8 @@
 # fmFM
 
 [![Build Status](https://travis-ci.org/but80/fmfm.core.svg?branch=master)](https://travis-ci.org/but80/fmfm.core)
-[![Go Report Card](https://goreportcard.com/badge/github.com/but80/fmfm.core)](https://goreportcard.com/report/github.com/but80/fmfm.core)
-[![Godoc](https://godoc.org/github.com/but80/fmfm.core?status.svg)](http://godoc.org/github.com/but80/fmfm.core)
+[![Go Report Card](https://goreportcard.com/badge/gopkg.in/but80/fmfm.core.v1)](https://goreportcard.com/report/gopkg.in/but80/fmfm.core.v1)
+[![Godoc](https://godoc.org/gopkg.in/but80/fmfm.core.v1?status.svg)](http://godoc.org/gopkg.in/but80/fmfm.core.v1)
 
 **WORK IN PROGRESS**
 
@@ -34,7 +34,7 @@ Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
 3. Install fmfm-cli
 
    ```bash
-   go get -u github.com/but80/fmfm.core/cmd/fmfm-cli
+   go get -u gopkg.in/but80/fmfm.core.v1/cmd/fmfm-cli
    ```
 
 # Usage
