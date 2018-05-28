@@ -107,10 +107,6 @@ func (eg *envelopeGenerator) setActualAR(attackRate, ksr, keyScaleNumber int) {
 		eg.arDiffPerSample = .0
 		return
 	}
-	if 15 <= attackRate {
-		eg.arDiffPerSample = 1.0
-		return
-	}
 	ksn := (keyScaleNumber >> 1) + (keyScaleNumber & 1)
 	sec := attackTimeSecAt1[ksr][ksn] / float64(uint(1)<<uint(attackRate-1))
 	eg.arDiffPerSample = 1.0 / (sec * eg.sampleRate)
