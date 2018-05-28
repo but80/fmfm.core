@@ -14,6 +14,7 @@ type Limiter struct {
 	attackInv   float64
 	release     float64
 	threshold   float64
+	thresholdDB float64
 	attenuation float64
 	buffer      [][2]float64
 	bufferPos   int
@@ -22,20 +23,20 @@ type Limiter struct {
 func NewLimiter(sampleRate float64) *Limiter {
 	lim := &Limiter{
 		sampleRate: sampleRate,
-		threshold:  -3.0,
 	}
-	return lim.SetLookAhead(.005).SetAttack(.005).SetRelease(.02)
+	return lim.SetThreshold(-3.0).SetLookAhead(.005).SetAttack(.005).SetRelease(.02)
+}
+
+func (lim *Limiter) SetThreshold(v float64) *Limiter {
+	lim.threshold = math.Pow(10, v/20.0)
+	lim.thresholdDB = v
+	return lim
 }
 
 func (lim *Limiter) SetLookAhead(v float64) *Limiter {
 	n := int(math.Ceil(lim.sampleRate * v))
 	lim.buffer = make([][2]float64, n)
 	lim.bufferPos = 0
-	return lim
-}
-
-func (lim *Limiter) SetThreshold(v float64) *Limiter {
-	lim.threshold = v
 	return lim
 }
 
@@ -60,15 +61,15 @@ func (lim *Limiter) Next(l, r float64) (float64, float64) {
 	lim.buffer[lim.bufferPos][0] = l
 	lim.buffer[lim.bufferPos][1] = r
 	lim.bufferPos = (lim.bufferPos + 1) % len(lim.buffer)
-	v := math.Max(l, r)
+	v := math.Max(math.Abs(l), math.Abs(r))
 	l = lim.buffer[lim.bufferPos][0]
 	r = lim.buffer[lim.bufferPos][1]
-	if .0 <= lim.threshold {
+	if .0 <= lim.thresholdDB {
 		return l, r
 	}
-	db := 20.0 * math.Log10(v)
-	if lim.threshold <= db {
-		target := lim.threshold - db
+	if lim.threshold <= v {
+		db := 20.0 * math.Log10(v)
+		target := lim.thresholdDB - db
 		lim.attenuation = lim.attack*lim.attenuation + lim.attackInv*target
 	} else {
 		lim.attenuation *= lim.release

@@ -34,7 +34,7 @@ var MIDI = cli.Command{
 		cli.Float64Flag{
 			Name:  "limiter, c",
 			Usage: `Limiter threshold in dB`,
-			Value: -3.0,
+			Value: -6.0,
 		},
 		cli.IntFlag{
 			Name:  "ignore, n",
