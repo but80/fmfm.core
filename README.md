@@ -75,7 +75,6 @@ OPTIONS:
   - MIDI vibrato resolution
   - Channel pan resolution
   - Channel pan and voice pan blending
-  - LFO reset timing in MONO mode
 - Reduce multiplications in envelope generator
 
 # License
