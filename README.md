@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/but80/fmfm.core.svg?branch=master)](https://travis-ci.org/but80/fmfm.core)
 [![Go Report Card](https://goreportcard.com/badge/gopkg.in/but80/fmfm.core.v1?)](https://goreportcard.com/report/gopkg.in/but80/fmfm.core.v1)
 [![Godoc](https://godoc.org/gopkg.in/but80/fmfm.core.v1?status.svg)](https://godoc.org/gopkg.in/but80/fmfm.core.v1)
+[![MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
 
 **WORK IN PROGRESS**
 
