@@ -3,8 +3,8 @@ package sim_test
 import (
 	"testing"
 
-	fmfm "github.com/but80/fmfm.core"
 	"github.com/google/gofuzz"
+	fmfm "gopkg.in/but80/fmfm.core.v1"
 	"gopkg.in/but80/fmfm.core.v1/sim"
 	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )

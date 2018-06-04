@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	fmfm "github.com/but80/fmfm.core"
+	fmfm "gopkg.in/but80/fmfm.core.v1"
 )
 
 func main() {
