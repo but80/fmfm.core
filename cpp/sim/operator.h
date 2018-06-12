@@ -1,0 +1,29 @@
+#include "fmt.h"
+#include "math.h"
+#include "strings.h"
+#include "ymf/ymfdata.h"
+namespace ymfdata = ymf::ymfdata;
+typedef struct __operator {
+	bool isModulator;
+	int dt;
+	int ksr;
+	int mult;
+	int ksl;
+	int ar;
+	int dr;
+	int sl;
+	int sr;
+	int rr;
+	int xof;
+	int ws;
+	float64 feedbackCoef;
+	int keyScaleNumber;
+	int fnum;
+	int block;
+	int bo;
+	envelopeGenerator *envelopeGenerator;
+	Chip *chip;
+	int channelID;
+	int operatorIndex;
+	phaseGenerator *phaseGenerator;
+} operator;
