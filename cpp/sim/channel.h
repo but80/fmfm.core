@@ -1,3 +1,4 @@
+#pragma once
 #include "fmt.h"
 #include "math.h"
 #include "strings.h"

@@ -1,3 +1,4 @@
+#pragma once
 #include "ymf/ymfdata.h"
 namespace ymfdata = ymf::ymfdata;
 typedef struct __phaseGenerator {

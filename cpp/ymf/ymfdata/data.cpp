@@ -1,5 +1,4 @@
-#pragma once
-#include "./data.h"
+#include "data.h"
 
 namespace ymf {
 namespace ymfdata {
@@ -500,10 +499,10 @@ void init() {
 		LFOFrequency[i] = Frac64(hz/SampleRate*Pow64Of2);
 	}
 	for (int i = 0; i < sizeof(Waveforms) / sizeof(Waveforms[0]); i++) {
-		Waveforms[i] = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9535, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a100)})[0m, WaveformLen);
+		Waveforms[i] = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9535, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a140)})[0m, WaveformLen);
 	}
 	auto copyHalf = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9639, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a320)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9639, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a340)})[0m, WaveformLen);
 		auto i = 0;
 		while i < 512 {
 			dst[i] = src[i];
@@ -513,7 +512,7 @@ void init() {
 		return dst;
 	};
 	auto copyAbs = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9830, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a720)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9830, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a760)})[0m, WaveformLen);
 		auto i = 0;
 		while i < 512 {
 			dst[i] = src[i];
@@ -523,7 +522,7 @@ void init() {
 		return dst;
 	};
 	auto copyAbsQuarter = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10033, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000ab00)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10033, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000ab40)})[0m, WaveformLen);
 		auto i = 0;
 		while i < 256 {
 			dst[i] = src[i];
@@ -535,7 +534,7 @@ void init() {
 		return dst;
 	};
 	auto copyOct = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10271, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000afe0)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10271, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000b020)})[0m, WaveformLen);
 		auto i = 0;
 		while i < 512 {
 			dst[i] = src[i*2];
@@ -545,7 +544,7 @@ void init() {
 		return dst;
 	};
 	auto copyAbsOct = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10468, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000b3c0)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10468, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000b400)})[0m, WaveformLen);
 		auto i = 0;
 		while i < 256 {
 			dst[i] = src[i*2];

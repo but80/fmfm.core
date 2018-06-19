@@ -1,5 +1,4 @@
-#pragma once
-#include "./operator.h"
+#include "operator.h"
 
 namespace sim {
 
@@ -50,7 +49,7 @@ string operatorPtr__dump(operator *op) {
 		vb = fmt::Sprintf("%d", pg->dvb);
 	}
 	auto phase = pg->phaseFrac64 >> ymfdata->WaveformIndexShift;
-	auto phstr = [41mobjectOf[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:18906, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42011bb80)})[0m[41mCallExpr[0m[31m<<nil>>(<nil>)[0m[41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:18906, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42011bb80)})[0m("        ");
+	auto phstr = [41mobjectOf[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:18906, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc420123ba0)})[0m[41mCallExpr[0m[31m<<nil>>(<nil>)[0m[41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:18906, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc420123ba0)})[0m("        ");
 	phstr[phase >> (ymfdata->WaveformLenBits - 3)] = string.byte("|");
 	return fmt::Sprintf("%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f st=%s ph=%s lv=%-03d %s", op->operatorIndex, cm, op->mult, op->ws, op->ar, op->dr, op->sl, op->sr, op->rr, eg->tlCoef, am, vb, op->dt, op->ksr, op->feedbackCoef, op->keyScaleNumber, eg->kslCoef, stage__String(eg->stage), string(phstr), int(math::Floor(lvdb)), lvstr);
 }

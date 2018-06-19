@@ -1,5 +1,4 @@
-#pragma once
-#include "./phase.h"
+#include "phase.h"
 
 namespace sim {
 

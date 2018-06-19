@@ -1,5 +1,4 @@
-#pragma once
-#include "./envelope.h"
+#include "envelope.h"
 
 namespace sim {
 

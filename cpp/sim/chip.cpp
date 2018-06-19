@@ -1,5 +1,4 @@
-#pragma once
-#include "./chip.h"
+#include "chip.h"
 
 namespace sim {
 
@@ -11,8 +10,8 @@ Chip *NewChip(float64 sampleRate, float64 totalLevel, int dumpMIDIChannel) {
 		sampleRate: sampleRate,
 		totalLevel: totalLevel,
 		dumpMIDIChannel: dumpMIDIChannel,
-		channels: make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:11070, Len:ast.Expr(nil), Elt:(*ast.StarExpr)(0xc4200f9780)})[0m, ymfdata->ChannelCount),
-		currentOutput: make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:11129, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200f9860)})[0m, 2),
+		channels: make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:11070, Len:ast.Expr(nil), Elt:(*ast.StarExpr)(0xc4200f97a0)})[0m, ymfdata->ChannelCount),
+		currentOutput: make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:11129, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200f9880)})[0m, 2),
 	});
 	ChipPtr__initChannels(chip);
 	return chip;
@@ -45,7 +44,7 @@ MULTIRESULT ChipPtr__Next(Chip *chip) {
 			}
 			if (0 < len(toDump)) {
 				sort::Slice(toDump, 				bool UNKNOWN(int i, int j) {
-					return [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe740), Lbrack:11960, Index:(*ast.Ident)(0xc4200fe760), Rbrack:11962})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe740), Lbrack:11960, Index:(*ast.Ident)(0xc4200fe760), Rbrack:11962})[0mChannelPtr__currentLevel(toDump[i]) < [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe7c0), Lbrack:11987, Index:(*ast.Ident)(0xc4200fe7e0), Rbrack:11989})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe7c0), Lbrack:11987, Index:(*ast.Ident)(0xc4200fe7e0), Rbrack:11989})[0mChannelPtr__currentLevel(toDump[j]);
+					return [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe760), Lbrack:11960, Index:(*ast.Ident)(0xc4200fe780), Rbrack:11962})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe760), Lbrack:11960, Index:(*ast.Ident)(0xc4200fe780), Rbrack:11962})[0mChannelPtr__currentLevel(toDump[i]) < [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe7e0), Lbrack:11987, Index:(*ast.Ident)(0xc4200fe800), Rbrack:11989})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4200fe7e0), Lbrack:11987, Index:(*ast.Ident)(0xc4200fe800), Rbrack:11989})[0mChannelPtr__currentLevel(toDump[j]);
 				});
 				for (int _ = 0; _ < (int)toDump.size(); _++) {
 					auto ch = toDump[_];
@@ -59,7 +58,7 @@ MULTIRESULT ChipPtr__Next(Chip *chip) {
 }
 
 void ChipPtr__initChannels(Chip *chip) {
-	chip->channels = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:12221, Len:ast.Expr(nil), Elt:(*ast.StarExpr)(0xc4200feca0)})[0m, ymfdata->ChannelCount);
+	chip->channels = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:12221, Len:ast.Expr(nil), Elt:(*ast.StarExpr)(0xc4200fecc0)})[0m, ymfdata->ChannelCount);
 	for (int i = 0; i < (int)chip->channels.size(); i++) {
 		chip->channels[i] = newChannel(i, chip);
 	}

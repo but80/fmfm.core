@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/mattn/go-shellwords"
 	"github.com/mattn/go-zglob"
@@ -50,6 +51,21 @@ func Gen() error {
 		return err
 	}
 	return nil
+}
+
+func BuildCPP() error {
+	mg.SerialDeps(Gen)
+	err := os.Chdir("cpp")
+	if err != nil {
+		return err
+	}
+	defer os.Chdir("..")
+	files, err := zglob.Glob("./**/*.cpp")
+	if err != nil {
+		return err
+	}
+	opts := append([]string{"-dynamiclib", "-o", "fmfm.dylib"}, files...)
+	return sh.RunV("g++", opts...)
 }
 
 // Format code

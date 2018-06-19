@@ -220,8 +220,8 @@ func (g *generator) Dump() {
 	}
 	relPath := relativePkg(g.pkg.Path(), g.basePkg)
 
-	fmt.Fprintln(g.cppWriter, "#pragma once")
-	fmt.Fprintf(g.cppWriter, "#include \"./%s.h\"\n", g.fileName)
+	fmt.Fprintln(g.hWriter, "#pragma once")
+	fmt.Fprintf(g.cppWriter, "#include \"%s.h\"\n", g.fileName)
 	fmt.Fprintln(g.cppWriter, "")
 
 	ns := translateNamespace(relPath)
