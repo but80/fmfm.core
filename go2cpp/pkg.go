@@ -116,29 +116,24 @@ func (p *Package) Load() error {
 	return nil
 }
 
-const fileHeader = `#include <string>
-#include <memory>
-
-using int8    = signed char;
-using int16   = signed short;
-using int32   = signed int;
-using int64   = signed long long;
-using uint8   = unsigned char;
-using uint16  = unsigned short;
-using uint32  = unsigned int;
-using uint64  = unsigned long long;
-using float32 = float;
-using float64 = double;
-using string  = std::string;
-
-template <typename T>
-inline std::shared_ptr<T> __ptr(T& t) {
-    return &t;
-}
-`
-
 // ToCPP は、このGoパッケージをC++コードに変換してファイルに保存します。
-func (p *Package) ToCPP(dir, basePkg string) error {
+func (p *Package) ToCPP(path, basePkg string) (err error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	cppWriter, err := os.Create(filepath.FromSlash(path + ".cpp"))
+	if err != nil {
+		return err
+	}
+	defer cppWriter.Close()
+
+	hWriter, err := os.Create(filepath.FromSlash(path + ".h"))
+	if err != nil {
+		return err
+	}
+	defer hWriter.Close()
+
 	// fmt.Fprintln(writer, fileHeader)
 
 	// ns := translateNamespace(relativePkg(a.pkgPath, basePkg))
@@ -159,24 +154,11 @@ func (p *Package) ToCPP(dir, basePkg string) error {
 		if !strings.HasSuffix(fileName, ".go") {
 			continue
 		}
-		name := fileName[:len(fileName)-3]
-
-		cppWriter, err := os.Create(filepath.FromSlash(dir + "/" + name + ".cpp"))
-		if err != nil {
-			return err
-		}
-		hWriter, err := os.Create(filepath.FromSlash(dir + "/" + name + ".h"))
-		if err != nil {
-			cppWriter.Close()
-			return err
-		}
 		f := p.files[fileName]
-		gen := newGenerator(cppWriter, hWriter, fileName, f.fileAST, basePkg, p.pkg, p.info, p.fset)
+		gen := newGenerator(cppWriter, hWriter, f.fileAST, basePkg, p.pkg, p.info, p.fset)
 		gen.Dump()
 		exports = append(exports, gen.Exports...)
 		warnings = append(warnings, gen.Warnings...)
-		hWriter.Close()
-		cppWriter.Close()
 	}
 
 	// fmt.Fprintln(writer, "// ------------------------------------------------------------")

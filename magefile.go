@@ -32,14 +32,15 @@ func gen(basePkg, pkg string) error {
 		return err
 	}
 
-	dir := "cpp"
+	path := "cpp"
 	if pkg != "" {
-		dir += "/" + pkg
+		path += "/" + pkg
 	}
+	dir := filepath.Dir(path)
 	if err := os.MkdirAll(filepath.FromSlash(dir), 0755); err != nil {
 		return err
 	}
-	return p.ToCPP(dir, basePkg)
+	return p.ToCPP(path, basePkg)
 }
 
 // Generates C++ code from Go code
@@ -60,11 +61,16 @@ func BuildCPP() error {
 		return err
 	}
 	defer os.Chdir("..")
+	includePath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	includePath = filepath.FromSlash(includePath)
 	files, err := zglob.Glob("./**/*.cpp")
 	if err != nil {
 		return err
 	}
-	opts := append([]string{"-dynamiclib", "-o", "fmfm.dylib"}, files...)
+	opts := append([]string{"-std=c++11", "-Wc++11-extensions", "-Wc++11-long-long", "-I" + includePath, "-dynamiclib", "-o", "fmfm.dylib"}, files...)
 	return sh.RunV("g++", opts...)
 }
 

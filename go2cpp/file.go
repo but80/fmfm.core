@@ -15,7 +15,6 @@ import (
 type generator struct {
 	cppWriter    io.Writer
 	hWriter      io.Writer
-	fileName     string
 	fileAST      *ast.File
 	basePkg      string
 	pkg          *types.Package
@@ -28,14 +27,10 @@ type generator struct {
 	iotaSequence int
 }
 
-func newGenerator(cppWriter, hWriter io.Writer, fileName string, fileAST *ast.File, basePkg string, pkg *types.Package, info *types.Info, fset *token.FileSet) *generator {
-	if strings.HasSuffix(fileName, ".go") {
-		fileName = fileName[:len(fileName)-3]
-	}
+func newGenerator(cppWriter, hWriter io.Writer, fileAST *ast.File, basePkg string, pkg *types.Package, info *types.Info, fset *token.FileSet) *generator {
 	return &generator{
 		cppWriter: cppWriter,
 		hWriter:   hWriter,
-		fileName:  fileName,
 		fileAST:   fileAST,
 		basePkg:   basePkg,
 		pkg:       pkg,
@@ -138,6 +133,8 @@ func (g *generator) dumpTypeSpec(typ *ast.TypeSpec) {
 		}
 		g.leave()
 		fmt.Fprintf(g.hWriter, "%s} %s;\n", g.indent, typ.Name.Name)
+	case *ast.Ident:
+		fmt.Fprintf(g.hWriter, "%stypedef %s %s;\n", g.indent, t.Name, typ.Name.Name)
 	default:
 		fmt.Fprintf(g.hWriter, "%s// %s\n", g.indent, reflect.TypeOf(t))
 	}
@@ -155,7 +152,8 @@ func (g *generator) dumpDecl(decl ast.Decl) {
 			}
 		}
 		fmt.Fprint(g.cppWriter, g.indent)
-		g.dumpFunc(d.Name.Name, d.Recv, d.Type, d.Body)
+		g.dumpFunc(g.cppWriter, true, d.Name.Name, d.Recv, d.Type, d.Body)
+		g.dumpFunc(g.hWriter, false, d.Name.Name, d.Recv, d.Type, d.Body)
 		fmt.Fprintln(g.cppWriter)
 
 	case *ast.GenDecl:
@@ -221,14 +219,17 @@ func (g *generator) Dump() {
 	relPath := relativePkg(g.pkg.Path(), g.basePkg)
 
 	fmt.Fprintln(g.hWriter, "#pragma once")
-	fmt.Fprintf(g.cppWriter, "#include \"%s.h\"\n", g.fileName)
+	fmt.Fprintln(g.hWriter, `#include "go2cpp.h"`)
+	fmt.Fprintf(g.cppWriter, "#include \"%s.h\"\n", relPath)
 	fmt.Fprintln(g.cppWriter, "")
 
 	ns := translateNamespace(relPath)
 	segs := strings.Split(ns, "::")
 	for _, seg := range segs {
+		fmt.Fprintf(g.hWriter, "namespace %s {\n", seg)
 		fmt.Fprintf(g.cppWriter, "namespace %s {\n", seg)
 	}
+	fmt.Fprintln(g.hWriter, "")
 	fmt.Fprintln(g.cppWriter, "")
 
 	for _, decl := range g.fileAST.Decls {
@@ -237,6 +238,7 @@ func (g *generator) Dump() {
 	}
 
 	for range segs {
+		fmt.Fprintln(g.hWriter, "}")
 		fmt.Fprintln(g.cppWriter, "}")
 	}
 }

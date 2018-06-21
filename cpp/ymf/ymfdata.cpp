@@ -1,4 +1,4 @@
-#include "data.h"
+#include "ymf/ymfdata.h"
 
 namespace ymf {
 namespace ymfdata {
@@ -377,7 +377,7 @@ auto KSLTable = {};
 
 #define WaveformIndexShift (64 - WaveformLenBits)
 
-vector<float64> Waveforms[32];
+std::vector<float64> Waveforms[32];
 
 float64 calculateIncrement(float64 begin, float64 end, float64 period) {
 	return (end - begin)/SampleRate*(1.0/period);
@@ -408,11 +408,11 @@ void init() {
 	}
 	VolumeTable[0] = .0;
 	auto i = 0;
-	while i < 128 {
+	while (i < 128) {
 		auto a = math->Pi*.5*float64(i)/127.0;
 		PanTable[i][0] = math::Cos(a);
 		PanTable[i][1] = math::Sin(a);
-		i++
+		i++;
 	}
 	auto vibratoDepth = {
 		3.4,
@@ -421,16 +421,16 @@ void init() {
 		26.8,
 	};
 	auto dvb = 0;
-	while dvb < 4 {
+	while (dvb < 4) {
 		auto i = 0;
-		while i < ModTableLen {
+		while (i < ModTableLen) {
 			auto phase = float64(i)/float64(ModTableLen);
 			auto cent = triSin(phase)*vibratoDepth[dvb];
 			auto v = math::Pow(2.0, cent/1200.0);
 			VibratoTableInt32Frac32[dvb][i] = Int32Frac32(v*Pow32Of2);
-			i++
+			i++;
 		}
-		dvb++
+		dvb++;
 	}
 	auto tremoloDepth = {
 		1.3,
@@ -439,15 +439,15 @@ void init() {
 		11.8,
 	};
 	auto dam = 0;
-	while dam < 4 {
+	while (dam < 4) {
 		auto i = 0;
-		while i < ModTableLen {
+		while (i < ModTableLen) {
 			auto phase = float64(i)/float64(ModTableLen);
 			auto v = (triCos(phase) - 1.0)*.5*tremoloDepth[dam];
 			TremoloTable[dam][i] = math::Pow(10.0, v/20.0);
-			i++
+			i++;
 		}
-		dam++
+		dam++;
 	}
 	auto kslBases = {
 		.0,
@@ -468,11 +468,11 @@ void init() {
 		.75,
 	};
 	auto ksl = 0;
-	while ksl < 4 {
+	while (ksl < 4) {
 		auto block = 0;
-		while block < 8 {
+		while (block < 8) {
 			auto fnum5 = 0;
-			while fnum5 < 32 {
+			while (fnum5 < 32) {
 				auto fnum5lim = fnum5;
 				if (15 < fnum5lim) {
 					fnum5lim = 15;
@@ -482,11 +482,11 @@ void init() {
 					v = .0;
 				}
 				KSLTable[ksl][block][fnum5] = math::Pow(10.0, v/20.0);
-				fnum5++
+				fnum5++;
 			}
-			block++
+			block++;
 		}
-		ksl++
+		ksl++;
 	}
 	auto lfoFreqHz = {
 		1.8,
@@ -499,66 +499,66 @@ void init() {
 		LFOFrequency[i] = Frac64(hz/SampleRate*Pow64Of2);
 	}
 	for (int i = 0; i < sizeof(Waveforms) / sizeof(Waveforms[0]); i++) {
-		Waveforms[i] = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9535, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a140)})[0m, WaveformLen);
+		Waveforms[i] = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9535, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b0e20)})[0m, WaveformLen);
 	}
-	auto copyHalf = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9639, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a340)})[0m, WaveformLen);
+	auto copyHalf = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9639, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b0fa0)})[0m, WaveformLen);
 		auto i = 0;
-		while i < 512 {
+		while (i < 512) {
 			dst[i] = src[i];
 			dst[512 + i] = 0;
-			i++
+			i++;
 		}
 		return dst;
 	};
-	auto copyAbs = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9830, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000a760)})[0m, WaveformLen);
+	auto copyAbs = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9830, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b1380)})[0m, WaveformLen);
 		auto i = 0;
-		while i < 512 {
+		while (i < 512) {
 			dst[i] = src[i];
 			dst[512 + i] = src[i];
-			i++
+			i++;
 		}
 		return dst;
 	};
-	auto copyAbsQuarter = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10033, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000ab40)})[0m, WaveformLen);
+	auto copyAbsQuarter = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10033, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b1760)})[0m, WaveformLen);
 		auto i = 0;
-		while i < 256 {
+		while (i < 256) {
 			dst[i] = src[i];
 			dst[256 + i] = .0;
 			dst[512 + i] = src[i];
 			dst[768 + i] = .0;
-			i++
+			i++;
 		}
 		return dst;
 	};
-	auto copyOct = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10271, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000b020)})[0m, WaveformLen);
+	auto copyOct = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10271, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b1c40)})[0m, WaveformLen);
 		auto i = 0;
-		while i < 512 {
+		while (i < 512) {
 			dst[i] = src[i*2];
 			dst[512 + i] = .0;
-			i++
+			i++;
 		}
 		return dst;
 	};
-	auto copyAbsOct = 	vector<float64> UNKNOWN(vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10468, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42000b400)})[0m, WaveformLen);
+	auto copyAbsOct = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10468, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200ea020)})[0m, WaveformLen);
 		auto i = 0;
-		while i < 256 {
+		while (i < 256) {
 			dst[i] = src[i*2];
 			dst[256 + i] = src[i*2];
 			dst[512 + i] = .0;
 			dst[768 + i] = .0;
-			i++
+			i++;
 		}
 		return dst;
 	};
 	auto i = 0;
-	while i < WaveformLen {
+	while (i < WaveformLen) {
 		Waveforms[0][i] = math::Sin(2*math->Pi*float64(i)/WaveformLen);
-		i++
+		i++;
 	}
 	auto sineTable = Waveforms[0];
 	Waveforms[1] = copyHalf(sineTable);
@@ -567,27 +567,27 @@ void init() {
 	Waveforms[4] = copyOct(sineTable);
 	Waveforms[5] = copyAbsOct(sineTable);
 	auto i = 0;
-	while i < 512 {
+	while (i < 512) {
 		Waveforms[6][i] = 1.0;
 		Waveforms[6][512 + i] = -1.0;
-		i++
+		i++;
 	}
 	auto squareTable = Waveforms[6];
 	Waveforms[14] = copyHalf(squareTable);
 	Waveforms[22] = copyAbsQuarter(squareTable);
 	Waveforms[30] = copyOct(Waveforms[14]);
 	auto i = 0;
-	while i < 512 {
+	while (i < 512) {
 		auto x = float64(i)*16.0/256.0;
 		Waveforms[7][i] = math::Pow(2.0, -x);
 		Waveforms[7][1023 - i] = -math::Pow(2.0, -(x + 1.0/16.0));
-		i++
+		i++;
 	}
 	auto i = 0;
-	while i < WaveformLen {
+	while (i < WaveformLen) {
 		auto theta = 2*math->Pi*float64(i)/WaveformLen;
 		Waveforms[8][i] = math::Max(-1.0, math::Min(math::Sin(theta)*math->Sqrt2, 1.0));
-		i++
+		i++;
 	}
 	auto csineTable = Waveforms[8];
 	Waveforms[9] = copyHalf(csineTable);
@@ -596,12 +596,12 @@ void init() {
 	Waveforms[12] = copyOct(csineTable);
 	Waveforms[13] = copyAbsOct(csineTable);
 	auto i = 0;
-	while i < 256 {
+	while (i < 256) {
 		Waveforms[16][i] = float64(i)/256.0;
 		Waveforms[16][256 + i] = (256.0 - float64(i))/256.0;
 		Waveforms[16][512 + i] = -float64(i)/256.0;
 		Waveforms[16][768 + i] = -(256.0 - float64(i))/256.0;
-		i++
+		i++;
 	}
 	auto triTable = Waveforms[16];
 	Waveforms[17] = copyHalf(triTable);
@@ -610,10 +610,10 @@ void init() {
 	Waveforms[20] = copyOct(triTable);
 	Waveforms[21] = copyAbsOct(triTable);
 	auto i = 0;
-	while i < 512 {
+	while (i < 512) {
 		Waveforms[24][i] = float64(i)/512.0;
 		Waveforms[24][i + 512] = float64(i)/512.0 - 1.0;
-		i++
+		i++;
 	}
 	auto sawTable = Waveforms[24];
 	Waveforms[25] = copyHalf(sawTable);

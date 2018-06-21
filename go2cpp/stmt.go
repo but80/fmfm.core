@@ -139,13 +139,13 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 			g.dumpStmt(s.Init)
 		}
 		fmt.Fprint(g.cppWriter, g.indent)
-		fmt.Fprint(g.cppWriter, "while ")
+		fmt.Fprint(g.cppWriter, "while (")
 		if s.Cond != nil && !reflect.ValueOf(s.Cond).IsNil() {
 			g.dumpExpr(s.Cond)
 		} else {
 			fmt.Fprint(g.cppWriter, "true")
 		}
-		fmt.Fprintln(g.cppWriter, " {")
+		fmt.Fprintln(g.cppWriter, ") {")
 		g.enter()
 		g.dumpBlock(s.Body)
 		if s.Post != nil && !reflect.ValueOf(s.Post).IsNil() {
@@ -242,7 +242,7 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 		fmt.Fprint(g.cppWriter, g.indent)
 		g.dumpExpr(s.X)
 		fmt.Fprint(g.cppWriter, s.Tok.String())
-		fmt.Fprintln(g.cppWriter)
+		fmt.Fprintln(g.cppWriter, ";")
 
 	default:
 		fmt.Fprint(g.cppWriter, g.indent)

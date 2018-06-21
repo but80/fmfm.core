@@ -248,7 +248,7 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 		fmt.Fprint(g.cppWriter, ")")
 
 	case *ast.FuncLit:
-		g.dumpFunc("", nil, e.Type, e.Body)
+		g.dumpFunc(g.cppWriter, true, "", nil, e.Type, e.Body)
 
 	case *ast.CompositeLit:
 		switch e.Type.(type) {

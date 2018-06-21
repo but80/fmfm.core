@@ -114,7 +114,7 @@ func (g *generator) formatType(typ types.Type) (string, string, bool) {
 	case *types.Slice:
 		n, s, ok := g.formatType(t.Elem())
 		s = fmt.Sprintf(s, "")
-		return fmt.Sprintf("vector<%s%s>", n, s), "%s", ok
+		return fmt.Sprintf("std::vector<%s%s>", n, s), "%s", ok
 	default:
 		return g.debugSInspect(typ, "formatType"), "", false
 	}
