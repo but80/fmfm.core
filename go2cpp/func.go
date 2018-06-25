@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"io"
+	"strconv"
 )
 
 func (g *generator) dumpFuncSig(writer io.Writer, fntype *ast.FuncType, firstComma bool) {
@@ -22,13 +23,14 @@ func (g *generator) typedFuncName(typ ast.Expr, name string) string {
 	return fmt.Sprintf("%s__%s", g.typeIdent(g.info.TypeOf(typ)), name)
 }
 
-func (g *generator) dumpTypeAndName(writer io.Writer, typ ast.Expr, name string) {
+func (g *generator) dumpTypeAndName(writer io.Writer, typ ast.Expr, name string) string {
 	n, s, ok := g.formatType(g.info.TypeOf(typ))
-	if ok {
-		fmt.Fprintf(writer, "%s "+s, n, name)
-	} else {
+	if !ok {
 		fmt.Fprintf(writer, "UNKNOWN %s", name)
+		return "UNKNOWN"
 	}
+	fmt.Fprintf(writer, "%s "+s, n, name)
+	return fmt.Sprintf("%s "+s, n, "")
 }
 
 func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv *ast.FieldList, sig *ast.FuncType, body *ast.BlockStmt) {
@@ -52,15 +54,37 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 		}
 	}
 
-	fmt.Fprint(writer, g.indent)
+	resultType := "void"
 
 	if sig.Results != nil && len(sig.Results.List) == 1 {
-		g.dumpTypeAndName(writer, sig.Results.List[0].Type, fnname)
+		fmt.Fprint(writer, g.indent)
+		resultType = g.dumpTypeAndName(writer, sig.Results.List[0].Type, fnname)
 	} else if sig.Results != nil && 2 <= len(sig.Results.List) {
-		fmt.Fprintf(writer, "MULTIRESULT %s", fnname)
+		resultType = name + "Result"
+		fmt.Fprintf(writer, "%sclass %s {\n", g.indent, resultType)
+		g.enter()
+		for i, r := range sig.Results.List {
+			if len(r.Names) == 0 {
+				fmt.Fprint(writer, g.indent)
+				g.dumpTypeAndName(writer, r.Type, "r"+strconv.Itoa(i))
+				fmt.Fprintln(writer, ";")
+			} else {
+				for _, n := range r.Names {
+					fmt.Fprint(writer, g.indent)
+					g.dumpTypeAndName(writer, r.Type, n.Name)
+					fmt.Fprintln(writer, ";")
+				}
+			}
+		}
+		g.leave()
+		fmt.Fprintf(writer, "%s};\n", g.indent)
+		fmt.Fprint(writer, g.indent)
+		fmt.Fprintf(writer, "%s %s", resultType, fnname)
 	} else {
+		fmt.Fprint(writer, g.indent)
 		fmt.Fprintf(writer, "void %s", fnname)
 	}
+	_ = resultType
 
 	fmt.Fprint(writer, "(")
 	if recv != nil && 0 < len(recv.List) {

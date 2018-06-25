@@ -8,7 +8,7 @@ import (
 	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
 )
 
-type operator struct {
+type fmOperator struct {
 	isModulator bool
 
 	dt             int
@@ -36,8 +36,8 @@ type operator struct {
 	phaseGenerator *phaseGenerator
 }
 
-func newOperator(channelID, operatorIndex int, chip *Chip) *operator {
-	return &operator{
+func newOperator(channelID, operatorIndex int, chip *Chip) *fmOperator {
+	return &fmOperator{
 		chip:              chip,
 		channelID:         channelID,
 		operatorIndex:     operatorIndex,
@@ -48,18 +48,18 @@ func newOperator(channelID, operatorIndex int, chip *Chip) *operator {
 	}
 }
 
-func (op *operator) reset() {
+func (op *fmOperator) reset() {
 	op.phaseGenerator.reset()
 	op.envelopeGenerator.reset()
 }
 
-func (op *operator) resetAll() {
+func (op *fmOperator) resetAll() {
 	op.bo = 1
 	op.phaseGenerator.resetAll()
 	op.envelopeGenerator.resetAll()
 }
 
-func (op *operator) dump() string {
+func (op *fmOperator) dump() string {
 	eg := op.envelopeGenerator
 	pg := op.phaseGenerator
 
@@ -125,86 +125,86 @@ func (op *operator) dump() string {
 	)
 }
 
-func (op *operator) setEAM(v int) {
+func (op *fmOperator) setEAM(v int) {
 	op.envelopeGenerator.eam = v != 0
 }
 
-func (op *operator) setEVB(v int) {
+func (op *fmOperator) setEVB(v int) {
 	op.phaseGenerator.evb = v != 0
 }
 
-func (op *operator) setDAM(v int) {
+func (op *fmOperator) setDAM(v int) {
 	op.envelopeGenerator.dam = v
 }
 
-func (op *operator) setDVB(v int) {
+func (op *fmOperator) setDVB(v int) {
 	op.phaseGenerator.dvb = v
 }
 
-func (op *operator) setDT(v int) {
+func (op *fmOperator) setDT(v int) {
 	op.dt = v
 	op.updateFrequency()
 }
 
-func (op *operator) setKSR(v int) {
+func (op *fmOperator) setKSR(v int) {
 	// TODO: BOの影響は受けるのか？
 	op.ksr = v
 	op.updateEnvelope()
 }
 
-func (op *operator) setMULT(v int) {
+func (op *fmOperator) setMULT(v int) {
 	op.mult = v
 	op.updateFrequency()
 }
 
-func (op *operator) setKSL(v int) {
+func (op *fmOperator) setKSL(v int) {
 	// TODO: BOの影響は受けるのか？
 	op.ksl = v
 	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.bo, op.ksl)
 }
 
-func (op *operator) setTL(v int) {
+func (op *fmOperator) setTL(v int) {
 	op.envelopeGenerator.setTotalLevel(v)
 }
 
-func (op *operator) setAR(v int) {
+func (op *fmOperator) setAR(v int) {
 	op.ar = v
 	op.envelopeGenerator.setActualAR(op.ar, op.ksr, op.keyScaleNumber)
 }
 
-func (op *operator) setDR(v int) {
+func (op *fmOperator) setDR(v int) {
 	op.dr = v
 	op.envelopeGenerator.setActualDR(op.dr, op.ksr, op.keyScaleNumber)
 }
 
-func (op *operator) setSL(v int) {
+func (op *fmOperator) setSL(v int) {
 	op.sl = v
 	op.envelopeGenerator.setActualSustainLevel(op.sl)
 }
 
-func (op *operator) setSR(v int) {
+func (op *fmOperator) setSR(v int) {
 	op.sr = v
 	op.envelopeGenerator.setActualSR(op.sr, op.ksr, op.keyScaleNumber)
 }
 
-func (op *operator) setRR(v int) {
+func (op *fmOperator) setRR(v int) {
 	op.rr = v
 	op.envelopeGenerator.setActualRR(op.rr, op.ksr, op.keyScaleNumber)
 }
 
-func (op *operator) setXOF(v int) {
+func (op *fmOperator) setXOF(v int) {
 	op.xof = v
 }
 
-func (op *operator) setWS(v int) {
+func (op *fmOperator) setWS(v int) {
 	op.ws = v
 }
 
-func (op *operator) setFB(v int) {
+func (op *fmOperator) setFB(v int) {
 	op.feedbackCoef = ymfdata.FeedbackTable[v]
 }
 
-func (op *operator) next(modIndex int, modulator float64) float64 {
+func (op *fmOperator) next(modIndex int, modulator float64) float64 {
 	phaseFrac64 := op.phaseGenerator.getPhase(modIndex)
 	if op.envelopeGenerator.stage == stageOff {
 		return 0
@@ -216,7 +216,7 @@ func (op *operator) next(modIndex int, modulator float64) float64 {
 	return ymfdata.Waveforms[op.ws][sampleIndex&1023] * envelope
 }
 
-func (op *operator) keyOn() {
+func (op *fmOperator) keyOn() {
 	if 0 < op.ar {
 		op.envelopeGenerator.keyOn()
 	} else {
@@ -224,13 +224,13 @@ func (op *operator) keyOn() {
 	}
 }
 
-func (op *operator) keyOff() {
+func (op *fmOperator) keyOff() {
 	if op.xof == 0 {
 		op.envelopeGenerator.keyOff()
 	}
 }
 
-func (op *operator) setFrequency(fnum, blk, bo int) {
+func (op *fmOperator) setFrequency(fnum, blk, bo int) {
 	op.keyScaleNumber = (blk+1-bo)*2 + (fnum >> 9)
 	// TODO: BOの影響は受けるのか？
 	if op.keyScaleNumber < 0 {
@@ -246,11 +246,11 @@ func (op *operator) setFrequency(fnum, blk, bo int) {
 	op.envelopeGenerator.setKeyScalingLevel(op.fnum, op.block, op.bo, op.ksl)
 }
 
-func (op *operator) updateFrequency() {
+func (op *fmOperator) updateFrequency() {
 	op.phaseGenerator.setFrequency(op.fnum, op.block, op.bo, op.mult, op.dt)
 }
 
-func (op *operator) updateEnvelope() {
+func (op *fmOperator) updateEnvelope() {
 	op.envelopeGenerator.setActualAR(op.ar, op.ksr, op.keyScaleNumber)
 	op.envelopeGenerator.setActualDR(op.dr, op.ksr, op.keyScaleNumber)
 	op.envelopeGenerator.setActualSR(op.sr, op.ksr, op.keyScaleNumber)

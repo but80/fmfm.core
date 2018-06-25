@@ -14,6 +14,8 @@ import (
 
 type generator struct {
 	cppWriter    io.Writer
+	h0Writer     io.Writer
+	h1Writer     io.Writer
 	hWriter      io.Writer
 	fileAST      *ast.File
 	basePkg      string
@@ -27,16 +29,18 @@ type generator struct {
 	iotaSequence int
 }
 
-func newGenerator(cppWriter, hWriter io.Writer, fileAST *ast.File, basePkg string, pkg *types.Package, info *types.Info, fset *token.FileSet) *generator {
+func newGenerator(cppWriter, h0Writer, h1Writer, hWriter io.Writer, fileAST *ast.File, basePkg string, pkg *types.Package, info *types.Info, fset *token.FileSet, imports map[string]string) *generator {
 	return &generator{
 		cppWriter: cppWriter,
+		h0Writer:  h0Writer,
+		h1Writer:  h1Writer,
 		hWriter:   hWriter,
 		fileAST:   fileAST,
 		basePkg:   basePkg,
 		pkg:       pkg,
 		info:      info,
 		fset:      fset,
-		imports:   map[string]string{},
+		imports:   imports,
 	}
 }
 
@@ -54,26 +58,32 @@ func translateNamespace(ns string) string {
 
 var importNameAndPathRe = regexp.MustCompile(`.+/`)
 
-func (g *generator) importNameAndPath(imp *ast.ImportSpec) (string, string, string) {
+func (g *generator) importNameAndPath(imp *ast.ImportSpec) (string, string, string, string) {
 	path, err := strconv.Unquote(imp.Path.Value)
 	if err != nil {
 		panic(err)
 	}
-	path = relativePkg(path, g.basePkg)
-	name := importNameAndPathRe.ReplaceAllString(path, "")
+	relPath := relativePkg(path, g.basePkg)
+	name := importNameAndPathRe.ReplaceAllString(relPath, "")
 	if imp.Name != nil {
 		name = imp.Name.Name
 	}
-	return name, path, translateNamespace(path)
+	return name, path, relPath, translateNamespace(relPath)
 }
 
 func (g *generator) dumpImportSpec(imp *ast.ImportSpec) {
-	name, path, ns := g.importNameAndPath(imp)
-	fmt.Fprint(g.hWriter, g.indent)
-	fmt.Fprintf(g.hWriter, "#include \"%s.h\"\n", path)
-	if name != ns {
-		fmt.Fprintf(g.hWriter, "namespace %s = %s;\n", name, ns)
+	name, path, relPath, ns := g.importNameAndPath(imp)
+	if _, ok := g.imports[path]; ok {
+		// TODO: 異なる名前でのインポート時はエラー
+		return
 	}
+	fmt.Fprint(g.h0Writer, g.indent)
+	fmt.Fprintf(g.h0Writer, "#include \"%s.h\"\n", relPath)
+	if name != ns {
+		fmt.Fprintf(g.h0Writer, "namespace %s = %s;\n", name, ns)
+	}
+	// g.imports[relPath] = name
+	g.imports[path] = name
 }
 
 func (g *generator) dumpValueSpec(s *ast.ValueSpec) int {
@@ -122,7 +132,9 @@ func (g *generator) dumpTypeSpec(typ *ast.TypeSpec) {
 				fmt.Fprintf(g.hWriter, "%s// %s\n", g.indent, c.Text)
 			}
 		}
-		fmt.Fprintf(g.hWriter, "%stypedef struct __%s {\n", g.indent, typ.Name.Name)
+		fmt.Fprintf(g.h1Writer, "class %s;\n", typ.Name.Name)
+		fmt.Fprintf(g.hWriter, "%sclass %s {\n", g.indent, typ.Name.Name)
+		fmt.Fprintf(g.hWriter, "%spublic:\n", g.indent)
 		g.enter()
 		for _, field := range t.Fields.List {
 			for _, name := range field.Names {
@@ -132,11 +144,11 @@ func (g *generator) dumpTypeSpec(typ *ast.TypeSpec) {
 			}
 		}
 		g.leave()
-		fmt.Fprintf(g.hWriter, "%s} %s;\n", g.indent, typ.Name.Name)
+		fmt.Fprintf(g.hWriter, "%s};\n", g.indent)
 	case *ast.Ident:
-		fmt.Fprintf(g.hWriter, "%stypedef %s %s;\n", g.indent, t.Name, typ.Name.Name)
+		fmt.Fprintf(g.h1Writer, "%stypedef %s %s;\n", g.indent, t.Name, typ.Name.Name)
 	default:
-		fmt.Fprintf(g.hWriter, "%s// %s\n", g.indent, reflect.TypeOf(t))
+		fmt.Fprintf(g.h1Writer, "%s// %s\n", g.indent, reflect.TypeOf(t))
 	}
 	g.export(typ.Name.Name)
 }
@@ -170,6 +182,7 @@ func (g *generator) dumpDecl(decl ast.Decl) {
 				g.dumpSpec(s)
 			}
 		case token.TYPE:
+			fmt.Fprintf(g.hWriter, "/* %#v */\n", g.imports)
 			for _, s := range d.Specs {
 				g.dumpSpec(s)
 			}
@@ -211,35 +224,15 @@ func (g *generator) dumpDecl(decl ast.Decl) {
 }
 
 func (g *generator) Dump() {
-	for _, imp := range g.fileAST.Imports {
-		// @todo ドットインポート
-		name, path, _ := g.importNameAndPath(imp)
-		g.imports[path] = name
-	}
-	relPath := relativePkg(g.pkg.Path(), g.basePkg)
-
-	fmt.Fprintln(g.hWriter, "#pragma once")
-	fmt.Fprintln(g.hWriter, `#include "go2cpp.h"`)
-	fmt.Fprintf(g.cppWriter, "#include \"%s.h\"\n", relPath)
-	fmt.Fprintln(g.cppWriter, "")
-
-	ns := translateNamespace(relPath)
-	segs := strings.Split(ns, "::")
-	for _, seg := range segs {
-		fmt.Fprintf(g.hWriter, "namespace %s {\n", seg)
-		fmt.Fprintf(g.cppWriter, "namespace %s {\n", seg)
-	}
-	fmt.Fprintln(g.hWriter, "")
-	fmt.Fprintln(g.cppWriter, "")
+	// for _, imp := range g.fileAST.Imports {
+	// 	// @todo ドットインポート
+	// 	name, path, relPath, _ := g.importNameAndPath(imp)
+	// 	g.imports[path] = name
+	// }
 
 	for _, decl := range g.fileAST.Decls {
 		g.dumpDecl(decl)
 		fmt.Fprintln(g.cppWriter)
-	}
-
-	for range segs {
-		fmt.Fprintln(g.hWriter, "}")
-		fmt.Fprintln(g.cppWriter, "}")
 	}
 }
 

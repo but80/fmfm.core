@@ -45,10 +45,13 @@ func gen(basePkg, pkg string) error {
 
 // Generates C++ code from Go code
 func Gen() error {
-	if err := gen("gopkg.in/but80/fmfm.core.v1", "sim"); err != nil {
+	if err := gen("gopkg.in/but80/fmfm.core.v1", "ymf/ymfdata"); err != nil {
 		return err
 	}
-	if err := gen("gopkg.in/but80/fmfm.core.v1", "ymf/ymfdata"); err != nil {
+	if err := gen("gopkg.in/but80/fmfm.core.v1", "ymf"); err != nil {
+		return err
+	}
+	if err := gen("gopkg.in/but80/fmfm.core.v1", "sim"); err != nil {
 		return err
 	}
 	return nil

@@ -268,7 +268,6 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 			}
 			fmt.Fprint(g.cppWriter, "}")
 		default:
-			fields := []string{}
 			n, s, ok := g.formatType(g.info.TypeOf(e))
 			fmt.Fprint(g.cppWriter, "(const ")
 			if ok {
@@ -279,19 +278,42 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 			}
 			fmt.Fprintln(g.cppWriter, "){")
 			g.enter()
-			for i, v := range e.Elts {
-				fmt.Fprint(g.cppWriter, g.indent)
-				switch v.(type) {
+			byKey := false
+			isStruct := g.isStructType(e)
+			fieldByKey := map[string]*ast.KeyValueExpr{}
+			for _, v := range e.Elts {
+				switch vv := v.(type) {
 				case *ast.KeyValueExpr:
-					g.dumpExpr(v)
-				default:
-					if i < len(fields) {
-						fmt.Fprintf(g.cppWriter, "%s: ", fields[i])
+					if isStruct {
+						byKey = true
+						key := fmt.Sprintf("%s", vv.Key)
+						fieldByKey[key] = vv
+					} else {
+						fmt.Fprint(g.cppWriter, g.indent)
+						g.dumpExpr(v)
+						fmt.Fprintln(g.cppWriter, ",")
 					}
+				default:
+					fmt.Fprint(g.cppWriter, g.indent)
 					g.dumpExpr(v)
+					fmt.Fprintln(g.cppWriter, ",")
 				}
-				fmt.Fprint(g.cppWriter, ",")
-				fmt.Fprintln(g.cppWriter)
+			}
+			if byKey {
+				if strc, ok := g.structInfo(g.info.TypeOf(e)); ok {
+					for i := 0; i < strc.NumFields(); i++ {
+						f := strc.Field(i)
+						fmt.Fprint(g.cppWriter, g.indent)
+						if kv, ok := fieldByKey[f.Name()]; ok {
+							g.dumpExpr(kv.Value)
+						} else {
+							g.dumpZeroValue(g.cppWriter, f.Type())
+						}
+						fmt.Fprintln(g.cppWriter, ",")
+					}
+				} else {
+					fmt.Fprintf(g.cppWriter, "%s//%#v | %#v\n", g.indent, strc, fieldByKey)
+				}
 			}
 			g.leave()
 			fmt.Fprint(g.cppWriter, g.indent)

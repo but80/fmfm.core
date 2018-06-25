@@ -117,7 +117,7 @@ type Channel struct {
 	panCoefL          float64
 	panCoefR          float64
 
-	operators [4]*operator
+	operators [4]*fmOperator
 }
 
 func newChannel(channelID int, chip *Chip) *Channel {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -63,6 +64,17 @@ func (g *generator) isMapTypeImpl(typ types.Type) bool {
 		return g.isMapTypeImpl(t.Underlying())
 	}
 	return false
+}
+
+func (g *generator) dumpZeroValue(writer io.Writer, typ types.Type) {
+	switch typ.String() {
+	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64":
+		fmt.Fprintf(writer, "%s(0)", typ.String())
+	case "float32", "float64":
+		fmt.Fprintf(writer, "%s(.0)", typ.String())
+	default:
+		fmt.Fprintf(writer, "{} /*%s*/", typ.String())
+	}
 }
 
 var nonAlphaNumRe = regexp.MustCompile(`\W`)

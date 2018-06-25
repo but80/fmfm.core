@@ -1,6 +1,7 @@
 package go2cpp
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -128,11 +129,37 @@ func (p *Package) ToCPP(path, basePkg string) (err error) {
 	}
 	defer cppWriter.Close()
 
-	hWriter, err := os.Create(filepath.FromSlash(path + ".h"))
+	h1Writer := &bytes.Buffer{}
+	h2Writer := &bytes.Buffer{}
+	h0Writer, err := os.Create(filepath.FromSlash(path + ".h"))
 	if err != nil {
 		return err
 	}
-	defer hWriter.Close()
+	defer func() {
+		if _, e := h0Writer.Write(h1Writer.Bytes()); e != nil {
+			err = e
+		}
+		if _, e := h0Writer.Write(h2Writer.Bytes()); e != nil {
+			err = e
+		}
+		h0Writer.Close()
+	}()
+
+	relPath := relativePkg(p.pkg.Path(), basePkg)
+	ns := translateNamespace(relPath)
+	segs := strings.Split(ns, "::")
+
+	fmt.Fprintf(h0Writer, "// namespace %s\n", ns)
+	fmt.Fprintln(h0Writer, "#pragma once")
+	fmt.Fprintln(h0Writer, `#include "go2cpp.h"`)
+	fmt.Fprintf(cppWriter, "#include \"%s.h\"\n", relPath)
+	fmt.Fprintln(cppWriter, "")
+	for _, seg := range segs {
+		fmt.Fprintf(h1Writer, "namespace %s {\n", seg)
+		fmt.Fprintf(cppWriter, "namespace %s {\n", seg)
+	}
+	fmt.Fprintln(h1Writer, "")
+	fmt.Fprintln(cppWriter, "")
 
 	// fmt.Fprintln(writer, fileHeader)
 
@@ -150,15 +177,21 @@ func (p *Package) ToCPP(path, basePkg string) (err error) {
 		fileNames = append(fileNames, fileName)
 	}
 	sort.Strings(fileNames)
+	imports := map[string]string{}
 	for _, fileName := range fileNames {
 		if !strings.HasSuffix(fileName, ".go") {
 			continue
 		}
 		f := p.files[fileName]
-		gen := newGenerator(cppWriter, hWriter, f.fileAST, basePkg, p.pkg, p.info, p.fset)
+		gen := newGenerator(cppWriter, h0Writer, h1Writer, h2Writer, f.fileAST, basePkg, p.pkg, p.info, p.fset, imports)
 		gen.Dump()
 		exports = append(exports, gen.Exports...)
 		warnings = append(warnings, gen.Warnings...)
+	}
+
+	for range segs {
+		fmt.Fprintln(h2Writer, "}")
+		fmt.Fprintln(cppWriter, "}")
 	}
 
 	// fmt.Fprintln(writer, "// ------------------------------------------------------------")

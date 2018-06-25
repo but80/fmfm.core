@@ -499,10 +499,10 @@ void init() {
 		LFOFrequency[i] = Frac64(hz/SampleRate*Pow64Of2);
 	}
 	for (int i = 0; i < sizeof(Waveforms) / sizeof(Waveforms[0]); i++) {
-		Waveforms[i] = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9535, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b0e20)})[0m, WaveformLen);
+		Waveforms[i] = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9535, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42012ad20)})[0m, WaveformLen);
 	}
 	auto copyHalf = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9639, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b0fa0)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9639, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42012aea0)})[0m, WaveformLen);
 		auto i = 0;
 		while (i < 512) {
 			dst[i] = src[i];
@@ -512,7 +512,7 @@ void init() {
 		return dst;
 	};
 	auto copyAbs = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9830, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b1380)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:9830, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42012b280)})[0m, WaveformLen);
 		auto i = 0;
 		while (i < 512) {
 			dst[i] = src[i];
@@ -522,7 +522,7 @@ void init() {
 		return dst;
 	};
 	auto copyAbsQuarter = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10033, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b1760)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10033, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42012b660)})[0m, WaveformLen);
 		auto i = 0;
 		while (i < 256) {
 			dst[i] = src[i];
@@ -534,7 +534,7 @@ void init() {
 		return dst;
 	};
 	auto copyOct = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10271, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200b1c40)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10271, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42012bb40)})[0m, WaveformLen);
 		auto i = 0;
 		while (i < 512) {
 			dst[i] = src[i*2];
@@ -544,7 +544,7 @@ void init() {
 		return dst;
 	};
 	auto copyAbsOct = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
-		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10468, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc4200ea020)})[0m, WaveformLen);
+		auto dst = make([41mexpr[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:10468, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42012bf20)})[0m, WaveformLen);
 		auto i = 0;
 		while (i < 256) {
 			dst[i] = src[i*2];
