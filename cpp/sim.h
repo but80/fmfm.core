@@ -18,6 +18,7 @@ class envelopeGenerator;
 class fmOperator;
 class phaseGenerator;
 class Registers;
+const auto noModulator = 0;
 /* map[string]string{"fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata"} */
 class Channel {
 public:
@@ -94,7 +95,13 @@ class NextResult {
 NextResult ChipPtr__Next(Chip *chip);
 void ChipPtr__initChannels(Chip *chip);
 /* map[string]string{"sort":"sort", "sync":"sync", "fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata"} */
+const stage stageOff = 0;
+const auto stageAttack = 1;
+const auto stageDecay = 2;
+const auto stageSustain = 3;
+const auto stageRelease = 4;
 string stage__String(stage s);
+const auto epsilon = 1.0/32768.0;
 /* map[string]string{"fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync"} */
 class envelopeGenerator {
 public:
@@ -125,7 +132,7 @@ void envelopeGeneratorPtr__setActualRR(envelopeGenerator *eg, int rr, int ksr, i
 float64 envelopeGeneratorPtr__getEnvelope(envelopeGenerator *eg, int tremoloIndex);
 void envelopeGeneratorPtr__keyOn(envelopeGenerator *eg);
 void envelopeGeneratorPtr__keyOff(envelopeGenerator *eg);
-/* map[string]string{"sort":"sort", "sync":"sync", "fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata"} */
+/* map[string]string{"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "fmt":"fmt", "math":"math", "strings":"strings"} */
 class fmOperator {
 public:
 	bool isModulator;
@@ -178,7 +185,7 @@ void fmOperatorPtr__keyOff(fmOperator *op);
 void fmOperatorPtr__setFrequency(fmOperator *op, int fnum, int blk, int bo);
 void fmOperatorPtr__updateFrequency(fmOperator *op);
 void fmOperatorPtr__updateEnvelope(fmOperator *op);
-/* map[string]string{"sync":"sync", "fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort"} */
+/* map[string]string{"math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "fmt":"fmt"} */
 class phaseGenerator {
 public:
 	float64 sampleRate;
@@ -192,7 +199,7 @@ void phaseGeneratorPtr__reset(phaseGenerator *pg);
 void phaseGeneratorPtr__resetAll(phaseGenerator *pg);
 void phaseGeneratorPtr__setFrequency(phaseGenerator *pg, int fnum, int block, int bo, int mult, int dt);
 ymfdata::Frac64 phaseGeneratorPtr__getPhase(phaseGenerator *pg, int vibratoIndex);
-/* map[string]string{"strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "gopkg.in/but80/fmfm.core.v1/ymf":"ymf", "fmt":"fmt", "math":"math"} */
+/* map[string]string{"fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "gopkg.in/but80/fmfm.core.v1/ymf":"ymf"} */
 class Registers {
 public:
 	Chip *chip;

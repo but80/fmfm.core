@@ -16,6 +16,6 @@ typedef double float64;
 typedef std::string string;
 
 template <typename T>
-inline std::shared_ptr<T> __ptr(T& t) {
+inline std::shared_ptr<T> __ptr(const T& t) {
     return &t;
 }

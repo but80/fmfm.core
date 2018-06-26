@@ -21,17 +21,11 @@ Frac64 Frac64__MulInt32Frac32(Frac64 v, Int32Frac32 rhs) {
 }
 
 
-#define DebugDumpFPS (30)
 
-#define ChannelCount (32)
 
-#define SampleRate (float64(48000))
 
-#define A3Note (9 + 12*4)
 
-#define A3Freq (float64(440.0))
 
-#define FNUMCoef (float64(1 << 19)/SampleRate*.5)
 
 auto Pow32Of2 = float64(1 << 32);
 
@@ -39,7 +33,6 @@ auto Pow63Of2 = float64(1 << 63);
 
 auto Pow64Of2 = Pow63Of2*2.0;
 
-#define ModulatorMultiplier (4.0)
 
 auto ModulatorMatrix = {
 	(const bool[4]){
@@ -329,11 +322,8 @@ auto DTCoef = {
 
 auto LFOFrequency = {};
 
-#define ModTableLen (8192)
 
-#define ModTableLenBits (13)
 
-#define ModTableIndexShift (64 - ModTableLenBits)
 
 Int32Frac32 VibratoTableInt32Frac32[8192][4];
 
@@ -371,11 +361,8 @@ auto MultTable2 = {
 
 auto KSLTable = {};
 
-#define WaveformLen (1024)
 
-#define WaveformLenBits (10)
 
-#define WaveformIndexShift (64 - WaveformLenBits)
 
 std::vector<float64> Waveforms[32];
 
@@ -409,7 +396,7 @@ void init() {
 	VolumeTable[0] = .0;
 	auto i = 0;
 	while (i < 128) {
-		auto a = math->Pi*.5*float64(i)/127.0;
+		auto a = math::Pi*.5*float64(i)/127.0;
 		PanTable[i][0] = math::Cos(a);
 		PanTable[i][1] = math::Sin(a);
 		i++;
@@ -557,7 +544,7 @@ void init() {
 	};
 	auto i = 0;
 	while (i < WaveformLen) {
-		Waveforms[0][i] = math::Sin(2*math->Pi*float64(i)/WaveformLen);
+		Waveforms[0][i] = math::Sin(2*math::Pi*float64(i)/WaveformLen);
 		i++;
 	}
 	auto sineTable = Waveforms[0];
@@ -585,8 +572,8 @@ void init() {
 	}
 	auto i = 0;
 	while (i < WaveformLen) {
-		auto theta = 2*math->Pi*float64(i)/WaveformLen;
-		Waveforms[8][i] = math::Max(-1.0, math::Min(math::Sin(theta)*math->Sqrt2, 1.0));
+		auto theta = 2*math::Pi*float64(i)/WaveformLen;
+		Waveforms[8][i] = math::Max(-1.0, math::Min(math::Sin(theta)*math::Sqrt2, 1.0));
 		i++;
 	}
 	auto csineTable = Waveforms[8];

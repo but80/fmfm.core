@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"io"
 	"strconv"
 )
 
@@ -16,7 +17,7 @@ func (g *generator) stringLiteral(s string) string {
 	return string(j)
 }
 
-func (g *generator) dumpLiteral(lit *ast.BasicLit) {
+func (g *generator) dumpLiteral(writer io.Writer, lit *ast.BasicLit) {
 	switch lit.Kind {
 
 	case token.STRING:
@@ -24,22 +25,22 @@ func (g *generator) dumpLiteral(lit *ast.BasicLit) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Fprint(g.cppWriter, g.stringLiteral(s))
+		fmt.Fprint(writer, g.stringLiteral(s))
 
 	case token.CHAR:
 		s, err := strconv.Unquote(lit.Value)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Fprintf(g.cppWriter, "string.byte(%s)", g.stringLiteral(s))
+		fmt.Fprintf(writer, "string.byte(%s)", g.stringLiteral(s))
 
 	case token.INT, token.FLOAT:
-		fmt.Fprint(g.cppWriter, lit.Value)
+		fmt.Fprint(writer, lit.Value)
 
 	case token.IMAG:
-		fmt.Fprintf(g.cppWriter, "complex(0, %s)", lit.Value[:len(lit.Value)-1])
+		fmt.Fprintf(writer, "complex(0, %s)", lit.Value[:len(lit.Value)-1])
 
 	default:
-		g.debugInspect(lit, "literal")
+		g.debugInspect(writer, lit, "literal")
 	}
 }

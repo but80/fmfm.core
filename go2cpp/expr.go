@@ -5,6 +5,8 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"io"
+	"reflect"
 )
 
 func (g *generator) iota(reset bool) int {
@@ -15,8 +17,8 @@ func (g *generator) iota(reset bool) int {
 	return g.iotaSequence - 1
 }
 
-func (g *generator) debugInspect(v interface{}, tag string) {
-	fmt.Fprint(g.cppWriter, g.debugSInspect(v, tag))
+func (g *generator) debugInspect(writer io.Writer, v interface{}, tag string) {
+	fmt.Fprint(writer, g.debugSInspect(v, tag))
 }
 
 func (g *generator) debugSInspect(v interface{}, tag string) string {
@@ -34,7 +36,7 @@ func (g *generator) objectOf(expr ast.Expr) (types.Object, bool) {
 	case *ast.SelectorExpr:
 		return nil, false
 	default:
-		g.debugInspect(expr, "objectOf")
+		g.debugInspect(g.cppWriter, expr, "objectOf")
 		return nil, false
 	}
 }
@@ -51,7 +53,7 @@ func (g *generator) identOf(expr ast.Expr) (string, *types.Scope, types.Object, 
 	}
 }
 
-func (g *generator) dumpExpr(expr ast.Expr) {
+func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 	switch e := expr.(type) {
 
 	case *ast.Ident:
@@ -59,25 +61,25 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 		if scope != nil && scope.Parent() == nil {
 			switch name {
 			case "println", "append", "len", "new", "make", "complex", "real", "imag", "panic":
-				fmt.Fprint(g.cppWriter, name)
+				fmt.Fprint(writer, name)
 			case "iota":
-				fmt.Fprint(g.cppWriter, g.iota(true))
+				fmt.Fprint(writer, g.iota(true))
 			case "string", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64":
-				fmt.Fprint(g.cppWriter, "__mg."+name)
+				fmt.Fprint(writer, "__mg."+name)
 			case "true", "false":
-				fmt.Fprint(g.cppWriter, name)
+				fmt.Fprint(writer, name)
 			case "nil":
-				fmt.Fprint(g.cppWriter, "nullptr")
+				fmt.Fprint(writer, "nullptr")
 			default:
-				g.debugInspect(scope, "Scope")
-				fmt.Fprint(g.cppWriter, name)
+				g.debugInspect(writer, scope, "Scope")
+				fmt.Fprint(writer, name)
 			}
 		} else {
-			fmt.Fprint(g.cppWriter, name)
+			fmt.Fprint(writer, name)
 		}
 
 	case *ast.BasicLit:
-		g.dumpLiteral(e)
+		g.dumpLiteral(writer, e)
 
 	case *ast.CallExpr:
 		var recv ast.Expr
@@ -103,28 +105,28 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 			o, _ := g.objectOf(e.Fun)
 			switch o.(type) {
 			case *types.TypeName:
-				fmt.Fprint(g.cppWriter, o.Name())
-				fmt.Fprint(g.cppWriter, "(")
+				fmt.Fprint(writer, o.Name())
+				fmt.Fprint(writer, "(")
 				skip = true
 			default:
-				g.debugInspect(o, "CallExpr")
+				g.debugInspect(writer, o, "CallExpr")
 			}
 		}
 		if !skip {
-			g.dumpExpr(e.Fun)
-			fmt.Fprint(g.cppWriter, "(")
+			g.dumpExpr(writer, e.Fun)
+			fmt.Fprint(writer, "(")
 		}
 		if recv != nil {
-			g.dumpExpr(recv)
+			g.dumpExpr(writer, recv)
 		}
 		for i, a := range e.Args {
 			// @todo ポインタでない構造体や構造体以外へのポインタを引数に渡すのは禁止
 			if i != 0 || comma {
-				fmt.Fprint(g.cppWriter, ", ")
+				fmt.Fprint(writer, ", ")
 			}
-			g.dumpExpr(a)
+			g.dumpExpr(writer, a)
 		}
-		fmt.Fprint(g.cppWriter, ")")
+		fmt.Fprint(writer, ")")
 
 	case *ast.SelectorExpr:
 		// ドット演算子
@@ -136,147 +138,155 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 			if ok {
 				switch o.(type) {
 				case *types.PkgName:
-					fmt.Fprint(g.cppWriter, o.Name())
-					fmt.Fprint(g.cppWriter, "::")
-					fmt.Fprint(g.cppWriter, e.Sel.Name)
+					fmt.Fprint(writer, o.Name())
+					fmt.Fprint(writer, "::")
+					fmt.Fprint(writer, e.Sel.Name)
 					done = true
 				case *types.TypeName:
 				case *types.Var:
 				default:
-					g.debugInspect(o, "SelectorExpr")
+					g.debugInspect(writer, o, "SelectorExpr")
 				}
 			}
 			if !done {
 				name := g.typedFuncName(e.X, e.Sel.Name)
-				fmt.Fprint(g.cppWriter, name)
+				fmt.Fprint(writer, name)
 			}
 		default:
 			// 変数・フィールドへのアクセス
-			g.dumpExpr(e.X)
-			fmt.Fprintf(g.cppWriter, "->%s", e.Sel.Name)
+			g.dumpExpr(writer, e.X)
+			switch g.info.TypeOf(e.X).(type) {
+			case *types.Basic:
+				fmt.Fprint(writer, "::")
+			case *types.Pointer:
+				fmt.Fprint(writer, "->")
+			default:
+				fmt.Fprintf(writer, "/*%s*/->", reflect.TypeOf(g.info.TypeOf(e.X)))
+			}
+			fmt.Fprint(writer, e.Sel.Name)
 		}
 
 	case *ast.BinaryExpr:
 		// @todo 演算子の優先順位
 		switch e.Op {
 		case token.AND:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " & ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " & ")
+			g.dumpExpr(writer, e.Y)
 		case token.OR:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " | ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " | ")
+			g.dumpExpr(writer, e.Y)
 		case token.XOR:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " ^ ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " ^ ")
+			g.dumpExpr(writer, e.Y)
 		case token.SHL:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " << ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " << ")
+			g.dumpExpr(writer, e.Y)
 		case token.SHR:
 			// @todo unsignedに対しては rshift
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " >> ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " >> ")
+			g.dumpExpr(writer, e.Y)
 		case token.AND_NOT:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, "&& !(")
-			g.dumpExpr(e.Y)
-			fmt.Fprint(g.cppWriter, ")")
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, "&& !(")
+			g.dumpExpr(writer, e.Y)
+			fmt.Fprint(writer, ")")
 		case token.MUL, token.QUO:
 			// @todo ビット幅でオーバーフローを考慮
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, e.Op.String())
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, e.Op.String())
+			g.dumpExpr(writer, e.Y)
 		case token.ADD, token.SUB, token.EQL, token.LSS, token.GTR, token.LEQ, token.GEQ:
 			// @todo ビット幅でオーバーフローを考慮
 			// @todo 文字列の結合は .. で置換
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " ")
-			fmt.Fprint(g.cppWriter, e.Op.String())
-			fmt.Fprint(g.cppWriter, " ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " ")
+			fmt.Fprint(writer, e.Op.String())
+			fmt.Fprint(writer, " ")
+			g.dumpExpr(writer, e.Y)
 		case token.NEQ:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " != ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " != ")
+			g.dumpExpr(writer, e.Y)
 		case token.LAND:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " && ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " && ")
+			g.dumpExpr(writer, e.Y)
 		case token.LOR:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " || ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " || ")
+			g.dumpExpr(writer, e.Y)
 		default:
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, " ")
-			g.debugInspect(e.Op, "BinaryExpr")
-			fmt.Fprint(g.cppWriter, e.Op.String())
-			fmt.Fprint(g.cppWriter, " ")
-			g.dumpExpr(e.Y)
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, " ")
+			g.debugInspect(writer, e.Op, "BinaryExpr")
+			fmt.Fprint(writer, e.Op.String())
+			fmt.Fprint(writer, " ")
+			g.dumpExpr(writer, e.Y)
 		}
 
 	case *ast.UnaryExpr:
 		// @todo 構造体以外へのポインタを取るのは禁止
 		switch e.Op {
 		case token.ADD, token.SUB:
-			fmt.Fprint(g.cppWriter, e.Op.String())
-			g.dumpExpr(e.X)
+			fmt.Fprint(writer, e.Op.String())
+			g.dumpExpr(writer, e.X)
 		case token.NOT:
-			fmt.Fprint(g.cppWriter, "!")
-			g.dumpExpr(e.X)
+			fmt.Fprint(writer, "!")
+			g.dumpExpr(writer, e.X)
 		case token.XOR:
 			// @todo ビット幅を考慮
-			fmt.Fprint(g.cppWriter, "~")
-			g.dumpExpr(e.X)
+			fmt.Fprint(writer, "~")
+			g.dumpExpr(writer, e.X)
 		case token.AND:
-			fmt.Fprint(g.cppWriter, "__ptr(")
-			g.dumpExpr(e.X)
-			fmt.Fprint(g.cppWriter, ")")
+			fmt.Fprint(writer, "__ptr(")
+			g.dumpExpr(writer, e.X)
+			fmt.Fprint(writer, ")")
 		default:
-			g.debugInspect(e.Op, "UnaryExpr")
-			fmt.Fprint(g.cppWriter, e.Op.String())
-			g.dumpExpr(e.X)
+			g.debugInspect(writer, e.Op, "UnaryExpr")
+			fmt.Fprint(writer, e.Op.String())
+			g.dumpExpr(writer, e.X)
 		}
 
 	case *ast.ParenExpr:
-		fmt.Fprint(g.cppWriter, "(")
-		g.dumpExpr(e.X)
-		fmt.Fprint(g.cppWriter, ")")
+		fmt.Fprint(writer, "(")
+		g.dumpExpr(writer, e.X)
+		fmt.Fprint(writer, ")")
 
 	case *ast.FuncLit:
-		g.dumpFunc(g.cppWriter, true, "", nil, e.Type, e.Body)
+		g.dumpFunc(writer, true, "", nil, e.Type, e.Body)
 
 	case *ast.CompositeLit:
 		switch e.Type.(type) {
 		case *ast.ArrayType:
-			fmt.Fprint(g.cppWriter, "{")
+			fmt.Fprint(writer, "{")
 			if 0 < len(e.Elts) {
-				fmt.Fprintln(g.cppWriter)
+				fmt.Fprintln(writer)
 				g.enter()
 				for _, v := range e.Elts {
-					fmt.Fprint(g.cppWriter, g.indent)
-					g.dumpExpr(v)
-					fmt.Fprint(g.cppWriter, ",")
-					fmt.Fprintln(g.cppWriter)
+					fmt.Fprint(writer, g.indent)
+					g.dumpExpr(writer, v)
+					fmt.Fprint(writer, ",")
+					fmt.Fprintln(writer)
 				}
 				g.leave()
-				fmt.Fprint(g.cppWriter, g.indent)
+				fmt.Fprint(writer, g.indent)
 			}
-			fmt.Fprint(g.cppWriter, "}")
+			fmt.Fprint(writer, "}")
 		default:
 			n, s, ok := g.formatType(g.info.TypeOf(e))
-			fmt.Fprint(g.cppWriter, "(const ")
+			fmt.Fprint(writer, "(const ")
 			if ok {
-				fmt.Fprint(g.cppWriter, n)
-				fmt.Fprintf(g.cppWriter, s, "")
+				fmt.Fprint(writer, n)
+				fmt.Fprintf(writer, s, "")
 			} else {
-				g.dumpExpr(e)
+				g.dumpExpr(writer, e)
 			}
-			fmt.Fprintln(g.cppWriter, "){")
+			fmt.Fprintln(writer, "){")
 			g.enter()
 			byKey := false
 			isStruct := g.isStructType(e)
@@ -289,41 +299,41 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 						key := fmt.Sprintf("%s", vv.Key)
 						fieldByKey[key] = vv
 					} else {
-						fmt.Fprint(g.cppWriter, g.indent)
-						g.dumpExpr(v)
-						fmt.Fprintln(g.cppWriter, ",")
+						fmt.Fprint(writer, g.indent)
+						g.dumpExpr(writer, v)
+						fmt.Fprintln(writer, ",")
 					}
 				default:
-					fmt.Fprint(g.cppWriter, g.indent)
-					g.dumpExpr(v)
-					fmt.Fprintln(g.cppWriter, ",")
+					fmt.Fprint(writer, g.indent)
+					g.dumpExpr(writer, v)
+					fmt.Fprintln(writer, ",")
 				}
 			}
 			if byKey {
 				if strc, ok := g.structInfo(g.info.TypeOf(e)); ok {
 					for i := 0; i < strc.NumFields(); i++ {
 						f := strc.Field(i)
-						fmt.Fprint(g.cppWriter, g.indent)
+						fmt.Fprint(writer, g.indent)
 						if kv, ok := fieldByKey[f.Name()]; ok {
-							g.dumpExpr(kv.Value)
+							g.dumpExpr(writer, kv.Value)
 						} else {
-							g.dumpZeroValue(g.cppWriter, f.Type())
+							g.dumpZeroValue(writer, f.Type())
 						}
-						fmt.Fprintln(g.cppWriter, ",")
+						fmt.Fprintln(writer, ",")
 					}
 				} else {
-					fmt.Fprintf(g.cppWriter, "%s//%#v | %#v\n", g.indent, strc, fieldByKey)
+					fmt.Fprintf(writer, "%s//%#v | %#v\n", g.indent, strc, fieldByKey)
 				}
 			}
 			g.leave()
-			fmt.Fprint(g.cppWriter, g.indent)
-			fmt.Fprint(g.cppWriter, "}")
+			fmt.Fprint(writer, g.indent)
+			fmt.Fprint(writer, "}")
 		}
 
 	case *ast.KeyValueExpr:
-		g.dumpExpr(e.Key)
-		fmt.Fprint(g.cppWriter, ": ")
-		g.dumpExpr(e.Value)
+		g.dumpExpr(writer, e.Key)
+		fmt.Fprint(writer, ": ")
+		g.dumpExpr(writer, e.Value)
 
 	case *ast.IndexExpr:
 		containerType := g.info.TypeOf(e.X)
@@ -338,7 +348,7 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 				case *types.Named:
 					indexType = it.Underlying()
 				default:
-					g.debugInspect(it, "IndexExpr2")
+					g.debugInspect(writer, it, "IndexExpr2")
 					break LOOP_IndexExpr
 				}
 			case *types.Map:
@@ -347,20 +357,20 @@ func (g *generator) dumpExpr(expr ast.Expr) {
 			case *types.Named:
 				containerType = ct.Underlying()
 			default:
-				g.debugInspect(ct, "IndexExpr1")
+				g.debugInspect(writer, ct, "IndexExpr1")
 				break LOOP_IndexExpr
 			}
 		}
-		g.dumpExpr(e.X)
-		fmt.Fprint(g.cppWriter, "[")
-		g.dumpExpr(e.Index)
-		fmt.Fprint(g.cppWriter, "]")
+		g.dumpExpr(writer, e.X)
+		fmt.Fprint(writer, "[")
+		g.dumpExpr(writer, e.Index)
+		fmt.Fprint(writer, "]")
 
 	case *ast.SliceExpr:
 	//e.
 
 	default:
-		g.debugInspect(expr, "expr")
+		g.debugInspect(writer, expr, "expr")
 	}
 
 	//t := g.info.TypeOf(expr)

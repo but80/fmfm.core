@@ -22,7 +22,7 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 		}
 		fmt.Fprint(g.cppWriter, g.indent)
 		fmt.Fprint(g.cppWriter, "if (")
-		g.dumpExpr(s.Cond)
+		g.dumpExpr(g.cppWriter, s.Cond)
 		fmt.Fprintln(g.cppWriter, ") {")
 		g.enter()
 		g.dumpBlock(s.Body)
@@ -48,7 +48,7 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 				fmt.Fprint(g.cppWriter, ",")
 			}
 			fmt.Fprint(g.cppWriter, " ")
-			g.dumpExpr(r)
+			g.dumpExpr(g.cppWriter, r)
 		}
 		fmt.Fprintln(g.cppWriter, ";")
 
@@ -70,20 +70,20 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 			if i != 0 {
 				fmt.Fprint(g.cppWriter, ", ")
 			}
-			g.dumpExpr(e)
+			g.dumpExpr(g.cppWriter, e)
 		}
 		fmt.Fprintf(g.cppWriter, " = ")
 		for i, e := range s.Rhs {
 			if i != 0 {
 				fmt.Fprint(g.cppWriter, ", ")
 			}
-			g.dumpExpr(e)
+			g.dumpExpr(g.cppWriter, e)
 		}
 		fmt.Fprintln(g.cppWriter, ";")
 
 	case *ast.ExprStmt:
 		fmt.Fprint(g.cppWriter, g.indent)
-		g.dumpExpr(s.X)
+		g.dumpExpr(g.cppWriter, s.X)
 		fmt.Fprintln(g.cppWriter, ";")
 
 	case *ast.DeclStmt:
@@ -99,7 +99,7 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 			hasTag = true
 			fmt.Fprint(g.cppWriter, g.indent)
 			fmt.Fprint(g.cppWriter, "auto __tag = ")
-			g.dumpExpr(s.Tag)
+			g.dumpExpr(g.cppWriter, s.Tag)
 			fmt.Fprintln(g.cppWriter, ";")
 		}
 		for i, c := range s.Body.List {
@@ -120,7 +120,7 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 					if hasTag {
 						fmt.Fprint(g.cppWriter, "__tag == ")
 					}
-					g.dumpExpr(e)
+					g.dumpExpr(g.cppWriter, e)
 				}
 				fmt.Fprintln(g.cppWriter, ") {")
 			}
@@ -141,7 +141,7 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 		fmt.Fprint(g.cppWriter, g.indent)
 		fmt.Fprint(g.cppWriter, "while (")
 		if s.Cond != nil && !reflect.ValueOf(s.Cond).IsNil() {
-			g.dumpExpr(s.Cond)
+			g.dumpExpr(g.cppWriter, s.Cond)
 		} else {
 			fmt.Fprint(g.cppWriter, "true")
 		}
@@ -161,26 +161,26 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 			// 配列のrange
 			fmt.Fprint(g.cppWriter, g.indent)
 			fmt.Fprint(g.cppWriter, "for (int ")
-			g.dumpExpr(s.Key)
+			g.dumpExpr(g.cppWriter, s.Key)
 			fmt.Fprint(g.cppWriter, " = 0; ")
-			g.dumpExpr(s.Key)
+			g.dumpExpr(g.cppWriter, s.Key)
 			fmt.Fprint(g.cppWriter, " < sizeof(")
-			g.dumpExpr(s.X)
+			g.dumpExpr(g.cppWriter, s.X)
 			fmt.Fprint(g.cppWriter, ") / sizeof(")
-			g.dumpExpr(s.X)
+			g.dumpExpr(g.cppWriter, s.X)
 			fmt.Fprint(g.cppWriter, "[0]); ")
-			g.dumpExpr(s.Key)
+			g.dumpExpr(g.cppWriter, s.Key)
 			fmt.Fprint(g.cppWriter, "++")
 			fmt.Fprintln(g.cppWriter, ") {")
 			g.enter()
 			if s.Value != nil && !reflect.ValueOf(s.Value).IsNil() {
 				fmt.Fprint(g.cppWriter, g.indent)
 				fmt.Fprint(g.cppWriter, "auto ")
-				g.dumpExpr(s.Value)
+				g.dumpExpr(g.cppWriter, s.Value)
 				fmt.Fprint(g.cppWriter, " = ")
-				g.dumpExpr(s.X)
+				g.dumpExpr(g.cppWriter, s.X)
 				fmt.Fprint(g.cppWriter, "[")
-				g.dumpExpr(s.Key)
+				g.dumpExpr(g.cppWriter, s.Key)
 				fmt.Fprint(g.cppWriter, "]")
 				fmt.Fprintln(g.cppWriter, ";")
 			}
@@ -188,24 +188,24 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 			// スライスのrange
 			fmt.Fprint(g.cppWriter, g.indent)
 			fmt.Fprint(g.cppWriter, "for (int ")
-			g.dumpExpr(s.Key)
+			g.dumpExpr(g.cppWriter, s.Key)
 			fmt.Fprint(g.cppWriter, " = 0; ")
-			g.dumpExpr(s.Key)
+			g.dumpExpr(g.cppWriter, s.Key)
 			fmt.Fprint(g.cppWriter, " < (int)")
-			g.dumpExpr(s.X)
+			g.dumpExpr(g.cppWriter, s.X)
 			fmt.Fprint(g.cppWriter, ".size(); ")
-			g.dumpExpr(s.Key)
+			g.dumpExpr(g.cppWriter, s.Key)
 			fmt.Fprint(g.cppWriter, "++")
 			fmt.Fprintln(g.cppWriter, ") {")
 			g.enter()
 			if s.Value != nil && !reflect.ValueOf(s.Value).IsNil() {
 				fmt.Fprint(g.cppWriter, g.indent)
 				fmt.Fprint(g.cppWriter, "auto ")
-				g.dumpExpr(s.Value)
+				g.dumpExpr(g.cppWriter, s.Value)
 				fmt.Fprint(g.cppWriter, " = ")
-				g.dumpExpr(s.X)
+				g.dumpExpr(g.cppWriter, s.X)
 				fmt.Fprint(g.cppWriter, "[")
-				g.dumpExpr(s.Key)
+				g.dumpExpr(g.cppWriter, s.Key)
 				fmt.Fprint(g.cppWriter, "]")
 				fmt.Fprintln(g.cppWriter, ";")
 			}
@@ -213,19 +213,19 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 			// mapのrange
 			fmt.Fprint(g.cppWriter, g.indent)
 			fmt.Fprint(g.cppWriter, "for (auto __p : ")
-			g.dumpExpr(s.X)
+			g.dumpExpr(g.cppWriter, s.X)
 			fmt.Fprintln(g.cppWriter, ") {")
 			g.enter()
 			if s.Key != nil && !reflect.ValueOf(s.Key).IsNil() {
 				fmt.Fprint(g.cppWriter, g.indent)
 				fmt.Fprint(g.cppWriter, "auto ")
-				g.dumpExpr(s.Key)
+				g.dumpExpr(g.cppWriter, s.Key)
 				fmt.Fprintln(g.cppWriter, " = __p.first;")
 			}
 			if s.Value != nil && !reflect.ValueOf(s.Value).IsNil() {
 				fmt.Fprint(g.cppWriter, g.indent)
 				fmt.Fprint(g.cppWriter, "auto ")
-				g.dumpExpr(s.Value)
+				g.dumpExpr(g.cppWriter, s.Value)
 				fmt.Fprintln(g.cppWriter, " = __p.second;")
 			}
 		} else {
@@ -240,13 +240,13 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 
 	case *ast.IncDecStmt:
 		fmt.Fprint(g.cppWriter, g.indent)
-		g.dumpExpr(s.X)
+		g.dumpExpr(g.cppWriter, s.X)
 		fmt.Fprint(g.cppWriter, s.Tok.String())
 		fmt.Fprintln(g.cppWriter, ";")
 
 	default:
 		fmt.Fprint(g.cppWriter, g.indent)
-		g.debugInspect(stmt, "stmt")
+		g.debugInspect(g.cppWriter, stmt, "stmt")
 		fmt.Fprintln(g.cppWriter)
 	}
 }

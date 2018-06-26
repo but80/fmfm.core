@@ -94,7 +94,7 @@ func (g *generator) dumpValueSpec(s *ast.ValueSpec) int {
 		g.dumpTypeAndName(g.cppWriter, s.Type, n.Name)
 		if i < len(s.Values) {
 			fmt.Fprint(g.cppWriter, " = ")
-			g.dumpExpr(s.Values[i])
+			g.dumpExpr(g.cppWriter, s.Values[i])
 		}
 		g.export(n.Name)
 	}
@@ -114,7 +114,7 @@ func (g *generator) dumpSpec(spec ast.Spec) {
 		g.dumpTypeSpec(s)
 
 	default:
-		g.debugInspect(spec, "spec")
+		g.debugInspect(g.cppWriter, spec, "spec")
 	}
 }
 
@@ -191,34 +191,34 @@ func (g *generator) dumpDecl(decl ast.Decl) {
 				vs, ok := s.(*ast.ValueSpec)
 				for i, n := range vs.Names {
 					// @todo iota
-					fmt.Fprint(g.cppWriter, g.indent)
-					fmt.Fprintf(g.cppWriter, "#define %s ", n.Name)
+					fmt.Fprint(g.hWriter, g.indent)
 					if !ok {
 						panic("const must have only ValueSpecs")
 					}
 					n2, s, ok := g.formatType(g.info.TypeOf(vs.Type))
 					if ok && n2 != "auto" {
-						fmt.Fprintf(g.cppWriter, "%s "+s, n2, "")
-					}
-					fmt.Fprint(g.cppWriter, "(")
-					if i < len(vs.Values) {
-						g.dumpExpr(vs.Values[i])
+						fmt.Fprintf(g.hWriter, "const %s "+s+" = ", n2, n.Name)
 					} else {
-						fmt.Fprintf(g.cppWriter, "%d", g.iota(false))
+						fmt.Fprintf(g.hWriter, "const auto %s = ", n.Name)
 					}
-					fmt.Fprintln(g.cppWriter, ")")
+					if i < len(vs.Values) {
+						g.dumpExpr(g.hWriter,vs.Values[i])
+					} else {
+						fmt.Fprintf(g.hWriter, "%d", g.iota(false))
+					}
+					fmt.Fprintln(g.hWriter, ";")
 					g.export(n.Name)
 				}
 			}
 		default:
 			fmt.Fprint(g.cppWriter, g.indent)
-			g.debugInspect(d, "decl:"+d.Tok.String())
+			g.debugInspect(g.cppWriter, d, "decl:"+d.Tok.String())
 			fmt.Fprintln(g.cppWriter)
 		}
 
 	default:
 		fmt.Fprint(g.cppWriter, g.indent)
-		g.debugInspect(decl, "decl")
+		g.debugInspect(g.cppWriter, decl, "decl")
 		fmt.Fprintln(g.cppWriter)
 	}
 }
