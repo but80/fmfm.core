@@ -3,6 +3,7 @@ package go2cpp
 import (
 	"fmt"
 	"go/ast"
+	"go/types"
 	"io"
 	"strconv"
 )
@@ -24,7 +25,11 @@ func (g *generator) typedFuncName(typ ast.Expr, name string) string {
 }
 
 func (g *generator) dumpTypeAndName(writer io.Writer, typ ast.Expr, name string) string {
-	n, s, ok := g.formatType(g.info.TypeOf(typ))
+	return g.dumpTypeAndNameImpl(writer, g.info.TypeOf(typ), name)
+}
+
+func (g *generator) dumpTypeAndNameImpl(writer io.Writer, typ types.Type, name string) string {
+	n, s, ok := g.formatType(typ)
 	if !ok {
 		fmt.Fprintf(writer, "UNKNOWN %s", name)
 		return "UNKNOWN"
@@ -60,31 +65,32 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 		fmt.Fprint(writer, g.indent)
 		resultType = g.dumpTypeAndName(writer, sig.Results.List[0].Type, fnname)
 	} else if sig.Results != nil && 2 <= len(sig.Results.List) {
-		resultType = name + "Result"
-		fmt.Fprintf(writer, "%sclass %s {\n", g.indent, resultType)
-		g.enter()
-		for i, r := range sig.Results.List {
-			if len(r.Names) == 0 {
-				fmt.Fprint(writer, g.indent)
-				g.dumpTypeAndName(writer, r.Type, "r"+strconv.Itoa(i))
-				fmt.Fprintln(writer, ";")
-			} else {
-				for _, n := range r.Names {
+		resultType = fnname + "__result"
+		if !withBody {
+			fmt.Fprintf(writer, "%sstruct %s {\n", g.indent, resultType)
+			g.enter()
+			for i, r := range sig.Results.List {
+				if len(r.Names) == 0 {
 					fmt.Fprint(writer, g.indent)
-					g.dumpTypeAndName(writer, r.Type, n.Name)
+					g.dumpTypeAndName(writer, r.Type, "r"+strconv.Itoa(i))
 					fmt.Fprintln(writer, ";")
+				} else {
+					for _, n := range r.Names {
+						fmt.Fprint(writer, g.indent)
+						g.dumpTypeAndName(writer, r.Type, n.Name)
+						fmt.Fprintln(writer, ";")
+					}
 				}
 			}
+			g.leave()
+			fmt.Fprintf(writer, "%s};\n", g.indent)
 		}
-		g.leave()
-		fmt.Fprintf(writer, "%s};\n", g.indent)
 		fmt.Fprint(writer, g.indent)
 		fmt.Fprintf(writer, "%s %s", resultType, fnname)
 	} else {
 		fmt.Fprint(writer, g.indent)
 		fmt.Fprintf(writer, "void %s", fnname)
 	}
-	_ = resultType
 
 	fmt.Fprint(writer, "(")
 	if recv != nil && 0 < len(recv.List) {
@@ -119,7 +125,11 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 		fmt.Fprintf(writer, "\n%slocal __r = pack((function()\n", g.indent)
 	}
 	g.enter()
+	g.currentFunc = append(g.currentFunc, fnname)
+	g.currentFuncResultType = append(g.currentFuncResultType, resultType)
 	g.dumpBlock(body)
+	g.currentFuncResultType = g.currentFuncResultType[:len(g.currentFuncResultType)-1]
+	g.currentFunc = g.currentFunc[:len(g.currentFunc)-1]
 	g.leave()
 	if hasNamedResult {
 		fmt.Fprint(writer, g.indent)

@@ -27,14 +27,14 @@ Frac64 Frac64__MulInt32Frac32(Frac64 v, Int32Frac32 rhs) {
 
 
 
-auto Pow32Of2 = float64(1 << 32);
+float64 Pow32Of2 = float64(1 << 32);
 
-auto Pow63Of2 = float64(1 << 63);
+float64 Pow63Of2 = float64(1 << 63);
 
-auto Pow64Of2 = Pow63Of2*2.0;
+float64 Pow64Of2 = Pow63Of2*2.0;
 
 
-auto ModulatorMatrix = {
+bool ModulatorMatrix[4][8] = {
 	(const bool[4]){
 		true,
 		false,
@@ -85,7 +85,7 @@ auto ModulatorMatrix = {
 	},
 };
 
-auto CarrierMatrix = {
+bool CarrierMatrix[4][8] = {
 	(const bool[4]){
 		false,
 		true,
@@ -136,7 +136,7 @@ auto CarrierMatrix = {
 	},
 };
 
-auto VolumeTable = {
+float64 VolumeTable[32] = {
 	1e30,
 	47.9,
 	42.6,
@@ -173,7 +173,7 @@ auto VolumeTable = {
 
 float64 PanTable[2][128];
 
-auto DTCoef = {
+float64 DTCoef[16][8] = {
 	(const float64[16]){
 		0.00,
 		0.00,
@@ -320,7 +320,7 @@ auto DTCoef = {
 	},
 };
 
-auto LFOFrequency = {};
+Frac64 LFOFrequency[4] = {};
 
 
 
@@ -329,7 +329,7 @@ Int32Frac32 VibratoTableInt32Frac32[8192][4];
 
 float64 TremoloTable[8192][4];
 
-auto FeedbackTable = {
+float64 FeedbackTable[8] = {
 	0,
 	1.0/32.0,
 	1.0/16.0,
@@ -340,7 +340,7 @@ auto FeedbackTable = {
 	2.0,
 };
 
-auto MultTable2 = {
+uint64 MultTable2[16] = {
 	1,
 	1*2,
 	2*2,
@@ -359,7 +359,7 @@ auto MultTable2 = {
 	15*2,
 };
 
-auto KSLTable = {};
+float64 KSLTable[32][8][4] = {};
 
 
 

@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"reflect"
+	"strings"
 )
 
 func (g *generator) dumpBlock(stmt *ast.BlockStmt) {
@@ -41,14 +42,22 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 		g.dumpBlock(s)
 
 	case *ast.ReturnStmt:
+		returnType := g.currentFuncResultType[len(g.currentFuncResultType)-1]
+		asStruct := strings.HasSuffix(returnType, "__result")
 		fmt.Fprint(g.cppWriter, g.indent)
 		fmt.Fprint(g.cppWriter, "return")
+		if asStruct {
+			fmt.Fprintf(g.cppWriter, " {")
+		}
 		for i, r := range s.Results {
 			if i != 0 {
 				fmt.Fprint(g.cppWriter, ",")
 			}
 			fmt.Fprint(g.cppWriter, " ")
 			g.dumpExpr(g.cppWriter, r)
+		}
+		if asStruct {
+			fmt.Fprint(g.cppWriter, " }")
 		}
 		fmt.Fprintln(g.cppWriter, ";")
 

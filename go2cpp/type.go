@@ -66,6 +66,10 @@ func (g *generator) isMapTypeImpl(typ types.Type) bool {
 	return false
 }
 
+func (g *generator) isStringType(typ types.Type) bool {
+	return typ != nil && typ.String() == "string"
+}
+
 func (g *generator) dumpZeroValue(writer io.Writer, typ types.Type) {
 	switch typ.String() {
 	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64":
@@ -80,7 +84,7 @@ func (g *generator) dumpZeroValue(writer io.Writer, typ types.Type) {
 var nonAlphaNumRe = regexp.MustCompile(`\W`)
 
 func (g *generator) typeIdent(typ types.Type) string {
-	n, s, ok := g.formatType(typ)
+	n, s, ok := g.formatTypeImpl(typ, true)
 	if !ok {
 		return "UNKNOWN"
 	}
@@ -108,6 +112,10 @@ func (g *generator) packageAndType(t *types.Named) (string, string) {
 }
 
 func (g *generator) formatType(typ types.Type) (string, string, bool) {
+	return g.formatTypeImpl(typ, false)
+}
+
+func (g *generator) formatTypeImpl(typ types.Type, barePtr bool) (string, string, bool) {
 	switch t := typ.(type) {
 	case nil:
 		return "auto", "%s", true
@@ -119,7 +127,11 @@ func (g *generator) formatType(typ types.Type) (string, string, bool) {
 		return g.localPkgPrefix(pkg) + typeName, "%s", true
 	case *types.Pointer:
 		n, s, ok := g.formatType(t.Elem())
-		return n, "*" + s, ok
+		if barePtr {
+			return n, "*" + s, ok
+		}
+		s = fmt.Sprintf(s, "")
+		return fmt.Sprintf("std::shared_ptr<%s%s>", n, s), "%s", ok
 	case *types.Array:
 		n, s, ok := g.formatType(t.Elem())
 		return n, s + "[" + strconv.Itoa(int(t.Len())) + "]", ok

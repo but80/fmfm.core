@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"io"
 	"reflect"
+	"regexp"
 )
 
 func (g *generator) iota(reset bool) int {
@@ -53,6 +54,13 @@ func (g *generator) identOf(expr ast.Expr) (string, *types.Scope, types.Object, 
 	}
 }
 
+var isInPrintfRe = regexp.MustCompile(`[pP]rintf\W*$`)
+
+func (g *generator) isInPrintf() bool {
+	n := len(g.currentCall)
+	return 0 < n && isInPrintfRe.MatchString(g.currentCall[n-1])
+}
+
 func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 	switch e := expr.(type) {
 
@@ -77,6 +85,9 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 		} else {
 			fmt.Fprint(writer, name)
 		}
+		if g.isInPrintf() && g.isStringType(g.info.TypeOf(e)) {
+			fmt.Fprint(writer, ".c_str()")
+		}
 
 	case *ast.BasicLit:
 		g.dumpLiteral(writer, e)
@@ -85,11 +96,12 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 		var recv ast.Expr
 		skip := false
 		comma := false
+		var o types.Object
 		switch g.info.TypeOf(e.Fun).(type) {
 		case *types.Signature:
 			switch f := e.Fun.(type) {
 			case *ast.SelectorExpr:
-				o, _ := g.objectOf(f.X)
+				o, _ = g.objectOf(f.X)
 				switch o.(type) {
 				case *types.TypeName:
 					// noop
@@ -102,7 +114,7 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 				}
 			}
 		default:
-			o, _ := g.objectOf(e.Fun)
+			o, _ = g.objectOf(e.Fun)
 			switch o.(type) {
 			case *types.TypeName:
 				fmt.Fprint(writer, o.Name())
@@ -116,6 +128,9 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 			g.dumpExpr(writer, e.Fun)
 			fmt.Fprint(writer, "(")
 		}
+		fnName := fmt.Sprint(e.Fun)
+		// fmt.Fprintf(writer, "/*%s*/", fnName)
+		g.currentCall = append(g.currentCall, fnName)
 		if recv != nil {
 			g.dumpExpr(writer, recv)
 		}
@@ -126,6 +141,7 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 			}
 			g.dumpExpr(writer, a)
 		}
+		g.currentCall = g.currentCall[:len(g.currentCall)-1]
 		fmt.Fprint(writer, ")")
 
 	case *ast.SelectorExpr:
@@ -164,6 +180,9 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 				fmt.Fprintf(writer, "/*%s*/->", reflect.TypeOf(g.info.TypeOf(e.X)))
 			}
 			fmt.Fprint(writer, e.Sel.Name)
+			if g.isInPrintf() && g.isStringType(g.info.TypeOf(e)) {
+				fmt.Fprint(writer, ".c_str()")
+			}
 		}
 
 	case *ast.BinaryExpr:
