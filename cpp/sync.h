@@ -5,6 +5,8 @@ namespace sync {
     };
 
     void Mutex__Lock(std::shared_ptr<Mutex>);
+    void Mutex__Lock(Mutex&);
     void Mutex__Unlock(std::shared_ptr<Mutex>);
+    void Mutex__Unlock(Mutex&);
 
 }

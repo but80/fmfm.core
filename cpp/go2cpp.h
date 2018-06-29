@@ -11,6 +11,7 @@ typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned int uint32;
 typedef unsigned long long uint64;
+typedef unsigned long long uint;
 typedef float float32;
 typedef double float64;
 typedef std::string string;
@@ -18,4 +19,11 @@ typedef std::string string;
 template <typename T>
 inline std::shared_ptr<T> __ptr(const T& t) {
     return &t;
+}
+
+template <typename T>
+inline std::vector<T> make(const T* t, int n) {
+    std::vector<T> result;
+    result.resize(n);
+    return result;
 }

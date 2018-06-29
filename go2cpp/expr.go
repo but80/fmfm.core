@@ -61,6 +61,13 @@ func (g *generator) isInPrintf() bool {
 	return 0 < n && isInPrintfRe.MatchString(g.currentCall[n-1])
 }
 
+var isInMakeRe = regexp.MustCompile(`^\W*make\W*$`)
+
+func (g *generator) isInMake() bool {
+	n := len(g.currentCall)
+	return 0 < n && isInMakeRe.MatchString(g.currentCall[n-1])
+}
+
 func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 	switch e := expr.(type) {
 
@@ -387,6 +394,16 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 
 	case *ast.SliceExpr:
 	//e.
+
+	case *ast.ArrayType:
+		if g.isInMake() {
+			fmt.Fprint(writer, "(")
+		}
+		g.dumpTypeAndName(writer, e.Elt, "")
+		// g.debugInspect(writer, g.info.TypeOf(e), "ArrayType")
+		if g.isInMake() {
+			fmt.Fprint(writer, "*)NULL")
+		}
 
 	default:
 		g.debugInspect(writer, expr, "expr")

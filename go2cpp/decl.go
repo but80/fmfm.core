@@ -180,7 +180,7 @@ func (g *generator) dumpValueSpec(s *ast.ValueSpec) int {
 			typ = g.info.TypeOf(s.Values[i])
 		}
 		if isTopLevel {
-			fmt.Fprint(g.hWriter, g.indent)
+			fmt.Fprintf(g.hWriter, "%sextern ", g.indent)
 		}
 		fmt.Fprint(g.cppWriter, g.indent)
 		if isTopLevel {
