@@ -82,13 +82,17 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 		if s.Tok == token.DEFINE {
 			fmt.Fprint(g.cppWriter, "auto ")
 		}
-		for i, e := range s.Lhs {
-			if i != 0 {
-				fmt.Fprint(g.cppWriter, ", ")
+		if 2 <= len(s.Lhs) {
+			fmt.Fprintf(g.cppWriter, "__tuple = ")
+		} else {
+			for i, e := range s.Lhs {
+				if i != 0 {
+					fmt.Fprint(g.cppWriter, ", ")
+				}
+				g.dumpExpr(g.cppWriter, e)
 			}
-			g.dumpExpr(g.cppWriter, e)
+			fmt.Fprintf(g.cppWriter, " = ")
 		}
-		fmt.Fprintf(g.cppWriter, " = ")
 		for i, e := range s.Rhs {
 			if i != 0 {
 				fmt.Fprint(g.cppWriter, ", ")
@@ -96,6 +100,13 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 			g.dumpExpr(g.cppWriter, e)
 		}
 		fmt.Fprintln(g.cppWriter, ";")
+		if 2 <= len(s.Lhs) {
+			for i, e := range s.Lhs {
+				fmt.Fprintf(g.cppWriter, "%sauto ", g.indent)
+				g.dumpExpr(g.cppWriter, e)
+				fmt.Fprintf(g.cppWriter, " = __tuple.r%d;\n", i)
+			}
+		}
 
 	case *ast.ExprStmt:
 		fmt.Fprint(g.cppWriter, g.indent)
