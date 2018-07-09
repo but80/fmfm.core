@@ -113,11 +113,11 @@ float64 ChannelPtr__currentLevel(std::shared_ptr<Channel> ch) {
 
 string ChannelPtr__dump(std::shared_ptr<Channel> ch) {
 	auto lv = int((96.0 + math::Log10(ChannelPtr__currentLevel(ch))*20.0)/8.0);
-	auto lvstr = strings::Repeat("|", lv);
-	auto result = fmt::Sprintf("[%02d] midi=%02d alg=%d pan=%03d+%03d vol=%03d exp=%03d vel=%03d freq=%03d+%d-%d modidx=%04d %s\n", ch->channelID, ch->midiChannelID, ch->alg, ch->panpot, ch->chpan, ch->volume, ch->expression, ch->velocity, ch->fnum, ch->block, ch->bo, ch->modIndexFrac64 >> ymfdata::ModTableIndexShift, lvstr.c_str());
+	auto lvstr = strings::Repeat(string("|"), lv);
+	auto result = fmt::Sprintf(string("[%02d] midi=%02d alg=%d pan=%03d+%03d vol=%03d exp=%03d vel=%03d freq=%03d+%d-%d modidx=%04d %s\n"), ch->channelID, ch->midiChannelID, ch->alg, ch->panpot, ch->chpan, ch->volume, ch->expression, ch->velocity, ch->fnum, ch->block, ch->bo, ch->modIndexFrac64 >> ymfdata::ModTableIndexShift, lvstr.c_str());
 	for (int _ = 0; _ < sizeof(ch->operators) / sizeof(ch->operators[0]); _++) {
 		auto op = ch->operators[_];
-		result = "  " + fmOperatorPtr__dump(op) + "\n";
+		result = string("  ") + fmOperatorPtr__dump(op) + string("\n");
 	}
 	return result;
 }
@@ -232,6 +232,7 @@ void ChannelPtr__setBO(std::shared_ptr<Channel> ch, int v) {
 }
 
 ChannelPtr__next__result ChannelPtr__next(std::shared_ptr<Channel> ch) {
+	ChannelPtr__next__result __result; // multi-result
 	float64 result;
 	float64 op1out;
 	float64 op2out;
@@ -243,72 +244,96 @@ ChannelPtr__next__result ChannelPtr__next(std::shared_ptr<Channel> ch) {
 	auto op4 = ch->operators[3];
 	auto modIndex = int(ch->modIndexFrac64 >> ymfdata::ModTableIndexShift);
 	ch->modIndexFrac64 = ch->lfoFrequency;
-	auto __tag = ch->alg;
-	if (__tag == 0) {
+	switch (ch->alg) {
+	case 0:
 		if (op2->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		result = fmOperatorPtr__next(op2, modIndex, op1out*ymfdata::ModulatorMultiplier);
-	} else if (__tag == 1) {
+		break;
+	case 1:
 		if (op1->envelopeGenerator->stage == stageOff && op2->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		op2out = fmOperatorPtr__next(op2, modIndex, noModulator);
 		result = op1out + op2out;
-	} else if (__tag == 2) {
+		break;
+	case 2:
 		if (op1->envelopeGenerator->stage == stageOff && op2->envelopeGenerator->stage == stageOff && op3->envelopeGenerator->stage == stageOff && op4->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		op2out = fmOperatorPtr__next(op2, modIndex, noModulator);
 		op3out = fmOperatorPtr__next(op3, modIndex, ch->feedbackOut3);
 		op4out = fmOperatorPtr__next(op4, modIndex, noModulator);
 		result = op1out + op2out + op3out + op4out;
-	} else if (__tag == 3) {
+		break;
+	case 3:
 		if (op4->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		op2out = fmOperatorPtr__next(op2, modIndex, noModulator);
 		op3out = fmOperatorPtr__next(op3, modIndex, op2out*ymfdata::ModulatorMultiplier);
 		result = fmOperatorPtr__next(op4, modIndex, (op1out + op3out)*ymfdata::ModulatorMultiplier);
-	} else if (__tag == 4) {
+		break;
+	case 4:
 		if (op4->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		op2out = fmOperatorPtr__next(op2, modIndex, op1out*ymfdata::ModulatorMultiplier);
 		op3out = fmOperatorPtr__next(op3, modIndex, op2out*ymfdata::ModulatorMultiplier);
 		result = fmOperatorPtr__next(op4, modIndex, op3out*ymfdata::ModulatorMultiplier);
-	} else if (__tag == 5) {
+		break;
+	case 5:
 		if (op2->envelopeGenerator->stage == stageOff && op4->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		op2out = fmOperatorPtr__next(op2, modIndex, op1out*ymfdata::ModulatorMultiplier);
 		op3out = fmOperatorPtr__next(op3, modIndex, ch->feedbackOut3);
 		op4out = fmOperatorPtr__next(op4, modIndex, op3out*ymfdata::ModulatorMultiplier);
 		result = op2out + op4out;
-	} else if (__tag == 6) {
+		break;
+	case 6:
 		if (op1->envelopeGenerator->stage == stageOff && op4->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		op2out = fmOperatorPtr__next(op2, modIndex, noModulator);
 		op3out = fmOperatorPtr__next(op3, modIndex, op2out*ymfdata::ModulatorMultiplier);
 		op4out = fmOperatorPtr__next(op4, modIndex, op3out*ymfdata::ModulatorMultiplier);
 		result = op1out + op4out;
-	} else if (__tag == 7) {
+		break;
+	case 7:
 		if (op1->envelopeGenerator->stage == stageOff && op3->envelopeGenerator->stage == stageOff && op4->envelopeGenerator->stage == stageOff) {
-			return { 0, 0 };
+			__result.r0 = 0;
+			__result.r1 = 0;
+			return __result;
 		}
 		op1out = fmOperatorPtr__next(op1, modIndex, ch->feedbackOut1);
 		op2out = fmOperatorPtr__next(op2, modIndex, noModulator);
 		op3out = fmOperatorPtr__next(op3, modIndex, op2out*ymfdata::ModulatorMultiplier);
 		op4out = fmOperatorPtr__next(op4, modIndex, noModulator);
 		result = op1out + op3out + op4out;
+		break;
 	}
 	if (op1->feedbackCoef != .0) {
 		ch->feedback1Prev = ch->feedback1Curr;
@@ -321,7 +346,9 @@ ChannelPtr__next__result ChannelPtr__next(std::shared_ptr<Channel> ch) {
 		ch->feedbackOut3 = ch->feedback3Prev*ch->feedbackBlendPrev + ch->feedback3Curr*ch->feedbackBlendCurr;
 	}
 	result = ch->attenuationCoef;
-	return { result*ch->panCoefL, result*ch->panCoefR };
+	__result.r0 = result*ch->panCoefL;
+	__result.r1 = result*ch->panCoefR;
+	return __result;
 }
 
 void ChannelPtr__updateFrequency(std::shared_ptr<Channel> ch) {
@@ -351,6 +378,7 @@ int debugDumpCount = 0;
 
 // Next は、次のサンプルを生成し、その左右それぞれの振幅を返します。
 ChipPtr__Next__result ChipPtr__Next(std::shared_ptr<Chip> chip) {
+	ChipPtr__Next__result __result; // multi-result
 	float64 l;
 	float64 r;
 	for (int _ = 0; _ < (int)chip->channels.size(); _++) {
@@ -375,17 +403,19 @@ ChipPtr__Next__result ChipPtr__Next(std::shared_ptr<Chip> chip) {
 			}
 			if (0 < len(toDump)) {
 				sort::Slice(toDump, 				bool UNKNOWN(int i, int j) {
-					return [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f2fc0), Lbrack:11962, Index:(*ast.Ident)(0xc4203f2fe0), Rbrack:11964})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f2fc0), Lbrack:11962, Index:(*ast.Ident)(0xc4203f2fe0), Rbrack:11964})[0mChannelPtr__currentLevel(toDump[i]) < [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f3040), Lbrack:11989, Index:(*ast.Ident)(0xc4203f3060), Rbrack:11991})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f3040), Lbrack:11989, Index:(*ast.Ident)(0xc4203f3060), Rbrack:11991})[0mChannelPtr__currentLevel(toDump[j]);
+					return [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f0f40), Lbrack:11962, Index:(*ast.Ident)(0xc4203f0f60), Rbrack:11964})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f0f40), Lbrack:11962, Index:(*ast.Ident)(0xc4203f0f60), Rbrack:11964})[0mChannelPtr__currentLevel(toDump[i]) < [41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f0fc0), Lbrack:11989, Index:(*ast.Ident)(0xc4203f0fe0), Rbrack:11991})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.Ident)(0xc4203f0fc0), Lbrack:11989, Index:(*ast.Ident)(0xc4203f0fe0), Rbrack:11991})[0mChannelPtr__currentLevel(toDump[j]);
 				});
 				for (int _ = 0; _ < (int)toDump.size(); _++) {
 					auto ch = toDump[_];
 					fmt::Print(ChannelPtr__dump(ch));
 				}
-				fmt::Println("------------------------------");
+				fmt::Println(string("------------------------------"));
 			}
 		}
 	}
-	return { l*v, r*v };
+	__result.r0 = l*v;
+	__result.r1 = r*v;
+	return __result;
 }
 
 void ChipPtr__initChannels(std::shared_ptr<Chip> chip) {
@@ -399,19 +429,25 @@ void ChipPtr__initChannels(std::shared_ptr<Chip> chip) {
 
 
 string stage__String(stage s) {
-	auto __tag = s;
-	if (__tag == stageOff) {
-		return "-";
-	} else if (__tag == stageAttack) {
-		return "A";
-	} else if (__tag == stageDecay) {
-		return "D";
-	} else if (__tag == stageSustain) {
-		return "S";
-	} else if (__tag == stageRelease) {
-		return "R";
-	} else {
-		return "?";
+	switch (s) {
+	case stageOff:
+		return string("-");
+		break;
+	case stageAttack:
+		return string("A");
+		break;
+	case stageDecay:
+		return string("D");
+		break;
+	case stageSustain:
+		return string("S");
+		break;
+	case stageRelease:
+		return string("R");
+		break;
+	default:
+		return string("?");
+		break;
 	}
 }
 
@@ -525,36 +561,38 @@ void envelopeGeneratorPtr__setActualRR(std::shared_ptr<envelopeGenerator> eg, in
 }
 
 float64 envelopeGeneratorPtr__getEnvelope(std::shared_ptr<envelopeGenerator> eg, int tremoloIndex) {
-	auto __tag = eg->stage;
-	if (__tag == stageAttack) {
+	switch (eg->stage) {
+	case stageAttack:
 		eg->currentLevel = eg->arDiffPerSample;
 		if (eg->currentLevel < 1.0) {
 			break;
 		}
 		eg->currentLevel = 1.0;
 		eg->stage = stageDecay;
-		fallthrough;
-	} else if (__tag == stageDecay) {
+		// fallthrough;
+	case stageDecay:
 		if (eg->sustainLevel < eg->currentLevel) {
 			eg->currentLevel = eg->drCoefPerSample;
 			break;
 		}
 		eg->stage = stageSustain;
-		fallthrough;
-	} else if (__tag == stageSustain) {
+		// fallthrough;
+	case stageSustain:
 		if (epsilon < eg->currentLevel) {
 			eg->currentLevel = eg->srCoefPerSample;
 		} else {
 			eg->stage = stageOff;
 		}
 		break;
-	} else if (__tag == stageRelease) {
+		break;
+	case stageRelease:
 		if (epsilon < eg->currentLevel) {
 			eg->currentLevel = eg->rrCoefPerSample;
 		} else {
 			eg->currentLevel = .0;
 			eg->stage = stageOff;
 		}
+		break;
 		break;
 	}
 	auto result = eg->currentLevel;
@@ -686,23 +724,23 @@ string fmOperatorPtr__dump(std::shared_ptr<fmOperator> op) {
 	if (lv < 0) {
 		lv = 0;
 	}
-	auto lvstr = strings::Repeat("|", lv);
-	auto cm = "C";
+	auto lvstr = strings::Repeat(string("|"), lv);
+	auto cm = string("C");
 	if (op->isModulator) {
-		cm = "M";
+		cm = string("M");
 	}
-	auto am = "-";
+	auto am = string("-");
 	if (eg->eam) {
-		am = fmt::Sprintf("%d", eg->dam);
+		am = fmt::Sprintf(string("%d"), eg->dam);
 	}
-	auto vb = "-";
+	auto vb = string("-");
 	if (pg->evb) {
-		vb = fmt::Sprintf("%d", pg->dvb);
+		vb = fmt::Sprintf(string("%d"), pg->dvb);
 	}
 	auto phase = pg->phaseFrac64 >> ymfdata::WaveformIndexShift;
-	auto phstr = [41mobjectOf[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:18920, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc420414400)})[0m[41mCallExpr[0m[31m<<nil>>(<nil>)[0mbyte ("        ");
+	auto phstr = [41mobjectOf[0m[31m<*ast.ArrayType>(&ast.ArrayType{Lbrack:18920, Len:ast.Expr(nil), Elt:(*ast.Ident)(0xc42040e380)})[0m[41mCallExpr[0m[31m<<nil>>(<nil>)[0mbyte (string("        "));
 	phstr[phase >> (ymfdata::WaveformLenBits - 3)] = string.byte("|");
-	return fmt::Sprintf("%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f st=%s ph=%s lv=%-03d %s", op->operatorIndex, cm.c_str(), op->mult, op->ws, op->ar, op->dr, op->sl, op->sr, op->rr, eg->tlCoef, am.c_str(), vb.c_str(), op->dt, op->ksr, op->feedbackCoef, op->keyScaleNumber, eg->kslCoef, stage__String(eg->stage), string(phstr), int(math::Floor(lvdb)), lvstr.c_str());
+	return fmt::Sprintf(string("%d: %s mul=%02d ws=%02d adssr=%02d,%02d,%02d,%02d,%02d tl=%f am=%s vb=%s dt=%d ksr=%d fb=%3.2f ksn=%02d ksl=%f st=%s ph=%s lv=%-03d %s"), op->operatorIndex, cm.c_str(), op->mult, op->ws, op->ar, op->dr, op->sl, op->sr, op->rr, eg->tlCoef, am.c_str(), vb.c_str(), op->dt, op->ksr, op->feedbackCoef, op->keyScaleNumber, eg->kslCoef, stage__String(eg->stage), string(phstr), int(math::Floor(lvdb)), lvstr.c_str());
 }
 
 void fmOperatorPtr__setEAM(std::shared_ptr<fmOperator> op, int v) {
@@ -891,49 +929,66 @@ std::shared_ptr<Registers> NewRegisters(std::shared_ptr<Chip> chip) {
 // WriteOperator は、オペレータレジスタに値を書き込みます。
 void RegistersPtr__WriteOperator(std::shared_ptr<Registers> regs, int channel, int operatorIndex, ymf::OpRegister offset, int v) {
 	sync::Mutex__Lock(regs->chip->Mutex);
-	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:24671, Call:(*ast.CallExpr)(0xc420424b40)})[0m
-	auto __tag = offset;
-	if (__tag == ymf::EAM) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204276c0), Lbrack:24773, Index:(*ast.Ident)(0xc4204276e0), Rbrack:24787})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204276c0), Lbrack:24773, Index:(*ast.Ident)(0xc4204276e0), Rbrack:24787})[0mfmOperatorPtr__setEAM(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::EVB) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204278a0), Lbrack:24853, Index:(*ast.Ident)(0xc4204278c0), Rbrack:24867})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204278a0), Lbrack:24853, Index:(*ast.Ident)(0xc4204278c0), Rbrack:24867})[0mfmOperatorPtr__setEVB(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::DAM) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420427aa0), Lbrack:24933, Index:(*ast.Ident)(0xc420427ac0), Rbrack:24947})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420427aa0), Lbrack:24933, Index:(*ast.Ident)(0xc420427ac0), Rbrack:24947})[0mfmOperatorPtr__setDAM(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::DVB) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420427c80), Lbrack:25013, Index:(*ast.Ident)(0xc420427ca0), Rbrack:25027})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420427c80), Lbrack:25013, Index:(*ast.Ident)(0xc420427ca0), Rbrack:25027})[0mfmOperatorPtr__setDVB(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::DT) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420427e60), Lbrack:25092, Index:(*ast.Ident)(0xc420427e80), Rbrack:25106})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420427e60), Lbrack:25092, Index:(*ast.Ident)(0xc420427e80), Rbrack:25106})[0mfmOperatorPtr__setDT(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::KSR) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432040), Lbrack:25171, Index:(*ast.Ident)(0xc420432060), Rbrack:25185})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432040), Lbrack:25171, Index:(*ast.Ident)(0xc420432060), Rbrack:25185})[0mfmOperatorPtr__setKSR(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::MULT) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432220), Lbrack:25252, Index:(*ast.Ident)(0xc420432240), Rbrack:25266})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432220), Lbrack:25252, Index:(*ast.Ident)(0xc420432240), Rbrack:25266})[0mfmOperatorPtr__setMULT(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::KSL) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432400), Lbrack:25333, Index:(*ast.Ident)(0xc420432420), Rbrack:25347})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432400), Lbrack:25333, Index:(*ast.Ident)(0xc420432420), Rbrack:25347})[0mfmOperatorPtr__setKSL(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::TL) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204325e0), Lbrack:25412, Index:(*ast.Ident)(0xc420432600), Rbrack:25426})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204325e0), Lbrack:25412, Index:(*ast.Ident)(0xc420432600), Rbrack:25426})[0mfmOperatorPtr__setTL(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::AR) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204327c0), Lbrack:25490, Index:(*ast.Ident)(0xc4204327e0), Rbrack:25504})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204327c0), Lbrack:25490, Index:(*ast.Ident)(0xc4204327e0), Rbrack:25504})[0mfmOperatorPtr__setAR(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::DR) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204329a0), Lbrack:25568, Index:(*ast.Ident)(0xc4204329c0), Rbrack:25582})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204329a0), Lbrack:25568, Index:(*ast.Ident)(0xc4204329c0), Rbrack:25582})[0mfmOperatorPtr__setDR(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::SL) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432b80), Lbrack:25646, Index:(*ast.Ident)(0xc420432ba0), Rbrack:25660})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432b80), Lbrack:25646, Index:(*ast.Ident)(0xc420432ba0), Rbrack:25660})[0mfmOperatorPtr__setSL(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::SR) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432d60), Lbrack:25724, Index:(*ast.Ident)(0xc420432d80), Rbrack:25738})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432d60), Lbrack:25724, Index:(*ast.Ident)(0xc420432d80), Rbrack:25738})[0mfmOperatorPtr__setSR(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::RR) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432f40), Lbrack:25802, Index:(*ast.Ident)(0xc420432f60), Rbrack:25816})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432f40), Lbrack:25802, Index:(*ast.Ident)(0xc420432f60), Rbrack:25816})[0mfmOperatorPtr__setRR(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::XOF) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433120), Lbrack:25881, Index:(*ast.Ident)(0xc420433140), Rbrack:25895})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433120), Lbrack:25881, Index:(*ast.Ident)(0xc420433140), Rbrack:25895})[0mfmOperatorPtr__setXOF(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::WS) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433300), Lbrack:25960, Index:(*ast.Ident)(0xc420433320), Rbrack:25974})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433300), Lbrack:25960, Index:(*ast.Ident)(0xc420433320), Rbrack:25974})[0mfmOperatorPtr__setWS(regs->chip->channels[channel]->operators[operatorIndex], v);
-	} else if (__tag == ymf::FB) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204334e0), Lbrack:26038, Index:(*ast.Ident)(0xc420433500), Rbrack:26052})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204334e0), Lbrack:26038, Index:(*ast.Ident)(0xc420433500), Rbrack:26052})[0mfmOperatorPtr__setFB(regs->chip->channels[channel]->operators[operatorIndex], v);
+	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:24671, Call:(*ast.CallExpr)(0xc420422b00)})[0m
+	switch (offset) {
+	case ymf::EAM:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425640), Lbrack:24773, Index:(*ast.Ident)(0xc420425660), Rbrack:24787})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425640), Lbrack:24773, Index:(*ast.Ident)(0xc420425660), Rbrack:24787})[0mfmOperatorPtr__setEAM(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::EVB:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425820), Lbrack:24853, Index:(*ast.Ident)(0xc420425840), Rbrack:24867})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425820), Lbrack:24853, Index:(*ast.Ident)(0xc420425840), Rbrack:24867})[0mfmOperatorPtr__setEVB(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::DAM:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425a20), Lbrack:24933, Index:(*ast.Ident)(0xc420425a40), Rbrack:24947})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425a20), Lbrack:24933, Index:(*ast.Ident)(0xc420425a40), Rbrack:24947})[0mfmOperatorPtr__setDAM(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::DVB:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425c00), Lbrack:25013, Index:(*ast.Ident)(0xc420425c20), Rbrack:25027})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425c00), Lbrack:25013, Index:(*ast.Ident)(0xc420425c20), Rbrack:25027})[0mfmOperatorPtr__setDVB(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::DT:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425de0), Lbrack:25092, Index:(*ast.Ident)(0xc420425e00), Rbrack:25106})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425de0), Lbrack:25092, Index:(*ast.Ident)(0xc420425e00), Rbrack:25106})[0mfmOperatorPtr__setDT(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::KSR:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425fc0), Lbrack:25171, Index:(*ast.Ident)(0xc420425fe0), Rbrack:25185})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420425fc0), Lbrack:25171, Index:(*ast.Ident)(0xc420425fe0), Rbrack:25185})[0mfmOperatorPtr__setKSR(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::MULT:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e1a0), Lbrack:25252, Index:(*ast.Ident)(0xc42042e1c0), Rbrack:25266})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e1a0), Lbrack:25252, Index:(*ast.Ident)(0xc42042e1c0), Rbrack:25266})[0mfmOperatorPtr__setMULT(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::KSL:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e380), Lbrack:25333, Index:(*ast.Ident)(0xc42042e3a0), Rbrack:25347})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e380), Lbrack:25333, Index:(*ast.Ident)(0xc42042e3a0), Rbrack:25347})[0mfmOperatorPtr__setKSL(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::TL:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e560), Lbrack:25412, Index:(*ast.Ident)(0xc42042e580), Rbrack:25426})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e560), Lbrack:25412, Index:(*ast.Ident)(0xc42042e580), Rbrack:25426})[0mfmOperatorPtr__setTL(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::AR:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e740), Lbrack:25490, Index:(*ast.Ident)(0xc42042e760), Rbrack:25504})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e740), Lbrack:25490, Index:(*ast.Ident)(0xc42042e760), Rbrack:25504})[0mfmOperatorPtr__setAR(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::DR:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e920), Lbrack:25568, Index:(*ast.Ident)(0xc42042e940), Rbrack:25582})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042e920), Lbrack:25568, Index:(*ast.Ident)(0xc42042e940), Rbrack:25582})[0mfmOperatorPtr__setDR(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::SL:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042eb00), Lbrack:25646, Index:(*ast.Ident)(0xc42042eb20), Rbrack:25660})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042eb00), Lbrack:25646, Index:(*ast.Ident)(0xc42042eb20), Rbrack:25660})[0mfmOperatorPtr__setSL(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::SR:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042ece0), Lbrack:25724, Index:(*ast.Ident)(0xc42042ed00), Rbrack:25738})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042ece0), Lbrack:25724, Index:(*ast.Ident)(0xc42042ed00), Rbrack:25738})[0mfmOperatorPtr__setSR(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::RR:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042eec0), Lbrack:25802, Index:(*ast.Ident)(0xc42042eee0), Rbrack:25816})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042eec0), Lbrack:25802, Index:(*ast.Ident)(0xc42042eee0), Rbrack:25816})[0mfmOperatorPtr__setRR(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::XOF:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042f0a0), Lbrack:25881, Index:(*ast.Ident)(0xc42042f0c0), Rbrack:25895})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042f0a0), Lbrack:25881, Index:(*ast.Ident)(0xc42042f0c0), Rbrack:25895})[0mfmOperatorPtr__setXOF(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::WS:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042f280), Lbrack:25960, Index:(*ast.Ident)(0xc42042f2a0), Rbrack:25974})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042f280), Lbrack:25960, Index:(*ast.Ident)(0xc42042f2a0), Rbrack:25974})[0mfmOperatorPtr__setWS(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
+	case ymf::FB:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042f460), Lbrack:26038, Index:(*ast.Ident)(0xc42042f480), Rbrack:26052})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc42042f460), Lbrack:26038, Index:(*ast.Ident)(0xc42042f480), Rbrack:26052})[0mfmOperatorPtr__setFB(regs->chip->channels[channel]->operators[operatorIndex], v);
+		break;
 	}
 }
 
 // WriteTL は、TLレジスタに値を書き込みます。
 void RegistersPtr__WriteTL(std::shared_ptr<Registers> regs, int channel, int operatorIndex, int tlCarrier, int tlModulator) {
 	sync::Mutex__Lock(regs->chip->Mutex);
-	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:26245, Call:(*ast.CallExpr)(0xc420425580)})[0m
+	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:26245, Call:(*ast.CallExpr)(0xc420423540)})[0m
 	if (regs->chip->channels[channel]->operators[operatorIndex]->isModulator) {
 		RegistersPtr__WriteOperator(regs, channel, operatorIndex, ymf::TL, tlModulator);
 	} else {
@@ -944,41 +999,53 @@ void RegistersPtr__WriteTL(std::shared_ptr<Registers> regs, int channel, int ope
 // DebugSetMIDIChannel は、チャンネルを使用しているMIDIチャンネル番号をデバッグ用にセットします。
 void RegistersPtr__DebugSetMIDIChannel(std::shared_ptr<Registers> regs, int channel, int midiChannel) {
 	sync::Mutex__Lock(regs->chip->Mutex);
-	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:26722, Call:(*ast.CallExpr)(0xc420425840)})[0m
+	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:26722, Call:(*ast.CallExpr)(0xc420423800)})[0m
 	regs->chip->channels[channel]->midiChannelID = midiChannel;
 }
 
 // WriteChannel は、チャンネルレジスタに値を書き込みます。
 void RegistersPtr__WriteChannel(std::shared_ptr<Registers> regs, int channel, ymf::ChRegister offset, int v) {
 	sync::Mutex__Lock(regs->chip->Mutex);
-	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:26999, Call:(*ast.CallExpr)(0xc420425a40)})[0m
-	auto __tag = offset;
-	if (__tag == ymf::KON) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436640), Lbrack:27082, Index:(*ast.Ident)(0xc420436660), Rbrack:27090})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436640), Lbrack:27082, Index:(*ast.Ident)(0xc420436660), Rbrack:27090})[0mChannelPtr__setKON(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::BLOCK) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204367c0), Lbrack:27139, Index:(*ast.Ident)(0xc4204367e0), Rbrack:27147})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204367c0), Lbrack:27139, Index:(*ast.Ident)(0xc4204367e0), Rbrack:27147})[0mChannelPtr__setBLOCK(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::FNUM) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436960), Lbrack:27197, Index:(*ast.Ident)(0xc420436980), Rbrack:27205})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436960), Lbrack:27197, Index:(*ast.Ident)(0xc420436980), Rbrack:27205})[0mChannelPtr__setFNUM(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::ALG) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436ae0), Lbrack:27253, Index:(*ast.Ident)(0xc420436b00), Rbrack:27261})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436ae0), Lbrack:27253, Index:(*ast.Ident)(0xc420436b00), Rbrack:27261})[0mChannelPtr__setALG(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::LFO) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436c60), Lbrack:27308, Index:(*ast.Ident)(0xc420436c80), Rbrack:27316})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436c60), Lbrack:27308, Index:(*ast.Ident)(0xc420436c80), Rbrack:27316})[0mChannelPtr__setLFO(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::PANPOT) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436de0), Lbrack:27366, Index:(*ast.Ident)(0xc420436e00), Rbrack:27374})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436de0), Lbrack:27366, Index:(*ast.Ident)(0xc420436e00), Rbrack:27374})[0mChannelPtr__setPANPOT(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::CHPAN) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436f60), Lbrack:27426, Index:(*ast.Ident)(0xc420436f80), Rbrack:27434})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420436f60), Lbrack:27426, Index:(*ast.Ident)(0xc420436f80), Rbrack:27434})[0mChannelPtr__setCHPAN(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::VOLUME) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204370e0), Lbrack:27486, Index:(*ast.Ident)(0xc420437100), Rbrack:27494})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204370e0), Lbrack:27486, Index:(*ast.Ident)(0xc420437100), Rbrack:27494})[0mChannelPtr__setVOLUME(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::EXPRESSION) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420437260), Lbrack:27551, Index:(*ast.Ident)(0xc420437280), Rbrack:27559})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420437260), Lbrack:27551, Index:(*ast.Ident)(0xc420437280), Rbrack:27559})[0mChannelPtr__setEXPRESSION(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::VELOCITY) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204373e0), Lbrack:27618, Index:(*ast.Ident)(0xc420437400), Rbrack:27626})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204373e0), Lbrack:27618, Index:(*ast.Ident)(0xc420437400), Rbrack:27626})[0mChannelPtr__setVELOCITY(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::BO) {
-		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420437560), Lbrack:27677, Index:(*ast.Ident)(0xc420437580), Rbrack:27685})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420437560), Lbrack:27677, Index:(*ast.Ident)(0xc420437580), Rbrack:27685})[0mChannelPtr__setBO(regs->chip->channels[channel], v);
-	} else if (__tag == ymf::RESET) {
+	[41mstmt[0m[31m<*ast.DeferStmt>(&ast.DeferStmt{Defer:26999, Call:(*ast.CallExpr)(0xc420423a00)})[0m
+	switch (offset) {
+	case ymf::KON:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204325c0), Lbrack:27082, Index:(*ast.Ident)(0xc4204325e0), Rbrack:27090})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204325c0), Lbrack:27082, Index:(*ast.Ident)(0xc4204325e0), Rbrack:27090})[0mChannelPtr__setKON(regs->chip->channels[channel], v);
+		break;
+	case ymf::BLOCK:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432740), Lbrack:27139, Index:(*ast.Ident)(0xc420432760), Rbrack:27147})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432740), Lbrack:27139, Index:(*ast.Ident)(0xc420432760), Rbrack:27147})[0mChannelPtr__setBLOCK(regs->chip->channels[channel], v);
+		break;
+	case ymf::FNUM:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204328e0), Lbrack:27197, Index:(*ast.Ident)(0xc420432900), Rbrack:27205})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204328e0), Lbrack:27197, Index:(*ast.Ident)(0xc420432900), Rbrack:27205})[0mChannelPtr__setFNUM(regs->chip->channels[channel], v);
+		break;
+	case ymf::ALG:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432a60), Lbrack:27253, Index:(*ast.Ident)(0xc420432a80), Rbrack:27261})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432a60), Lbrack:27253, Index:(*ast.Ident)(0xc420432a80), Rbrack:27261})[0mChannelPtr__setALG(regs->chip->channels[channel], v);
+		break;
+	case ymf::LFO:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432be0), Lbrack:27308, Index:(*ast.Ident)(0xc420432c00), Rbrack:27316})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432be0), Lbrack:27308, Index:(*ast.Ident)(0xc420432c00), Rbrack:27316})[0mChannelPtr__setLFO(regs->chip->channels[channel], v);
+		break;
+	case ymf::PANPOT:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432d60), Lbrack:27366, Index:(*ast.Ident)(0xc420432d80), Rbrack:27374})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432d60), Lbrack:27366, Index:(*ast.Ident)(0xc420432d80), Rbrack:27374})[0mChannelPtr__setPANPOT(regs->chip->channels[channel], v);
+		break;
+	case ymf::CHPAN:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432ee0), Lbrack:27426, Index:(*ast.Ident)(0xc420432f00), Rbrack:27434})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420432ee0), Lbrack:27426, Index:(*ast.Ident)(0xc420432f00), Rbrack:27434})[0mChannelPtr__setCHPAN(regs->chip->channels[channel], v);
+		break;
+	case ymf::VOLUME:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433060), Lbrack:27486, Index:(*ast.Ident)(0xc420433080), Rbrack:27494})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433060), Lbrack:27486, Index:(*ast.Ident)(0xc420433080), Rbrack:27494})[0mChannelPtr__setVOLUME(regs->chip->channels[channel], v);
+		break;
+	case ymf::EXPRESSION:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204331e0), Lbrack:27551, Index:(*ast.Ident)(0xc420433200), Rbrack:27559})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204331e0), Lbrack:27551, Index:(*ast.Ident)(0xc420433200), Rbrack:27559})[0mChannelPtr__setEXPRESSION(regs->chip->channels[channel], v);
+		break;
+	case ymf::VELOCITY:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433360), Lbrack:27618, Index:(*ast.Ident)(0xc420433380), Rbrack:27626})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420433360), Lbrack:27618, Index:(*ast.Ident)(0xc420433380), Rbrack:27626})[0mChannelPtr__setVELOCITY(regs->chip->channels[channel], v);
+		break;
+	case ymf::BO:
+		[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204334e0), Lbrack:27677, Index:(*ast.Ident)(0xc420433500), Rbrack:27685})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204334e0), Lbrack:27677, Index:(*ast.Ident)(0xc420433500), Rbrack:27685})[0mChannelPtr__setBO(regs->chip->channels[channel], v);
+		break;
+	case ymf::RESET:
 		if (v != 0) {
-			[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420437720), Lbrack:27748, Index:(*ast.Ident)(0xc420437740), Rbrack:27756})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc420437720), Lbrack:27748, Index:(*ast.Ident)(0xc420437740), Rbrack:27756})[0mChannelPtr__resetAll(regs->chip->channels[channel]);
+			[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204336a0), Lbrack:27748, Index:(*ast.Ident)(0xc4204336c0), Rbrack:27756})[0m[41mobjectOf[0m[31m<*ast.IndexExpr>(&ast.IndexExpr{X:(*ast.SelectorExpr)(0xc4204336a0), Lbrack:27748, Index:(*ast.Ident)(0xc4204336c0), Rbrack:27756})[0mChannelPtr__resetAll(regs->chip->channels[channel]);
 		}
+		break;
 	}
 }
 

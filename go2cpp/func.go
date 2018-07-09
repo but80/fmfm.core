@@ -39,13 +39,22 @@ func (g *generator) dumpTypeAndNameImpl(writer io.Writer, typ types.Type, name s
 }
 
 func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv *ast.FieldList, sig *ast.FuncType, body *ast.BlockStmt) {
-	hasNamedResult := false
+	returnsByStruct := false
+	resultNames := []*ast.Ident{}
 	if sig.Results != nil {
+		n := 0
 		for _, r := range sig.Results.List {
 			if 0 < len(r.Names) {
-				hasNamedResult = true
-				break
+				n += len(r.Names)
+				returnsByStruct = true
+				resultNames = append(resultNames, r.Names...)
+			} else {
+				n++
+				resultNames = append(resultNames, nil)
 			}
+		}
+		if 2 <= n {
+			returnsByStruct = true
 		}
 	}
 
@@ -61,10 +70,7 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 
 	resultType := "void"
 
-	if sig.Results != nil && len(sig.Results.List) == 1 {
-		fmt.Fprint(writer, g.indent)
-		resultType = g.dumpTypeAndName(writer, sig.Results.List[0].Type, fnname)
-	} else if sig.Results != nil && 2 <= len(sig.Results.List) {
+	if returnsByStruct {
 		resultType = fnname + "__result"
 		if !withBody {
 			fmt.Fprintf(writer, "%sstruct %s {\n", g.indent, resultType)
@@ -87,9 +93,12 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 		}
 		fmt.Fprint(writer, g.indent)
 		fmt.Fprintf(writer, "%s %s", resultType, fnname)
-	} else {
+	} else if sig.Results == nil || len(sig.Results.List) == 0 {
 		fmt.Fprint(writer, g.indent)
 		fmt.Fprintf(writer, "void %s", fnname)
+	} else {
+		fmt.Fprint(writer, g.indent)
+		resultType = g.dumpTypeAndName(writer, sig.Results.List[0].Type, fnname)
 	}
 
 	fmt.Fprint(writer, "(")
@@ -113,52 +122,21 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 		return
 	}
 	fmt.Fprintln(writer, ") {")
-	if hasNamedResult {
-		g.enter()
-		fmt.Fprintf(writer, "%slocal ", g.indent)
-		for i, r := range sig.Results.List {
-			if i != 0 {
-				fmt.Fprint(writer, ", ")
-			}
-			fmt.Fprint(writer, r.Names[0].Name)
-		}
-		fmt.Fprintf(writer, "\n%slocal __r = pack((function()\n", g.indent)
-	}
 	g.enter()
+	if returnsByStruct {
+		fmt.Fprintf(writer, "%s%s __result; // multi-result\n", g.indent, resultType)
+		for i, r := range resultNames {
+			if r != nil {
+				fmt.Fprintf(writer, "%sauto %s = &__result.r%d; // multi-result\n", g.indent, r, i)
+			}
+		}
+	}
 	g.currentFunc = append(g.currentFunc, fnname)
 	g.currentFuncResultType = append(g.currentFuncResultType, resultType)
 	g.dumpBlock(body)
 	g.currentFuncResultType = g.currentFuncResultType[:len(g.currentFuncResultType)-1]
 	g.currentFunc = g.currentFunc[:len(g.currentFunc)-1]
 	g.leave()
-	if hasNamedResult {
-		fmt.Fprint(writer, g.indent)
-		fmt.Fprintln(writer, "end)())")
-		fmt.Fprint(writer, g.indent)
-		fmt.Fprintln(writer, "if 0 < #__r then")
-		g.enter()
-		fmt.Fprint(writer, g.indent)
-		for i, r := range sig.Results.List {
-			if i != 0 {
-				fmt.Fprint(writer, ", ")
-			}
-			fmt.Fprint(writer, r.Names[0].Name)
-		}
-		fmt.Fprintln(writer, " = unpack(__r)")
-		g.leave()
-		fmt.Fprint(writer, g.indent)
-		fmt.Fprintln(writer, "end")
-		fmt.Fprint(writer, g.indent)
-		fmt.Fprint(writer, "return ")
-		for i, r := range sig.Results.List {
-			if i != 0 {
-				fmt.Fprint(writer, ", ")
-			}
-			fmt.Fprint(writer, r.Names[0].Name)
-		}
-		fmt.Fprintln(writer)
-		g.leave()
-	}
 	fmt.Fprint(writer, g.indent)
 	fmt.Fprint(writer, "}")
 }

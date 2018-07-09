@@ -44,27 +44,34 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 	case *ast.ReturnStmt:
 		returnType := g.currentFuncResultType[len(g.currentFuncResultType)-1]
 		asStruct := strings.HasSuffix(returnType, "__result")
-		fmt.Fprint(g.cppWriter, g.indent)
-		fmt.Fprint(g.cppWriter, "return")
 		if asStruct {
-			fmt.Fprintf(g.cppWriter, " {")
-		}
-		for i, r := range s.Results {
-			if i != 0 {
-				fmt.Fprint(g.cppWriter, ",")
+			for i, r := range s.Results {
+				fmt.Fprintf(g.cppWriter, "%s__result.r%d = ", g.indent, i)
+				g.dumpExpr(g.cppWriter, r)
+				fmt.Fprintln(g.cppWriter, ";")
 			}
-			fmt.Fprint(g.cppWriter, " ")
-			g.dumpExpr(g.cppWriter, r)
+			fmt.Fprintf(g.cppWriter, "%sreturn __result;\n", g.indent)
+		} else {
+			fmt.Fprintf(g.cppWriter, "%sreturn", g.indent)
+			for i, r := range s.Results {
+				if i != 0 {
+					fmt.Fprint(g.cppWriter, ",")
+				}
+				fmt.Fprint(g.cppWriter, " ")
+				g.dumpExpr(g.cppWriter, r)
+			}
+			fmt.Fprintln(g.cppWriter, ";")
 		}
-		if asStruct {
-			fmt.Fprint(g.cppWriter, " }")
-		}
-		fmt.Fprintln(g.cppWriter, ";")
 
 	case *ast.BranchStmt:
 		// @todo ラベル
+		tok := s.Tok.String()
+		if tok == "fallthrough" {
+			g.currentFallthrough[len(g.currentFallthrough)-1] = true
+			tok = "// " + tok
+		}
 		fmt.Fprint(g.cppWriter, g.indent)
-		fmt.Fprint(g.cppWriter, s.Tok.String())
+		fmt.Fprint(g.cppWriter, tok)
 		if s.Label != nil {
 			fmt.Fprintf(g.cppWriter, " %s", s.Label.Name)
 		}
@@ -103,40 +110,34 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 		if s.Init != nil && !reflect.ValueOf(s.Init).IsNil() {
 			g.dumpStmt(s.Init)
 		}
-		hasTag := false
-		if s.Tag != nil && !reflect.ValueOf(s.Tag).IsNil() {
-			hasTag = true
-			fmt.Fprint(g.cppWriter, g.indent)
-			fmt.Fprint(g.cppWriter, "auto __tag = ")
-			g.dumpExpr(g.cppWriter, s.Tag)
-			fmt.Fprintln(g.cppWriter, ";")
+		if s.Tag == nil {
+			panic("Invalid switch statement")
 		}
-		for i, c := range s.Body.List {
+		fmt.Fprint(g.cppWriter, g.indent)
+		fmt.Fprint(g.cppWriter, "switch (")
+		g.dumpExpr(g.cppWriter, s.Tag)
+		fmt.Fprintln(g.cppWriter, ") {")
+		for _, c := range s.Body.List {
 			cc, _ := c.(*ast.CaseClause)
-			fmt.Fprint(g.cppWriter, g.indent)
 			if len(cc.List) == 0 {
-				fmt.Fprintln(g.cppWriter, "} else {")
+				fmt.Fprintf(g.cppWriter, "%sdefault:\n", g.indent)
 			} else {
-				if i == 0 {
-					fmt.Fprint(g.cppWriter, "if (")
-				} else {
-					fmt.Fprint(g.cppWriter, "} else if (")
-				}
-				for j, e := range cc.List {
-					if j != 0 {
-						fmt.Fprint(g.cppWriter, " || ")
-					}
-					if hasTag {
-						fmt.Fprint(g.cppWriter, "__tag == ")
-					}
+				for _, e := range cc.List {
+					fmt.Fprintf(g.cppWriter, "%scase ", g.indent)
 					g.dumpExpr(g.cppWriter, e)
+					fmt.Fprintln(g.cppWriter, ":")
 				}
-				fmt.Fprintln(g.cppWriter, ") {")
 			}
 			g.enter()
+			g.currentFallthrough = append(g.currentFallthrough, false)
 			for _, s := range cc.Body {
 				g.dumpStmt(s)
 			}
+			n := len(g.currentFallthrough)
+			if !g.currentFallthrough[n-1] {
+				fmt.Fprintf(g.cppWriter, "%sbreak;\n", g.indent)
+			}
+			g.currentFallthrough = g.currentFallthrough[:n-1]
 			g.leave()
 		}
 		fmt.Fprint(g.cppWriter, g.indent)

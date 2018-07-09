@@ -25,7 +25,7 @@ func (g *generator) dumpLiteral(writer io.Writer, lit *ast.BasicLit) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Fprint(writer, g.stringLiteral(s))
+		fmt.Fprintf(writer, "string(%s)", g.stringLiteral(s))
 
 	case token.CHAR:
 		s, err := strconv.Unquote(lit.Value)

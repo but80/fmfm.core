@@ -27,6 +27,7 @@ type generator struct {
 	currentFunc           []string
 	currentFuncResultType []string
 	currentCall           []string
+	currentFallthrough    []bool
 }
 
 func newGenerator(cppWriter, h0Writer, h1Writer, hWriter io.Writer, fileAST *ast.File, basePkg string, pkg *types.Package, info *types.Info, fset *token.FileSet, imports map[string]string) *generator {
