@@ -27,3 +27,16 @@ inline std::vector<T> make(const T* t, int n) {
     result.resize(n);
     return result;
 }
+
+template <typename T>
+inline std::vector<T> append(std::vector<T> s, ...) {
+    // va_list arg;
+    // va_start(arg, argnum);
+    // for ()
+    return s;
+}
+
+template <typename T>
+inline int len(std::vector<T> s) {
+    return s.size();
+}
