@@ -40,3 +40,6 @@ template <typename T>
 inline int len(std::vector<T> s) {
     return s.size();
 }
+
+inline void defer(void(*fn)()) {
+}

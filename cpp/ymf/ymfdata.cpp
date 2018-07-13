@@ -488,7 +488,7 @@ void init() {
 	for (int i = 0; i < sizeof(Waveforms) / sizeof(Waveforms[0]); i++) {
 		Waveforms[i] = make((float64 *)NULL, WaveformLen);
 	}
-	auto copyHalf = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+	auto copyHalf = [](std::vector<float64> src) -> std::vector<float64>  {
 		auto dst = make((float64 *)NULL, WaveformLen);
 		auto i = 0;
 		while (i < 512) {
@@ -498,7 +498,7 @@ void init() {
 		}
 		return dst;
 	};
-	auto copyAbs = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+	auto copyAbs = [](std::vector<float64> src) -> std::vector<float64>  {
 		auto dst = make((float64 *)NULL, WaveformLen);
 		auto i = 0;
 		while (i < 512) {
@@ -508,7 +508,7 @@ void init() {
 		}
 		return dst;
 	};
-	auto copyAbsQuarter = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+	auto copyAbsQuarter = [](std::vector<float64> src) -> std::vector<float64>  {
 		auto dst = make((float64 *)NULL, WaveformLen);
 		auto i = 0;
 		while (i < 256) {
@@ -520,7 +520,7 @@ void init() {
 		}
 		return dst;
 	};
-	auto copyOct = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+	auto copyOct = [](std::vector<float64> src) -> std::vector<float64>  {
 		auto dst = make((float64 *)NULL, WaveformLen);
 		auto i = 0;
 		while (i < 512) {
@@ -530,7 +530,7 @@ void init() {
 		}
 		return dst;
 	};
-	auto copyAbsOct = 	std::vector<float64> UNKNOWN(std::vector<float64> src) {
+	auto copyAbsOct = [](std::vector<float64> src) -> std::vector<float64>  {
 		auto dst = make((float64 *)NULL, WaveformLen);
 		auto i = 0;
 		while (i < 256) {

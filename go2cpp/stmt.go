@@ -265,6 +265,15 @@ func (g *generator) dumpStmt(stmt ast.Stmt) {
 		fmt.Fprint(g.cppWriter, s.Tok.String())
 		fmt.Fprintln(g.cppWriter, ";")
 
+	case *ast.DeferStmt:
+		fmt.Fprintf(g.cppWriter, "%sdefer([]{\n", g.indent)
+		g.enter()
+		fmt.Fprint(g.cppWriter, g.indent)
+		g.dumpExpr(g.cppWriter, s.Call)
+		fmt.Fprintln(g.cppWriter, ";")
+		g.leave()
+		fmt.Fprintf(g.cppWriter, "%s});\n", g.indent)
+
 	default:
 		fmt.Fprint(g.cppWriter, g.indent)
 		g.debugInspect(g.cppWriter, stmt, "stmt")

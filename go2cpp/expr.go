@@ -168,7 +168,7 @@ func (g *generator) dumpExpr(writer io.Writer, expr ast.Expr) {
 				case *types.TypeName:
 				case *types.Var:
 				default:
-					g.debugInspect(writer, o, "SelectorExpr")
+					g.debugInspect(writer, o, "SelectorExpr1")
 				}
 			}
 			if !done {

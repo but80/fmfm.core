@@ -76,7 +76,7 @@ struct ChannelPtr__next__result {
 };
 ChannelPtr__next__result ChannelPtr__next(std::shared_ptr<Channel> ch);
 void ChannelPtr__updateFrequency(std::shared_ptr<Channel> ch);
-/* map[string]string{"math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "fmt":"fmt"} */
+/* map[string]string{"sync":"sync", "fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort"} */
 struct Chip {
 	sync::Mutex Mutex;
 	float64 sampleRate;
@@ -93,7 +93,7 @@ struct ChipPtr__Next__result {
 };
 ChipPtr__Next__result ChipPtr__Next(std::shared_ptr<Chip> chip);
 void ChipPtr__initChannels(std::shared_ptr<Chip> chip);
-/* map[string]string{"fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync"} */
+/* map[string]string{"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "fmt":"fmt", "math":"math", "strings":"strings"} */
 const stage stageOff = 0;
 const auto stageAttack = 1;
 const auto stageDecay = 2;
@@ -101,7 +101,7 @@ const auto stageSustain = 3;
 const auto stageRelease = 4;
 string stage__String(stage s);
 const auto epsilon = 1.0/32768.0;
-/* map[string]string{"sort":"sort", "sync":"sync", "fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata"} */
+/* map[string]string{"math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "fmt":"fmt"} */
 struct envelopeGenerator {
 	float64 sampleRate;
 	stage stage;
@@ -132,7 +132,7 @@ void envelopeGeneratorPtr__keyOn(std::shared_ptr<envelopeGenerator> eg);
 void envelopeGeneratorPtr__keyOff(std::shared_ptr<envelopeGenerator> eg);
 extern float64 decayDBPerSecAt4[16][2];
 extern float64 attackTimeSecAt1[9][2];
-/* map[string]string{"strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "fmt":"fmt", "math":"math"} */
+/* map[string]string{"fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync"} */
 struct fmOperator {
 	bool isModulator;
 	int dt;
@@ -197,7 +197,7 @@ void phaseGeneratorPtr__reset(std::shared_ptr<phaseGenerator> pg);
 void phaseGeneratorPtr__resetAll(std::shared_ptr<phaseGenerator> pg);
 void phaseGeneratorPtr__setFrequency(std::shared_ptr<phaseGenerator> pg, int fnum, int block, int bo, int mult, int dt);
 ymfdata::Frac64 phaseGeneratorPtr__getPhase(std::shared_ptr<phaseGenerator> pg, int vibratoIndex);
-/* map[string]string{"strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "gopkg.in/but80/fmfm.core.v1/ymf":"ymf", "fmt":"fmt", "math":"math"} */
+/* map[string]string{"fmt":"fmt", "math":"math", "strings":"strings", "gopkg.in/but80/fmfm.core.v1/ymf/ymfdata":"ymfdata", "sort":"sort", "sync":"sync", "gopkg.in/but80/fmfm.core.v1/ymf":"ymf"} */
 struct Registers {
 	std::shared_ptr<Chip> chip;
 };

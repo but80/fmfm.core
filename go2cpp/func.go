@@ -1,6 +1,7 @@
 package go2cpp
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -59,7 +60,16 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 	}
 
 	fnname := "UNKNOWN"
-	if name != "" {
+	isLambda := false
+	indent := g.indent
+	nl := ";\n"
+	if name == "" {
+		if withBody {
+			isLambda = true
+			indent = "[]"
+			nl = ""
+		}
+	} else {
 		if recv != nil && 0 < len(recv.List) {
 			fnname = g.typedFuncName(recv.List[0].Type, name)
 		} else {
@@ -73,7 +83,7 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 	if returnsByStruct {
 		resultType = fnname + "__result"
 		if !withBody {
-			fmt.Fprintf(writer, "%sstruct %s {\n", g.indent, resultType)
+			fmt.Fprintf(writer, "%sstruct %s {\n", indent, resultType)
 			g.enter()
 			for i, r := range sig.Results.List {
 				if len(r.Names) == 0 {
@@ -91,14 +101,22 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 			g.leave()
 			fmt.Fprintf(writer, "%s};\n", g.indent)
 		}
-		fmt.Fprint(writer, g.indent)
-		fmt.Fprintf(writer, "%s %s", resultType, fnname)
+		fmt.Fprint(writer, indent)
+		if !isLambda {
+			fmt.Fprintf(writer, "%s %s", resultType, fnname)
+		}
 	} else if sig.Results == nil || len(sig.Results.List) == 0 {
-		fmt.Fprint(writer, g.indent)
-		fmt.Fprintf(writer, "void %s", fnname)
+		fmt.Fprint(writer, indent)
+		if !isLambda {
+			fmt.Fprintf(writer, "void %s", fnname)
+		}
 	} else {
-		fmt.Fprint(writer, g.indent)
-		resultType = g.dumpTypeAndName(writer, sig.Results.List[0].Type, fnname)
+		fmt.Fprint(writer, indent)
+		w := writer
+		if isLambda {
+			w = bytes.NewBuffer(nil)
+		}
+		resultType = g.dumpTypeAndName(w, sig.Results.List[0].Type, fnname)
 	}
 
 	fmt.Fprint(writer, "(")
@@ -118,10 +136,14 @@ func (g *generator) dumpFunc(writer io.Writer, withBody bool, name string, recv 
 		g.dumpFuncSig(writer, sig, false)
 	}
 	if !withBody {
-		fmt.Fprintln(writer, ");")
+		fmt.Fprintf(writer, ")%s", nl)
 		return
 	}
-	fmt.Fprintln(writer, ") {")
+	fmt.Fprint(writer, ")")
+	if isLambda && resultType != "void" {
+		fmt.Fprintf(writer, " -> %s", resultType)
+	}
+	fmt.Fprintln(writer, " {")
 	g.enter()
 	if returnsByStruct {
 		fmt.Fprintf(writer, "%s%s __result; // multi-result\n", g.indent, resultType)
