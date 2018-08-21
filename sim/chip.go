@@ -55,7 +55,7 @@ func (chip *Chip) Next() (float64, float64) {
 		debugDumpCount++
 		if int(chip.sampleRate/ymfdata.DebugDumpFPS) <= debugDumpCount {
 			debugDumpCount = 0
-			toDump := make([]*Channel, 0)
+			toDump := []*Channel{}
 			for _, ch := range chip.channels {
 				if ch.midiChannelID == chip.dumpMIDIChannel && epsilon < ch.currentLevel() {
 					toDump = append(toDump, ch)
