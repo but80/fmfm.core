@@ -26,9 +26,10 @@ var initOnce sync.Once
 // FMFMInit は、音源を初期化します。
 //export FMFMInit
 func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
+	voicePathGo := C.GoString(voicePath)
 	result := 0
 	initOnce.Do(func() {
-		info, err := ioutil.ReadDir(C.GoString(voicePath))
+		info, err := ioutil.ReadDir(voicePathGo)
 		if err != nil {
 			panic(err)
 		}
@@ -37,7 +38,7 @@ func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 			if i.IsDir() || !strings.HasSuffix(i.Name(), ".vm5.pb") {
 				continue
 			}
-			err := lib.LoadFile(C.GoString(voicePath) + "/" + i.Name())
+			err := lib.LoadFile(voicePathGo + "/" + i.Name())
 			if err != nil {
 				panic(err)
 			}
@@ -57,8 +58,8 @@ func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 
 // FMFMFlushMIDIMessages は、蓄積されたMIDIメッセージを処理します。
 //export FMFMFlushMIDIMessages
-func FMFMFlushMIDIMessages(until int) {
-	ctrl.FlushMIDIMessages(until)
+func FMFMFlushMIDIMessages(until C.longlong) {
+	ctrl.FlushMIDIMessages(int(until))
 }
 
 // FMFMNoteOn は、MIDIノートオン受信時の音源の振る舞いを再現します。

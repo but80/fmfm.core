@@ -94,7 +94,7 @@ var midiCmd = cli.Command{
 			if i.IsDir() || !strings.HasSuffix(i.Name(), ".vm5.pb") {
 				continue
 			}
-			err := lib.LoadFile(i.Name())
+			err := lib.LoadFile("voice/" + i.Name())
 			if err != nil {
 				panic(err)
 			}
