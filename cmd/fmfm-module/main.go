@@ -28,7 +28,7 @@ var initOnce sync.Once
 func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 	result := 0
 	initOnce.Do(func() {
-		info, err := ioutil.ReadDir("voice")
+		info, err := ioutil.ReadDir(C.GoString(voicePath))
 		if err != nil {
 			panic(err)
 		}
@@ -37,7 +37,7 @@ func FMFMInit(sampleRate C.double, voicePath *C.char) C.int {
 			if i.IsDir() || !strings.HasSuffix(i.Name(), ".vm5.pb") {
 				continue
 			}
-			err := lib.LoadFile("voice/" + i.Name())
+			err := lib.LoadFile(C.GoString(voicePath) + "/" + i.Name())
 			if err != nil {
 				panic(err)
 			}
