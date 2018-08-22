@@ -58,10 +58,10 @@ func Prof2() error {
 	return runVWithArgs("go", "run", "-gcflags", "-N -l", "cmd/fmfm-cli/*.go")
 }
 
-// Build binary
-func Build() error {
+// Build module version
+func BuildModule() error {
 	if err := os.MkdirAll(filepath.FromSlash("build/fmfm-module"), 0755); err != nil {
 		return err
 	}
-	return sh.RunV("go", "build", "-o", "build/fmfm-module/fmfm.so", "-buildmode=c-shared", "cmd/fmfm-module/main.go")
+	return sh.RunV("go1.11rc1", "build", "-o", "build/fmfm-module/fmfm.so", "-buildmode=c-shared", "cmd/fmfm-module/main.go")
 }
