@@ -63,5 +63,11 @@ func BuildModule() error {
 	if err := os.MkdirAll(filepath.FromSlash("build/fmfm-module"), 0755); err != nil {
 		return err
 	}
-	return sh.RunV("go1.11rc1", "build", "-o", "build/fmfm-module/fmfm.so", "-buildmode=c-shared", "cmd/fmfm-module/main.go")
+	return sh.RunV(
+		"go1.11rc1", "build",
+		"-o", "build/fmfm-module/fmfm.so",
+		"-buildmode=c-shared",
+		"cmd/fmfm-module/main.go",
+		"cmd/fmfm-module/helper.go",
+	)
 }
