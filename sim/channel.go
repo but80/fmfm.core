@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
+	"github.com/but80/fmfm.core/ymf/ymfdata"
 )
 
 const noModulator = 0

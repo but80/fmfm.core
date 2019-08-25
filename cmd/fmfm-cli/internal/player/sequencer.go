@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	fmfm "github.com/but80/fmfm.core"
 	"github.com/xlab/portmidi"
-	fmfm "gopkg.in/but80/fmfm.core.v1"
 )
 
 const defaultMIDIDeviceName = "IAC YAMAHA Virtual MIDI Device 0"

@@ -1,47 +1,31 @@
 # fmFM
 
 [![Build Status](https://travis-ci.org/but80/fmfm.core.svg?branch=master)](https://travis-ci.org/but80/fmfm.core)
-[![Go Report Card](https://goreportcard.com/badge/gopkg.in/but80/fmfm.core.v1?)](https://goreportcard.com/report/gopkg.in/but80/fmfm.core.v1)
-[![Godoc](https://godoc.org/gopkg.in/but80/fmfm.core.v1?status.svg)](https://godoc.org/gopkg.in/but80/fmfm.core.v1)
+[![Go Report Card](https://goreportcard.com/badge/github.com/but80/fmfm.core?)](https://goreportcard.com/report/github.com/but80/fmfm.core)
+[![Godoc](https://godoc.org/github.com/but80/fmfm.core?status.svg)](https://godoc.org/github.com/but80/fmfm.core)
 [![MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
 
 **WORK IN PROGRESS**
 
 **fmFM** (Fake Mobile FM synth) is a YAMAHA MA-5 (YMU765) / YMF825 clone software FM synthesizer.
 
-Most of this code is based on [doomjs/opl3](https://github.com/doomjs/opl3).
+Mostly based on [doomjs/opl3](https://github.com/doomjs/opl3).
 
 # Requirements
 
-- macOS
-- [Go >= 1.9](https://golang.org/)
-- Go 1.11rc1 to build the module version
+- [Go 1.12](https://golang.org/)
 - [PortMIDI](http://portmedia.sourceforge.net/portmidi/)
+  - macOS: `brew install portmidi`
+  - Ubuntu: `sudo apt-get install libportmidi-dev`
 - [PortAudio](http://www.portaudio.com/)
+  - macOS: `brew install portaudio`
+  - Ubuntu: `sudo apt-get install portaudio19-dev`
 
 # Installation
 
-1. Install [Homebrew](https://brew.sh/)
-
-   ```bash
-   /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-   ```
-2. Install go
-
-   ```bash
-   brew install go
-   ```
-3. Install dependencies
-
-   ```bash
-   brew install portmidi
-   brew install portaudio
-   ```
-4. Install fmfm-cli
-
-   ```bash
-   go get -u gopkg.in/but80/fmfm.core.v1/cmd/fmfm-cli
-   ```
+```bash
+go get -u github.com/but80/fmfm.core/cmd/fmfm-cli
+```
 
 # Usage
 
@@ -77,13 +61,6 @@ OPTIONS:
 # Build the module version
 
 ```bash
-# Install Go 1.11rc1
-go get golang.org/dl/go1.11rc1
-go1.11rc1 download
-
-# Install dependencies
-go get ./...
-
 # Build
 go run mage.go buildModule
 ```
@@ -95,7 +72,6 @@ go run mage.go buildModule
   - MIDI vibrato resolution
   - Channel pan resolution
   - Channel pan and voice pan blending
-- Reduce multiplications in envelope generator
 
 # License
 

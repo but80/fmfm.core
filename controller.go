@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/but80/fmfm.core.v1/ymf"
-	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
+	"github.com/but80/fmfm.core/ymf"
+	"github.com/but80/fmfm.core/ymf/ymfdata"
 	"gopkg.in/but80/go-smaf.v1/pb/smaf"
 )
 
@@ -283,6 +283,7 @@ func (ctrl *Controller) noteOn(midich, note, velocity int) {
 	if !ok {
 		// TODO: warning or ignore by option
 		// return
+		_ = ok
 	}
 
 	if instr.VoiceType != smaf.VoiceType_FM {

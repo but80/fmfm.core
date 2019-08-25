@@ -35,7 +35,7 @@ func Fmt() error {
 
 // Check coding style
 func Lint() error {
-	return sh.RunV("gometalinter", "--config=.gometalinter.json", "./...")
+	return sh.RunV("golangci-lint", "run")
 }
 
 // Run test
@@ -64,7 +64,7 @@ func BuildModule() error {
 		return err
 	}
 	return sh.RunV(
-		"go1.11rc1", "build",
+		"go", "build",
 		"-o", "build/fmfm-module/fmfm.so",
 		"-buildmode=c-shared",
 		"cmd/fmfm-module/main.go",
