@@ -39,6 +39,11 @@ func NewChip(sampleRate, totalLevel float64, dumpMIDIChannel int) *Chip {
 
 var debugDumpCount = 0
 
+// SampleRate は、このチップに設定されているサンプルレートを返します。
+func (chip *Chip) SampleRate() float64 {
+	return chip.sampleRate
+}
+
 // Next は、次のサンプルを生成し、その左右それぞれの振幅を返します。
 func (chip *Chip) Next() (float64, float64) {
 	var l, r float64
