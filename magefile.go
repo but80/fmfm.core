@@ -59,7 +59,7 @@ func Prof2() error {
 }
 
 // Build module version
-func BuildModule() error {
+func Buildmod() error {
 	if err := os.MkdirAll(filepath.FromSlash("build/fmfm-module"), 0755); err != nil {
 		return err
 	}
@@ -69,5 +69,21 @@ func BuildModule() error {
 		"-buildmode=c-shared",
 		"cmd/fmfm-module/main.go",
 		"cmd/fmfm-module/helper.go",
+	)
+}
+
+// Build WebAssembly version
+func Buildwasm() error {
+	if err := os.MkdirAll(filepath.FromSlash("build/fmfm-wasm"), 0755); err != nil {
+		return err
+	}
+	return sh.RunWith(
+		map[string]string{
+			"GOOS":   "js",
+			"GOARCH": "wasm",
+		},
+		"go", "build",
+		"-o", "build/fmfm-wasm/fmfm.wasm",
+		"cmd/fmfm-wasm/main.go",
 	)
 }

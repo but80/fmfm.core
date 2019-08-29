@@ -170,13 +170,27 @@ func (ctrl *Controller) PushMIDIMessage(typ MIDIMessage, timestamp, midich, data
 	ctrl.mutex.Lock()
 	defer ctrl.mutex.Unlock()
 
-	ctrl.midiMessages = append(ctrl.midiMessages, &midiMessage{
+	msg := &midiMessage{
 		typ:         typ,
 		timestamp:   timestamp,
 		midiChannel: midich,
 		data1:       data1,
 		data2:       data2,
-	})
+	}
+	n := len(ctrl.midiMessages)
+	for i := n; 0 < i; i-- {
+		if timestamp < ctrl.midiMessages[i-1].timestamp {
+			continue
+		}
+		if i == n {
+			ctrl.midiMessages = append(ctrl.midiMessages, msg)
+		} else {
+			ctrl.midiMessages = append(ctrl.midiMessages[:i+1], ctrl.midiMessages[i:]...)
+			ctrl.midiMessages[i] = msg
+		}
+		return
+	}
+	ctrl.midiMessages = append([]*midiMessage{msg}, ctrl.midiMessages...)
 }
 
 var lastPrintedAt = time.Time{}
@@ -186,11 +200,11 @@ func (ctrl *Controller) FlushMIDIMessages(until int) {
 	ctrl.mutex.Lock()
 	defer ctrl.mutex.Unlock()
 
-	rest := []*midiMessage{}
-	for _, msg := range ctrl.midiMessages {
+	var rest []*midiMessage
+	for i, msg := range ctrl.midiMessages {
 		if until < msg.timestamp {
-			rest = append(rest, msg)
-			continue
+			rest = ctrl.midiMessages[i:]
+			break
 		}
 		// fmt.Printf("%02d: %d\n", msg.midiChannel, until - msg.timestamp)
 		switch msg.typ {

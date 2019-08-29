@@ -1,8 +1,5 @@
 language: go
 go:
-  - '1.9'
-  - '1.10'
-install:
-  - go get -t ./ymf/...
+  - '1.12'
 script: |
-  go test ./ymf/...
+  GO111MODULE=on go test . ./sim/... ./ymf/...
