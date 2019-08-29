@@ -3,9 +3,9 @@ package fmfm
 import (
 	"testing"
 
+	"github.com/but80/fmfm.core/ymf"
+	"github.com/but80/fmfm.core/ymf/ymfdata"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/but80/fmfm.core.v1/ymf"
-	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
 )
 
 type registers struct {

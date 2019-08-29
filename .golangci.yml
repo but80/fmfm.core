@@ -1,0 +1,13 @@
+run:
+  skip-dirs:
+    - voice
+linters:
+  disable:
+    - errcheck
+    - structcheck
+  enable:
+    - unused
+    - vet
+    - golint
+    - goimports
+    - gocyclo

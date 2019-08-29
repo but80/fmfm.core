@@ -3,7 +3,7 @@ package sim
 import (
 	"math"
 
-	"gopkg.in/but80/fmfm.core.v1/ymf/ymfdata"
+	"github.com/but80/fmfm.core/ymf/ymfdata"
 )
 
 type stage int
@@ -168,7 +168,6 @@ func (eg *envelopeGenerator) getEnvelope(tremoloIndex int) float64 {
 		} else {
 			eg.stage = stageOff
 		}
-		break
 
 	case stageRelease:
 		if epsilon < eg.currentLevel {
@@ -177,7 +176,6 @@ func (eg *envelopeGenerator) getEnvelope(tremoloIndex int) float64 {
 			eg.currentLevel = .0
 			eg.stage = stageOff
 		}
-		break
 	}
 
 	result := eg.currentLevel
